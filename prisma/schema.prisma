@@ -1,0 +1,301 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -------------------------------------
+// Usuarios y Perfiles (Supabase Auth extensions)
+// -------------------------------------
+model Profile {
+  id        String   @id @default(uuid())
+  auth_id   String   @unique // ID del usuario en auth.users de Supabase
+  email     String   @unique
+  nombre    String?
+  rol       Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tareasAsignadas       Tarea[]               @relation("TareasAsignadas")
+  hitosAsignados        HitoProyecto[]
+  tareasAdministrativas TareaAdministrativa[]
+}
+
+enum Role {
+  ADMIN
+  USER
+  MANAGER
+}
+
+// -------------------------------------
+// Módulo de CRM (Ventas y Clientes)
+// -------------------------------------
+model Cliente {
+  id        String        @id @default(uuid())
+  nombre    String
+  empresa   String?
+  email     String?
+  telefono  String?
+  rfc_taxid String?
+  estatus   ClienteStatus @default(LEAD)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  oportunidades Oportunidad[]
+  proyectos     Proyecto[]
+  cotizaciones  Cotizacion[]
+  facturas      Factura[]
+  tareas        Tarea[]
+}
+
+enum ClienteStatus {
+  LEAD
+  ACTIVO
+  INACTIVO
+}
+
+model Oportunidad {
+  id             String           @id @default(uuid())
+  titulo         String
+  valor_estimado Float            @default(0)
+  etapa          EtapaOportunidad @default(PROSPECTO)
+  cliente_id     String
+  cliente        Cliente          @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  cotizaciones Cotizacion[]
+}
+
+enum EtapaOportunidad {
+  PROSPECTO
+  CONTACTADO
+  NEGOCIACION
+  GANADO
+  PERDIDO
+}
+
+// -------------------------------------
+// Módulo de Tareas
+// -------------------------------------
+model Encargado {
+  id        String   @id @default(uuid())
+  nombre    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tareas Tarea[]
+}
+
+enum Prioridad {
+  BAJA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+enum CategoriaTarea {
+  ADMINISTRATIVA
+  OPERATIVA
+  VENTAS
+  MARKETING
+  OTRO
+}
+
+model Tarea {
+  id           String         @id @default(uuid())
+  titulo       String
+  descripcion  String? // Notas adicionales o detalle
+  fecha_limite DateTime?
+  estatus      TareaStatus    @default(PENDIENTE)
+  prioridad    Prioridad      @default(MEDIA)
+  categoria    CategoriaTarea @default(OTRO)
+  orden        Int            @default(0) // Para Drag and Drop
+  is_focus     Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  proyecto_id String?
+  proyecto    Proyecto? @relation(fields: [proyecto_id], references: [id], onDelete: SetNull)
+
+  cliente_id String?
+  cliente    Cliente? @relation(fields: [cliente_id], references: [id], onDelete: SetNull)
+
+  encargados Encargado[] // Relación N:M implícita
+
+  comentarios ComentarioTarea[]
+
+  // Opcional, mantenemos compatibilidad con el sistema de Profile anterior por si acaso
+  asignado_a_id String?
+  asignado_a    Profile? @relation("TareasAsignadas", fields: [asignado_a_id], references: [id])
+}
+
+model ComentarioTarea {
+  id        String   @id @default(uuid())
+  texto     String
+  createdAt DateTime @default(now())
+
+  tarea_id String
+  tarea    Tarea  @relation(fields: [tarea_id], references: [id], onDelete: Cascade)
+}
+
+enum TareaStatus {
+  PENDIENTE
+  EN_CURSO
+  ON_HOLD
+  COMPLETADA
+  CANCELADA
+}
+
+// -------------------------------------
+// Módulo de Proyectos (Kanban / Project Plan)
+// -------------------------------------
+model Proyecto {
+  id           String         @id @default(uuid())
+  nombre       String
+  descripcion  String?
+  estado       ProyectoStatus @default(ACTIVO)
+  fecha_inicio DateTime?
+  fecha_fin    DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  cliente_id String?
+  cliente    Cliente? @relation(fields: [cliente_id], references: [id])
+
+  hitos        HitoProyecto[]
+  cotizaciones Cotizacion[]
+  tareas       Tarea[]
+}
+
+enum ProyectoStatus {
+  PLANIFICACION
+  ACTIVO
+  PAUSADO
+  COMPLETADO
+}
+
+model HitoProyecto {
+  id             String     @id @default(uuid())
+  titulo         String
+  descripcion    String?
+  fecha_limite   DateTime?
+  estatus        HitoStatus @default(PENDIENTE)
+  proyecto_id    String
+  proyecto       Proyecto   @relation(fields: [proyecto_id], references: [id], onDelete: Cascade)
+  responsable_id String?
+  responsable    Profile?   @relation(fields: [responsable_id], references: [id])
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+enum HitoStatus {
+  PENDIENTE
+  EN_CURSO
+  COMPLETADO
+}
+
+model Cotizacion {
+  id                String           @id @default(uuid())
+  folio             String           @unique @default(cuid())
+  monto             Float
+  estatus           CotizacionStatus @default(BORRADOR)
+  fecha_vencimiento DateTime?
+
+  proyecto_id String?
+  proyecto    Proyecto? @relation(fields: [proyecto_id], references: [id], onDelete: SetNull)
+
+  oportunidad_id String?
+  oportunidad    Oportunidad? @relation(fields: [oportunidad_id], references: [id], onDelete: SetNull)
+
+  cliente_id String?
+  cliente    Cliente? @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  facturas Factura[]
+}
+
+enum CotizacionStatus {
+  BORRADOR
+  ENVIADA
+  ACEPTADA
+  RECHAZADA
+}
+
+// -------------------------------------
+// Módulo de Facturación
+// -------------------------------------
+model Factura {
+  id                String        @id @default(uuid())
+  folio             String        @unique
+  fecha_emision     DateTime      @default(now())
+  fecha_vencimiento DateTime?
+  monto_total       Float
+  estatus           FacturaStatus @default(PENDIENTE)
+
+  cliente_id String
+  cliente    Cliente @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+
+  cotizacion_id String?
+  cotizacion    Cotizacion? @relation(fields: [cotizacion_id], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum FacturaStatus {
+  PENDIENTE
+  PAGADA
+  VENCIDA
+  CANCELADA
+}
+
+// -------------------------------------
+// Módulo Financiero / Administrativo
+// -------------------------------------
+model MovimientoFinanciero {
+  id                String            @id @default(uuid())
+  fecha             DateTime
+  descripcion       String
+  monto             Float
+  tipo_flujo        TipoFlujo
+  sentido           SentidoMovimiento
+  origen            String
+  categoria_ingreso String?
+  categoria_egreso  String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+enum TipoFlujo {
+  OPERATIVO
+  INVERSION
+  FINANCIAMIENTO
+}
+
+enum SentidoMovimiento {
+  INGRESO
+  EGRESO
+}
+
+model TareaAdministrativa {
+  id             String         @id @default(uuid())
+  tipo           TipoTareaAdmin
+  entidad        String // "Juan", "Pedro", etc.
+  monto          Float
+  estatus        TareaStatus    @default(PENDIENTE)
+  historial      String? // Notas adicionales
+  responsable_id String?
+  responsable    Profile?       @relation(fields: [responsable_id], references: [id])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+enum TipoTareaAdmin {
+  CUENTA_POR_COBRAR
+  CUENTA_POR_PAGAR
+}

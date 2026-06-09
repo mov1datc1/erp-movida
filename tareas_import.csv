@@ -1,0 +1,378 @@
+,Métrica,Valor,,,,,,,,PROGRESO
+,Total,225,,,,,,,,
+,Completadas,188,,,,,,,,84%
+,Sin atender,0,,,,,,,,
+,En curso,6,,,,,,,,
+,,,,,,,,,,
+Proyecto/Cliente,Descripción,Encargado,Solicitud,Límite,Mes,Prioridad,Estatus,Fin,Cerrados esta semana,Comentarios
+LexLatin,Enviar resumen Angela / José de estatus automatización de Ágora EMAIL,Edgar,15-sept,17-sept,Septiembre,Alta,Listo,,,Se pasa a prueba con un grupo de correos mayor
+LexLatin,Resumen de Ticket de Lexlatin,Dasha,6-oct,13-oct,Octubre,Alta,Listo,,,En espera de Vo.Bo para enviar correo
+LexLatin,Resumen de Tickets DMS,Dasha,13-oct,17-oct,Octubre,Alta,Listo,,,Apenas van 5 horas de atención
+LexLatin,Ajusten en Landing Page Campus (Check Point),Edgar,13-oct,24-oct,Octubre,Alta,Listo,,,20/10 - ya no hay ajustes solicitado por Wendy. Esperando feedback de poner en servicio Landing.
+LexLatin,Creación de Tickets ejemplo automatización,Edgar/ Jonathan,10-nov,10-nov,Noviembre,Alta,Listo,,,
+LexLatin,Revisar con Nancy Perfil Plus (LP),Jonathan,27-oct,28-nov,Octubre,Alta,Listo,,,"26/01 - Cerrado. Configurado Funnel e ventas. 19/01 - se realizaron ajustes y se iba a lanzar compaña. 12/01 -  en revisión por parte de Nancy. 15/12 - Se enviará correo de seguimiento (Ricardo). 
+08/12 - Pendiente por cambios de Página y pendiente insumos 
+24/11 - Email a Nancy de estatus. 
+10/11 - Jonathan enviará email hoy para validación."
+LexLatin,Campus LandingPage - IA para abogados,Edgar,12-ene,16-ene,Enero,Alta,Listo,,,"26/01/ -  Confirmado por Wendy, en servicio. 19/01 - pendiente por concluir (Banner) Nancy. - hoy se hizo actualización."
+LexLatin,"Campus LandingPage - Write like a Top-Tier lawyer: Master clear, persuasive legal English",Edgar,22-ene,5-feb,Enero,Alta,Listo,,,"05/02 - Se agregaron banners y se resolvieron correcciones - 97% Avance  - Faltan Formularios (by Henry)
+02/02 - Pendiente de inputs de LexLatin 24/01 - 80% Avance
+26/01 - Se espera diseño de Banner.
+28/01 - Se está trabajando en correcciones y en espera de recursos para el banner y formularios.
+"
+LexLatin,Actualización Landing Diplomado Arbitraje Internacional,Edgar,30-mar,10-abr,Marzo,Media,Listo,,,"06/04 - se pasó correo. Esperando por LexLatin. 23-03 Se define trabajar con los subdominios l y crm . Monitoreo constante y evaluación de un posible Dominio a futuro. 09-03 Lider envía actualización y se sigue trabajando en pruebas.02/03 - en seguimiento - 23/02  - revisión de Phising DMARC/DKIM, en seguimiento. (Funcionando)."
+LexLatin,Landing de Ágora: Trial + cobro (en pruebas),Edgar/Jonathan,12-ene,16-ene,Enero,Alta,En Curso,,,"04-05 mismo estatus , esperando de parte de ellos 27-04 se realizaron ultimos ajustes esperando que prueben. 20-04 En conversaciones con Nancy solicitó agregar una pagina de inicio de prueba. hoy se envía actualización. 13-04 Se contactará a Nancy para ver si se da play, se hicieron pruebas.
+06/04/2026 se ajusta y actualiza el home con Nancy, las pruebas de suscripcion siguen esta semana. Esperando por Nancy. 30/03/2026 - falta actualización Jonathan. 23-03 esta semana siguen las pruebas home  y pasarela 09-03 trabajndo en pruebas esta semana para una llamada con LL 02-03 validar un posible desarrollo e integracion con base de datos. Junta miercoles a las 2pm. 23/02 - en progreso, retomado. 26/01 - en progreso. (por retomar con LL) 19/01 - en proceso de pruebas. (LexLatin en segunda prioridad).12/01 - pruebas en proceso1602 llamada con nancy. "
+LexLatin,Filtro de Email para evitar Phishing - cambios de configuración / Correo,Edgar,23-feb,23-feb,Febrero,Media,Listo,,,"23-03 Se define trabajar con los subdominios l y crm . Monitoreo constante y evaluación de un posible Dominio a futuro. 09-03 Lider envía actualización y se sigue trabajando en pruebas.02/03 - en seguimiento - 23/02  - revisión de Phising DMARC/DKIM, en seguimiento. (Funcionando)."
+LexLatin,Campus ajustes - cambios en el Home,Edgar,12-ene,16-ene,Enero,Media,Listo,,,"23-03 se estará agregando nuevos requerimientos al home.09-03 Se tuvo reunión, hay nuevos cambios 23/02  - depende de insumos de LexLatin. 02/02 - Lider debe terminar unos detalles para revisión para ver Insights / falta banner - Nancy 26/01 -  pendiente inputs de LexLatin Nancy, dar toque a Nancy (cuándo). 19/01 - Se hicieron cambios y está pendiente por LexLatin. Edgar enviará email."
+LexLatin,Ajustes de formulario campus,Edgar,09-02,13-feb,Febrero,Alta,On Hold,,,09-03 On Hold 23/02  - depende de insumos de LexLatin.
+LexLatin,Email eduactivo de Phishing,Ricardo,23-feb,23-feb,Febrero,Media,Listo,,,02/03 - se envia email de Informativo Seguridad Digital en LexLatin: Cómo Identificar y Evitar Ataques de Phishing
+LexLatin,Configuraciones anti phishing l.lexlatin,Edgar,09-02,20-feb,Febrero,Alta,Listo,,,
+LexLatin,"Actualizaciónes en pagina ""Programas""",Edgar,09-02,20-feb,Febrero,Alta,Listo,,,18-02 Se está realizando actualización de contenido de acuerdo a solicitud vía email
+Galvizu,Llamada de Ricardo - seguimiento de formulario,Ricardo,09-02,13-feb,Febrero,Alta,Listo,,,
+Nubex,Presentacion,Ricardo,16-02,9-feb,Febrero,Alta,Listo,,,"02/03/2026 - Presentación presencial realizada - foco en entrega 06/03, 23/02 - presentación de estatus semanal."
+WMS,Junta con Dominique,Ricardo,09-02,9-feb,Febrero,Alta,Listo,,,Reunion 16-02
+Mix concrete,Revisión de proyecto - nuevo requerimiento,Jonathan,09-02,13-feb,Febrero,Alta,Listo,,,Reunion 17-02
+,Rediseño de PerfilPlus (Nueva Landing Page),Jonathan,23-feb,27-feb,Febrero,Alta,Listo,,,
+PDG,Revisión de PDG,Jonathan / Ricardo,06/10,31/10,Octubre,Alta,En Curso,,,"04-05 Mauro retomará mejoras de PDG esta semana 27-04 charly pide avances pero mauro esta ocupado con RP20-04 Mauro avanzó con algiunas tareas pero la prioridad es RP 13-04 Mauro está retomando prioridades esta semana
+06/04-hablar con Mauro para ajustes adicionales y comunicra a Charly. 30/03 - pendiente revisar. 23-03 Mauro hizo ajustes y se espera revisión de parte de Charly 09-03 se trabajará en funciones claves 02/03 Charly solicio nuevos ajustes y Mauro en ejecucion 16-02 Cierre de fase 1, inicio fase 2 (cobranza) 09-02 Mauro en resolución de problemas aque van saliendo, en espera de aprobación de Charly 02/02- en progreso ajustes de PDG - producción. 26/01 - Mauro trabajando en ajustes que pidió Charly. 19/01 - buscando cerrar esta semana. 12/01 -  se ha estado en contacto con Mauro / modificaciones de Charly. 15/12 - Toque de Ricardo a Mauro
+24/11 - Toque a Mauro. 
+10/11 - Toque a Charly para revisión. "
+LexLatin,Ajuste de Pixel de Landings,Edgar/Jonathan,12-ene,16-ene,Enero,Alta,Listo,,,Se realizó ajuste de pixel.
+LexLatin,Ágora - Cambio de Precio Woocomerce Ágora,Edgar,12-ene,12-ene,Enero,Alta,Listo,,,Terminada
+LexLatin,Automatización en Make - Ágora,Edgar/ Jonathan,8-sept,12-dic,Octubre,Alta,On Hold,,,"09-03 Reunión con Rosa Emilia, tomando caso de José. No se necesita actualización. Hacer resumen de casos trabajados  02/03 - pendiente aun sin update. 02/02 - Edgar convocó a reunión con Rosa Emilia informativa para retomar caso.
+23/02 - no hay avances. 09/02 llamada entre lunes y miércoles a Rosa Emilia para seguimiento 06/02 - No se ha tenido respuesta a solicitud de reunión para redefinir roles y retomar requerimientos.
+02/02 - Lider conversó con José / hay cambios con Rosa Emilia que son de José. 26/01 -  por retomar. 19/01 - On hold por retomar esta semana. 12/01 - estaba On Hold, por retomar.  (por probar) 15/12 - Reunión con José para actualizar.
+08/12 - Solo pendiente archivos adjuntos / ya se maneja Inglés y quien es el remitente (para no enviar interno). 
+01/12 - Lider habló el 25, el 28 se envía el mail al equipo completo.
+24/11 - Se envia email a José (Ricardo) (el balón está del lado de LexLatin). 
+10/11 - Edgar envía email. 
+03/11 - Se espera mañana compartir resultados con José / Hubo reunión (Pregunta pendiente idioma en el que se genera la solicitud Inglés / Español - pendiente Portugues). Fase I: Participación como usuario de automatización. 
+27/10 - Pendiente reunirnos Lider con José - esperando su respuesta. (ya hay formato en correo), correo cuando todo esta completo y otro cuando falta información. Falta integración con correo - comience a usarlo. 
+20/10 - Reunión con José para mostar el avance con Make (falta plantilla enriquecida) . 
+13/10 - 
+1) Análisis de información por correo 
+2) Análisis de la IA 
+3) Revisión de nomencaltura (datos faltate)  - generación de Draft de correo. Analizando contenido de correo. 
+22/09 - Trabajando en escenario con DeepSeek.
+Contacto Lider con José 07/10/2025."
+LexLatin,"Toque a Angela con Rocio, José y Nancy PP",Ricardo,27-oct,31-oct,Octubre,Alta,Listo,,,
+LexLatin,"Automatizaciones de PerfilPlus Rocio
+Esta semana es de pruebas de automatizaciones 
+(Se notificará y semana que viene sesión)",Jonathan,15-sept,12/12,Septiembre,Alta,Listo,,,"09/02 Jou hará cambios en automatización, se enviará correo de prueba y llamada entre lunes y miércoles para saber que está todo OK 02/02- por retomar. 26/01 -  foco a tema comercial y landing - stand by. 19/01 - On hold por retomar esta semana.. 12/01 -  Jou retomando para pruebas. 15/12 - Ricardo envía correo de seguimiento.
+08/12 - Lider revisó y pendiente hablar con Jonathan.
+01/12 - Lider se va a reunir con Jonathan para ver cómo se le puede ayudar.
+24/11 - Se envia email a Rocio. 
+10/11 - Se envió email a Angela. 
+03/11 - Pendiente archivo centralizado - toque Angela.
+27/10 - Hay un issue con el archivo de fuente de datos. Archivo Master - Ricardo contactará a Angela. 
+1) Comenzar con los datos de Rocio 2) Mostrar ya casos de automatización y dar acceso y ver que este de acuerdo y 3) escuchar a Tahimy. 
+a.        Automatización de Notificaciones.
+b.        Borrador de temas para publicaciones.
+c.        Automatización de Registro en el Excel de Rocio. (Crear el registro)
+d.        Incorporación de ayuda en las reuniones con clientes:
+                                                    i.     - Levantamiento de la minuta (Uso de IA para reuniones).
+                                                   ii.     - Vertido de comentarios en el Excel (o lo que sea). 
+                                                  iii.     - Preparación de cuestionario (¿hay oportunidades de preparar este cuestionario de forma automatizada?) 
+                                                iv.     - Envío de cuestionario y seguimiento.
+20/10 - Próxima reunión con Rocio "
+LexLatin,PERFILPLUS - Próxima junta de seguimiento con Nancy,Edgar/ Jonathan,16-oct,24-oct,Octubre,Alta,Listo,,,20/10 - se envía email de seguimiento Jonathan.
+LexLatin,Ágora - Landing,Edgar,7-ene,9-ene,Enero,Alta,Listo,,,12/01 -  se hizo cambios en landign Ágora (Duplicado). 07/01 - en progreso - lider verá algo con Jonathan.
+LexLatin,"Automatizaciones de PerfilPlus Rocio
+",Jonathan,16-feb,28-feb,Febrero,Media,Listo,,,Requerimiento nuevo
+LexLatin,Revisar error de Ágora - operaciones que no están cargados,Edgar,28-jul,28-nov,Septiembre,Alta,ON HOLD,,,"06/04-pendiente retomar esta semana. 30/03 - no se ha podido retomar - dandole priroridad a las landing y otros pendientes. 23-03 aún no se ha podido retomar las revisiones 09-03 Se notificó en reunión, depende de producción. 02/03 Se implementaron cambios en Base de datos y se validará que no hay errores en reunión con Rosa Emilia
+02/02-pendinte hacer ajustes y cambios de hacerlo con Mauro. 15/12 - Se estima esté listo el 19/12.
+24/11 - Se coloca aplicación en ambiente de prueba (pendiente de pasarlo a productivo). 
+03/11 - Revisón de lider de error. 
+27/10 - Falta integrar cambios en rama. 
+20/10 - Falta colocar en producción. Edgar tiene configuración en Cloudways para a través de consulta poner en producción. 
+17/09"
+LexLatin,Ajuste de filtro Ágora Firmas,Edgar,28-jul,28-nov,Septiembre,Alta,ON HOLD,,,"06/04-pendiente retomar esta semana. 30/03 - no se ha podido retomar - dandole priroridad a las landing y otros pendientes. 23-03 aún no se ha podido retomar las revisiones09-03 Se notificó en reunión, depende de producción. 02/03 Se coordinará con Rosa Emilia en reunión convocada
+15/12 - Se estima esté listo el 19/12.
+24/11 - Pendiente pasarlo a producción. 
+03/11 - Ya se informó a José que el foco es automatización pero estamos avanzando con esto. Dar toque a Jose Rivero. Sitio de prueba ya disponible (15-08). 
+18/08/ en proceso pruebas, se envía email."
+RankPilot,Hablar con Mauro RankPilot,Ricardo/Jonathan,23/02,27/02,Febrero,Alta,Listo,,,"09-03 se trabajó el fin de semana en l anueva version, se desa finalizar en 2 semanas. Mauro02/03 - dar toque para ver avances.  esta validando chat"
+Interno,Aplicar ambientes de Desarrollo o QA,,,,,,,,,
+RankPilot,Pruebas de MVP RankPilot,Ricardo/Jonathan,19-ene,19-ene,Enero,Alta,En Curso,,,"04-05 Angela y movida probando ultimos ajustes de capa de contexto solicitado 27-04 hoy se debe hacer la prueba segun planeacion 20-04 Hoy se continua con los avances y revisiones de angela 13-04 Ángela contactó el 12-04. Se sigue trabajando y probando.
+06/04 - Ajustes de configuración de servidor. Pendiente revisión con Miguel. Toque Jonathan a grupo. 30/03 - Se subió servicio para RP y manejo de Promt con agentes. en pruebas las respuestas. Preguntar con Jonathan. 23-03 Tuvimos Reunión con Angela donde nos compartiria unos recuersos. Tenemos que revisarlos 09-03 se realizando pruebs pero se desea crear un ambiente de pruebas y ptro de desarrollo02/03 Mauro continua trabajando en el chat 16-02 Ángela revisó, Mauro hizo cambios, faltan nuevos ajustes 09-02 En proceso de revisión. "
+CAB,Contacto con Karen + Subir inventario WMS,Ricardo,13-oct,17-oct,Octubre,Alta,Listo,,,Se subió inventario.
+LexLatin,Automatización en Make - Ágora (enviar correo de estatus),Edgar,23-sept,23-sept,Septiembre,Alta,Listo,,,Se enviará correo en los adjuntos.
+LexLatin,PerfilPlus + Ágora + Automatizaciones + costo USD 5 x 1K token + Make,Ricardo,15-sept,17-sept,Septiembre,Alta,Listo,,,
+LexLatin,Actualización de Módulos de Drupal,Edgar,7-jul,29-sept,Septiembre,Alta,Stand By,,,en stand by imentras se soluciona otras prioridadesVersión 8.7 y el nuevo es 11.
+LexLatin,Preparación de reporte de cierre de mes,Dasha,4-ago,12-ago,Agosto,Alta,Listo,,,Se envia el 12/08 a Ricardo para validar y enviar
+DMS,Pruebas con máquina de DMS pruebas de licencia,Edgar / Dasha,14-jul,18-jul,Julio,Alta,Listo,,,Se propone fecha de prueba 30/07/2025. Realizado.
+LexLatin,Toque a Angela de plan de Perfilplus,Ricardo,28-jul,31-jul,Julio,Alta,Listo,,,
+DMS,Pruebas con máquina de DMS pruebas de licencia,Ricardo,14-jul,15-sept,Septiembre,Alta,Listo,,,"Se envió mensaje al Norma hoy 1-09, se envio toque hoy 08/09/2025,"
+LexLatin,Hacer seguimiento y avanzar con PerfilPlus,Jonathan,4-ago,8-ago,Agosto,Alta,Listo,,,
+LexLatin,"Revisión de tareas 1319, 1325 - 1336",Edgar,4-ago,8-ago,Agosto,Alta,Listo,,,
+LexLatin,Revisión con Henry del número de WhatsApp,Ricardo,11-ago,11-ago,Septiembre,Alta,Listo,,,se vió con henry
+LexLatin,AyudanteX,Edgar,7-jul,25-jul,Julio,Baja,Listo,,,Ver cómo conectamos un formulario / ver los datos / está con la cuenta de soporte M0vid4!5r
+LexLatin ,Seguimiento de visitas,Ricardo,7-jul,7-jul,Julio,Alta,Listo,7-jul,1,Se envía email.
+LexLatin,Data estudio - Tahimi,Ricardo,1-dic,,Diciembre,Alta,Listo,,,"Ya se agregó, fue respondido."
+RDF,Revisión de la página,Dasha,1-dic,,Diciembre,Alta,Listo,,,
+DMS,"Creación de correo - Cuenta office DMS 1, Cuenta office DMS 2. gracedmsmx es la anterior",Dasha,1-dic,,Diciembre,Alta,Listo,,,02/12 dmsgraciela.oceguera@gmail.com Movida2025!
+RankPilot,Logo,Ricardo,1-dic,,Diciembre,Alta,Listo,,,"15/12 - En revisión primera versión. 
+08/12 - En progreso"
+LexLatin,Revisión de costo de certificado CloudFare,Edgar / Ricardo,1-dic,,Diciembre,Alta,Listo,,,08/12 - se envía email con confirmación de SSL.
+RankPilot,Reunion Angela Ricardo,Ricardo,4-dic,,Diciembre,Alta,Listo,,,
+LexLatin,Optimizar BlueHost costo,Edgar,7-jul,29-sept,Septiembre,Baja,Listo,,,"01/12/25 Se implementó certificado gratuito de cloudfare
+27/10 - Se han estado revisando los crons y la migración - antesClowdways es compartido. Proponer OVH. Hay que ver si es neceario php superior a 7.3, se puede avanzar por certificado a ver si podemos reducir este costo. "
+LexLatin,Ágora - pruebas de conexión base de datos Mauro,Edgar / Mauro,7-jul,11-jul,Julio,Alta,Listo,,,"Consolidado de operaciones, empresas y firmas."
+CAB,Bajar código fuente,Edgar/Ricardo,12-ene,16-ene,Enero,Alta,Listo,,,26/01 - actividad en seguimiento.
+LexLatin,1229 - Call to action botones de suscripción Ágora,Ricardo,14-jul,25-jul,Julio,Media,Listo,,,Pedir feedback a Angela. 21/07 se envío email.
+DMS,Facturación & Hosting,Dasha / Ricardo,11-jul,11-jul,Julio,Alta,Listo,,,Autorizada la factura del hosting - Falta acumular horas para factura de soporte
+LexLatin,Contacto a Bautista para Google A y Search Console,Edgar,7-jul,11-jul,Julio,Alta,Listo,,,
+LexLatin,Cierre Junio,Dasha,7-jul,11-jul,Julio,Alta,Listo,14-jul,,Enviado 14/07/25 17pm
+LexLatin,Landing PerfilPlus (Seguimiento) - Kick off,Ricardo / Jonathan,7-jul,22-jul,Julio,Alta,Listo,,,Junta con el equipo de LexLatin
+WMS,SSL Instalación,Edgar,7-jul,31-jul,Julio,Baja,Listo,,,
+WMS,Revisión de comunicación multisite sobre SSL,Edgar,7-jul,31-jul,Julio,Baja,Listo,,,Se encontró que la API requiere utilizar librería que maneje HTTPS
+WMS,Junta de Trabajo con Equipo WMS,Jonathan,7-jul,18/07,Julio,Alta,Listo,,,Seguimiento de cambios
+WMS,Revisión de Datos e interfaces de WMS,Jonathan,7-jul,18-jul,Julio,Alta,Listo,,,Preguntar Jonathan si hizo revisión de datos
+Lexlatin,Revisión de redireccionamiento de noticias@lexlatin.com,Edgar,7-jul,11-jul,Julio,Baja,Listo,,,
+DMS,Revisión de respaldo de Karen,Edgar/Ricardo,14-jul,21-jul,Julio,Alta,Listo,,,
+LexLatin,Ágora validar qué procede con Programación,Edgar,14-jul,18-jul,Julio,Alta,Listo,,,
+WMS,Actualización de WMS 14/07/2025,Edgar,14-jul,14-jul,Julio,Alta,Listo,,,
+LexLatin,Soporte Betty,Ricardo,25-jul,31-jul,Julio,Alta,Listo,,,
+RankPilot,Junta de Sincronización Kick Off,Ricardo,7-jul,16-jul,Julio,Media,Listo,,,Junta con Angela - 
+RankPilot,Inicio de App,Ricardo / Angela,14-jul,16-jul,Julio,Media,Listo,,,Preparación de PPT
+LexLatin,1244 - Riesgo Potencial,Ricardo,14-jul,25-jul,Julio,Media,Listo,,,Se cierra con nota.
+LexLatin,Reconfiguración de usuario Noticias noticias@lexlatin.com,Edgar,16-jul,21-jul,Julio,Media,Listo,,,
+LexLatin,Revisar con el lider Aplicación de Ágora,Edgar,16-jul,31-jul,Julio,Media,Listo,,,Se tiene avance en consulta y se idendifica error en campo de base de datos (excerpt)
+Fivo,Hacer un check point,Jonathan / Ricardo,21-jul,1-ago,Julio,Media,Listo,,,
+LexLatin,Correo y pasos de bienvenida,Dasha,25-jul,31-jul,Julio,Media,Listo,1-ago,,Se hizo en conjunto Ricardo-Dasha
+WMS ,Automatización del Deploy con Github Actions,Edgar,16-jul,31-jul,Julio,Media,Listo,,,Pruebas de ambientes.
+LexLatin,Registro de Tickets de LexLatin,Edgar,16-jul,30-jul,Julio,Alta,Listo,,,
+LexLatin,SEO Técnico seguimiento,Edgar,7-jul,25-jul,Julio,Media,Listo,,,Review de razones para no indexar. Se indexaron 3K páginas.
+LexLatin,Restructurar servidores LexLatin (optimización de costos),Edgar,3-nov,28-nov,Noviembre,Media,Listo,,,Hacer pruebas con la API de Cloudways con un cron. Validación de certificado. (Buscando ahorro de certificado).
+RankPilot,LandingPage,Ricardo/Jonathan,19-ene,19-ene,Enero,Alta,Listo,,,02/02 - foco de la semana - en progreso 26/01 - Retomar Jonathan y Ricardo
+LexLatin,SEO con Ana Karen,Edgar,7-jul,26-sept,Julio,Media,Listo,,,Creación de Data Estructurada - etiquetas. Primera respuesta. 28/07/2025 - finales de semana publicar con Mario. Pendiente vista de tags por Mario.
+Interno,WMS / Outsourcing - Campaña y Leads,Ricardo/Jonathan,26-ene,30-ene,Enero,Alta,En Curso,,,"27-04 ya esta arriba ambas campañs 20-04 problemas con el pago hay que revisar 13-04 Se activó campaña, se sigue optimizando.
+23-03 En revisión porque no funcionan 
+09-03 mañana se activa la campaña con nuevo contenido . 
+02/03 - meter contenido y agregar dinero 06/03, 
+23/02 Campaña pausada par aactivar / revisar porque se pausó. 
+09-02 Pendiente a revisar esta semana
+26/01 - revisar campaña"
+LexLatin,1273 - Contactos,Jonathan,14-jul,25-jul,Julio,Media,Listo,,,Viendola con Edgar- YA vamos a cerrar porqu no requerimos de esas funcionalidades
+WMS,Revisión de versión On Line de WMS,Edgar/Manuel,19-ene,19-ene,Enero,Alta,On hold,,,"23/02 - On hold. 09-02 El lider ejecutará cuando esté listo 29-01 Manuel hará cambios relacionado a separación de proyectos WMS para Formatex y WMS (Producto base), Edgar implementará deploy automático en otra rama para ser agregada una vez se tenga los cambios por Manuel. 02/03 Se reactiva "
+DBB,Revisar video de Google Analitycs,Jonathan,26-ene,30-ene,Enero,Alta,Listo,,,
+Lexalatin,Revisión de tráfico encontrado a páginas con error (Search Console),Edgar,24-oct,31-oct,Octubre,Media,Listo,,,"02/02- se cierra y no hay errores / esperar Angela comparta reporte. 01 -  en revisión - los últimos porblemas registardos fueron hasta 24/08/2025, en seguimiento la tendencia de indexación. por distintas categorías.  Han disminuido. Anliazando acciones a tomar. 19/01 - en progreso - retomado.  15/12 - Según se avance en las otras actividades le podría dedicar tiempo a esas dos actividades
+01/12 - Lider dará overview
+24/11 - Se crea caso de Search Console. Oct. Se tiene en actividades pendientes por revisar. "
+Cote,Propuesta integral de Cote y servicios,Jonathan,26-ene,30-ene,Enero,Alta,Listo,,,16-02 haciendo pruebas con Karo 09-02 Hacer llamada con Antoine (viernes) 02/02 - esta seamana
+LexLatin,Optimización de proceso de captura de datos de Ágora (Preparar propuesta),Edgar / Todos,7-ago,29/08,Agosto,Media,Listo,,https://docs.google.com/document/d/1GMhmd-1-BsOy78elHOP4FORZY_7RS04C,"06/10 - Se usará Make ocmo herramienta.
+18/08 - se envía email de estatus, en pruebas con la IA. Formulario + lectura de email. 1) agregar la IA al email Gemini 2) el formulario y explicar el proceso y 3) ver si se puede automatizar..."
+LexLatin,Sesión de retomar PerfilPlus,Edgar/ Jonathan,16-oct,16-oct,Octubre,Media,Listo,,,
+PDG,Actualización de Datos,Mauro,20/10,31/10,Octubre,Alta,Listo,,,
+LexLatin,Nuevo Landing Page Perfil Plus - Home,Jonathan,11-ago,5-sept,Agosto,Alta,Listo,,,"Avanzando para junta miércoles. Jonathan envió email con avances , el 03/09 nuevo meet todavía nos deben: 1)  falta video 3) falta datos de página de gracias 4) trabajando en Onboarding ejemplo 5) faltan precios y preguntas frecuentes."
+LexLatin,Nuevo Landing Page Perfil Plus - Gracias,Jonathan,11-ago,5-sept,Agosto,Alta,Listo,,,Avanzando para junta miércoles
+LexLatin,Nuevo Landing Page Perfil Plus - Onboarding,Edgar/Mario,11-ago,5-sept,Agosto,Alta,Listo,,,Se debe revisra L&F y Filtros. Debe verse el diseño como ellos quieren.
+LexLatin,Conexión de Formulario para Perfil Plus Ayudante X,Jonathan,11-ago,25-ago,Agosto,Alta,Listo,,,Responder email
+LexLatin,Crear perfilplus.lexlatin.com,Edgar,11-ago,12-ago,Agosto,Alta,Listo,,,
+Lexlatin,Despliegue de Entorno de Desarrollo/Pruebas de Agora-LexLatin,Edgar/Mauro,15-ago,15-ago,Agosto,Alta,Listo,,,
+LexLatin,Confirmar Stand By  Perfil Plus,Ricardo,22-sept,22-sept,Septiembre,Ala,Listo,,,
+LexLatin,Caso de Jira - usuario extra y pago,Edgar / Ricardo,18-ago,23-ago,Agosto,Alta,Listo,,,
+RankPilot,Scraper de Chambers,Dasha,18-ago,23-ago,Agosto,Alta,Listo,,,
+LexLatin,Caso de prueba Rocio,jonathan/  Ricardo,25-ago,26-sept,Agosto,Alta,Listo,,,tenemos meet con Rocio
+LexLatin,Precio de solución de Ágora (costo herramienta),Edgar/ Jonathan,25-ago,12-sept,Agosto,Alta,Listo,,,se revisa con el ejercicio
+LexLatin,Reunión con Wendy,Ricardo / Jonathan,25-ago,29-ago,Agosto,Alta,Listo,,,
+LexLatin,Reunión de Landing Page,Edgar/ Jonathan,25-ago,29-ago,Agosto,Alta,Listo,,,nueva fecha
+LexLatin,1. Personalización de Landing Page LexLatin - Cómo Convertirse en un Rainmaker en la Abogacía,Edgar/ Jonathan,8-sept,12/09/2025,Septiembre,Alta,Listo,,,22 de Octubre - Atento a actividad de integracion de formularios
+LexLatin,Reporte Mensual de LexLatin,Dasha,8-sept,12/09/2025,Septiembre,Alta,Listo,,,Enviado 15/09/25
+LexLatin,Actualizar Jira - LexLatin (Nancy + Daniel),Edgar,8-sept,8-sept,Septiembre,Alta,Listo,,,Se envió contraseña a Tahimy y se resolvió problema de acceso desde nuevos dispositivos
+LexLatin,1. Personalización de Landing Page LexLatin - ¿Conoces las fórmulas para cuantificar daños en la ejecución de proyectos?,Edgar/ Jonathan,8-sept,12/09/2025,Septiembre,Alta,Listo,,,"14 de Octubre - Atento a actividad de integracion de formularios, Informa HEnry que él hace la integración de formularios"
+Lexlatin,Reunión ajustes en Landing Page,Edgar/Jonathan,19-sept,30-sept,Septiembre,Alta,Listo,,,
+Lexlatin,Ajustes en Landing Page de Poyectos,Edgar/Jonathan,1-oct,10-oct,Octubre,Alta,Listo,,,
+Lexlatin,Ajustes en Pagina de Programas,Edgar/Jonathan,1-oct,10-oct,Octubre,Alta,Listo,,,
+Lexlatin,Creación de página de gracias customizada para Landing de Proyectos,Edgar/Jonathan,1-oct,10-oct,Octubre,Alta,Listo,,,
+DMS,Soporte Autenticator Diana Segura,Edgar,9-oct,10-oct,Octubre,Alta,Listo,,,
+WMS,Despliegue de Nueva versión de WMS,Edgar,13-oct,24-oct,Octubre,Alta,listo,,,10/11 - Se descargaron los repositorios - pruebas - pendiente
+Lexlatin,Reunión revisión de Actividades Agora,Edgar,14-oct,17-oct,Octubre,Alta,Listo,,,"Se realizó reunión de revisión de avances de actividades relacionadas con Agora-Lexlatin: Se mostraron resultados de analisis de correos electrínicos de transacciones, identificación de información del Material de Contenido, identificación de información faltante. El siguiente paso acordado es enfocarnos en crear correo dirigido a remitente cuando hay información faltante y aprovechar resultados actuales para organizar lista de transacciones y generación de tarjetas Trello."
+Ranpilot,Despliegue de plataforma en OVH,Edgar,13-oct,24-oct,Octubre,Alta,Listo,,,Se completó depliegue. Se va a requerir hacer despliegue con contenedores para desplegar varios servicios
+Lexlatin,Actualizaciones de contenido en página Programas-Campus,Edgar,24-oct,24-oct,Octubre,Media,Listo,,,
+Lexlatin,Corrección de página eventos internacionales,Edgar,24-oct,24-oct,Octubre,Media,Listo,,,
+Lexlatin,Agregar Evento Marval Legal Forecast 2026,Edgar,24-oct,31-oct,Octubre,Media,Listo,,,
+Lexalatin,Resumen de LexLatin Octubre,Dasha,3-nov,7-nov,Noviembre,Media,Listo,10-nov,,
+Movida,Agregar SSL a página de Movida TCI,Edgar,3-nov,7-nov,Noviembre,Media,Listo,,,
+Movida,Instalar certificado SSL WMS y RankPilot,Edgar,3-nov,7-nov,Noviembre,Media,Listo,,,10/11 - pendiente.
+Lexlatin ,Ajustes Landing page Diplomado Arbitraje,Edgar,3-nov,7-nov,Noviembre,Media,Listo,,,
+Movida,Migración de DNS a Cloudflare,Edgar,3-nov,7-nov,Noviembre,Media,LIsto,,,Se revisaron los registros en siteground y se actualizó lista en Cloudflare previo a la migración
+Lexlatin ,Ajustes Landing Page Master class Arbitraje,Edgar,3-nov,7-nov,Noviembre,Media,Listo,,,
+Lexlatin,Issue de Anuncios de Google en lexlatin.com,Edgar,3-nov,7-nov,Noviembre,Media,Listo,,,Se identificó que el moplayer está insertando anuncios a la página. Se recomienda pedir revisar la configuración de esta herramienta
+Lexlatin,Añadir usuario Drupal para noticias@lexlatin.com,Edgar,10-nov,14-nov,Noviembre,Media,Listo,,,Se agregó satisfactoriamente la nueva cuenta
+Lexlatin,Actualización de Landing Page Arbitraje,Edgar,10-nov,14-nov,Noviembre,Media,Listo,,,
+PDG,Ajustes en calendario ,Ricardo,1-dic,31-dic,Diciembre,Alta,Listo,,,12/01 -  Ajuste de calenadrio realizado. 15/12 - En validación
+LexLatin,Base de Datos,Dasha/Ricardo,8-dic,31-dic,Diciembre,Alta,Listo,,,"15/12 - Dasha compartir manual 1,2,3 de app para extraer datos. Apps de Linkedin"
+Lexlatin,Ajustes a Landing Page - Arbitraje,Edgar,15-dic,19-dic,Diciembre,Media,Listo,,,Se realizaron cambios se espera revisión y banner en versión mobile
+Lexlatin,Ajustes de Página Principal de Campus,Edgar,15-dic,19-dic,Diciembre,Media,Listo,,,"12/01 - se hizo reunión y se obtuvo feedback o inputs de LexLatin 15/12 - Se confirma que se cerró el punto por reunión del Lider con las chicas.
+En espera por aprobación de Marketing (Nancy)"
+Source,Revisar propuesta para contactar a Dominique,Jonathan,26-ene,30-ene,Enero,Alta,LIsto,,,Se envió
+Cote,Junta con Antonie / Presencial,Ricardo/Jonathan,19-ene,19-ene,Enero,Alta,Listo,,,26/01 - Reunión presencial con Antoine. Por pasar resumen.
+Giving Out,RECOTIZAR WMS - toque de factura,Dasha,26-ene,7-abr,Enero,Alta,Listo,,,"25/05 Haciendo seguimiento a cliente.
+18/05 Se escribe a cliente y no responde. Garantizó pago para semana del 11-15/05
+04/05 cliente dispuso del dinero, se envían datos bancarios hoy para pago el jueves
+27-04 ya se realizó meeting y se envió factura de anticipo 
+20-04 tenemos el sistema listo para mostrarlo al cliente junto a otra modelo de negocio 
+13-04 Se tiene preparado el sistema, dar prueba y presentar propuesta.
+06/04-cotización nueva para Giving Out Jonathan. 
+23-03 ver alcance y demo para recotizarlo 
+09-03 pendiente de avanzar 
+03/02 Hacer demo personalizado 
+02/02-Recotizar Giving Out Se envia mensaje el 30/01"
+Source,Seguimiento de propuesta,Ricardo/Jonathan,9-feb,9-feb,Febrero,Alta,En Curso,,,"27-04 ya no se ha aparecido 20-04 ya no contesta 13-04 No ha aparecido el lead, dar seguimiento 
+23-03 Ricardo enviara correo de seguimiento a Isaac09-03 Dar seguimiento 02/03- Seguimiento de propuesta. 23/02 -unta mañana 24/02 "
+DBB,Página o propuesta - cotizador (envíe correo electrónico),Jonathan,19-ene,19-ene,Enero,Alta,Listo,,,26/01 - Dasha va a reunirse con Darib.
+WMS,WMS Ajustes de FORMATEX y Source,Jonathan,26-ene,30-ene,Enero,Alta,Listo,,,
+CAB,Cambios en sistema - WMS,Ricardo Zerpa,26-ene,13-feb,Enero,Alta,On hold,,,02/03 - On Hold foco en NUBEX. 09-02 Revisión esta semana. Cambios a sistema 30/01/2026
+FORMATEX,Enviar email con presentaciones,Jonathan,26-ene,30-ene,Enero,Alta,Listo,,,26/01 -  enviar presentaciones e email.
+CAB,Enviar Factura,Jonathan,26-ene,30-ene,Enero,Alta,Listo,,,
+Cote,Enviar Resumen de visita y acciones,Jonathan,26-ene,30-ene,Enero,Alta,LIsto,,,
+CAB,Entrega Sistema NUBEX,Ricardo,2-mar,6-mar,Marzo,Alta,Listo,,,09/03 - entregado Fase I
+POLARIX,Cotización sistema de Puertos,Ricardo,26-ene,30-ene,Enero,Alta,Listo,,,"02/03 -  cliente esta probando con Nokia, se cierra item. 23/02 - esperando feedback de Orlando. 09-02 En espera de confirmación de Orlando 02/02- Junta con cliente, en espera Carlos"
+Interno,Edo de Cuenta - Dasha,Ricardo,2-feb,2-feb,Febrero,Alta,Listo,,,
+dbb audiovisual,Desarrollo de página en base a template aprobado,Jonathan / Dasha,9-mar,9-mar,Marzo,Alta,Listo,,,"25/05 Proyecto cancelado 
+18/05 En espera de confirmación de fecha de revisión para ajustes. 
+04-05 en espera de ajustes de español y versión mobile
+27/04 En espera de facturación de página, cliente debe datos
+20-04 revisar ultimos ajustes y hacer factura 13-04 Ultimos toques por errores en modo desarrollo vs pagina 
+06/04 últimos ajustes, autorización para facturar. Cliente satistecho 
+30/03 - Ajustes para entrega - Jonathan. (ajustes) 
+23-03  se subieron los ajustes nuevos 
+09-03 pendiente reunión  10-03 a las 11am"
+dbb audiovisual,Presentación 3 templates,Ricardo/Jonathan,9-feb,9-feb,Febrero,Alta,Listo,,,"09-03 en revision con dasha de la nueva version 02/03 en revision conjunta con Dasha 23/02 - junta para revisar cambios con Dasha. 
+"
+RDF,"Ajustes a la página con promos nuevas, ajustes de ppto, campaña de meta nueva",Jonathan,9-feb,9-feb,Febrero,Alta,Listo,,,
+Interno,Cambio de rama principal para despliegue automatico Lider / Manuel,Edgar,26-ene,30-ene,Enero,Alta,Listo,,,"02/02-ya se colocaron el las ramas, se cierra. Rank Pilot y WMS"
+COTE ,"Revisión de toda la parte online, nuevas capañas en meta, configuración link google",Jonathan,9-feb,9-feb,Febrero,Alta,Listo,,,
+POLARIX,Revisión con Carlos Cotización,Ricardo,26-ene,30-ene,Enero,Alta,Listo,,,
+RankPilot,Rev.  App ,Jonathan / Ricardo,1-ago,12-dic,Diciembre,Media,Listo,,,"09-02 hay dos líneas de trabajo LP y APP. revisión interna 02/02- foco de la semana. 26/01 - revsiar con Mauro. 19/01 - Revisón con Mauro (pendiente inputs de nuestra parte y revisión de Agente). 12/01 - revisión con Mauro. 07/01 -  Revisar loas avances con Mauro. 
+15/12 - Revisión con Mauro esta semana
+08/12 - Revisión de Ricardo 
+24/11 - Revisión de APP y reunión con Mauro hoy 
+24/11. 10/11 - Ya Mauro se pudo conectar, avanzando con el desarrollo. 
+03/11 - Contacto de Edgar / Mauro 
+27/10 - Se sube sitio aun pendiente agregar servicios. 
+20/10 - Inicio de programación de RankPilot. 
+13/10 - Reunión con Mauro 13/10 y 15/10 Angela / Revisión de documentos Jonathan / Ricardo.
+22/09 - Ricardo indicará que estamos On Hold."
+CAB,revisión de Factura de CAB,Dasha/Ricardo,26-ene,30-ene,Enero,Alta,Listo,,,Enviada 26/01/26
+LexLatin,Revisión de Tickets de LexLatin,Dasha,26-ene,30-ene,Enero,Alta,Listo,,,"02/02 -  listo, se cierra. Se revisan el 26/01 y 30/01 y se hace ajuste de impactos en algunos. "
+Dasha,Ver tema Dasha,Dasha/Ricardo,2-feb,2-feb,Febrero,Alta,Listo,,,Se envió información para elaborar los 3 templates dbb
+RankPilot,Reunión pendiente,Jonathan / Ricardo,16-feb,28-feb,Febrero,Media,listo,,,"23/02 - Jonathan hizo la reunión con Angela, por confirmar avances."
+LexLatin,Dar de baja cuenta de José,Edgar,2-mar,6-mar,Marzo,Alta,On hold,,,"01-06 Volver a preguntar a Rosa Emilia por estatus
+04-05 Se envía email a Rosa Emilia pidiendo estatus y autorización para eliminar cuenta y liberar licencia
+27-04 rosa emilia debe autorizar 12-04 - Rosa Emilia pide que no eliminen cuenta todavía
+30/03 -  esperando autorización de Rosa Emilia. 23-03 en revisión 09-03 tocar base, a quién se envía contenido"
+LexLatin,Informar que no haremos la automatización de José,Ricardo,30-mar,6-abr,Abril,Alta,On hold,,,"13-04 No se ha hecho contacto, evaluar cómo apoyar a Ricardo en notificación con Ángela."
+Allia,Junta con Allia,Ricardo,2-mar,6-mar,Marzo,Alta,Listo,,,"02/03 - Junta con Dominique, próxima junta 23/03."
+Interno,Junta con Dasha,Ricardo,2-mar,13-mar,Marzo,Alta,Listo,,,23-03 se coordina para el miercoles 25 09-03 se coordina 13/03 4pm
+LexLatin,Seguimiento de lista de emails LexLatin,Ricardo,2-mar,6-mar,Marzo,Alta,Listo,,,02/03 -  se envía email a Angela.
+LexLatin,Seguimiento correo de Sara,Edgar,2-mar,6-mar,Marzo,Alta,Listo,,,09/03 - eamil de seguimiento Jonathan / Edgar
+LexLatin,Cierre de LexLatin,Dasha,2-mar,6-mar,Marzo,Alta,Listo,,,Se enviará 09-03
+LexLatin,Toque Edith a Seguimiento de Propuesta de consolidación de Base de Datos,Ricardo,6-abr,6-abr,Abril,Alta,En Curso,,,"04-05 Ricardo envió avances hoy 27-04 ya se ha avanado con el equipo de LL y la planeacion se enviara coptizacion 13-04 se dió toque por whatsapp. Bajo seguimiento de Ricardo
+Dar toque a Edith."
+LexLatin,SEO Técnico seguimiento,Edgar,7-jul,25-jul,Agosto,Media,Stand By,Continuo.,,"15/12 - Según se avance en las otras actividades le podría dedicar tiempo a esas dos actividades
+Review de razones para no indexar. Se indexaron 3K páginas."
+LexLatin,SEO con Ana Karen - creación de vista para Data estructurada. Etiquetas.,Mario C,18-ago,10-oct,Agosto,Media,Stand By,,,"15/12 - Revisando como exportar cambios para producción.
+27/10 - Ingrid avanzando con el lider para eliminar varios Tags de publiccaión (no están bien editadas para SEO). 
+06/10 - Revisión con Ana Karen para SEO. (coordinar esta semana 10/10).
+Revisión con Mario y darle el alta, Se solicitó una vista de TAGS adicional para puesta en producción.
+Se tuvo llamada con Ana Karen."
+LexLatin,Creación de Formulario para Ágora - para notificación de Transacciones,Todos,15-dic,19-dic,Diciembre,Media,Stand By,,,12/01 -  Pendiente
+LexLatin,"Automatización Tahimy, reporte PP",Jonathan,15-dic,19-dic,Diciembre,Media,Stand By,,,09-02 Enviar mensaje de stand by por otras actividades 26/01 - pendiente Jou. 19/01 - Retomar automatización de reporte. 12/01 - en revisión 15/12 - Agregar actividad a horas 
+LexLatin,"Dar de baja cuenta de Nixon, Bautista, Daniel Palomo, Betty Vanegas",Edgar,2-mar,6-mar,Marzo,Alta,Listo,,,"23-03 en revisión 09-03 tocar base, a quién se envía contenido"
+RankPilot,Junta con Angela jueves 13/03/2026,Ricardo,14-mar,14-mar,Marzo,Alta,Listo,,,09-03 pendiente junta
+CAB,Junta de estatus 23/03/2026,Ricardo,23-mar,23-mar,Marzo,Alta,Listo,,,
+Interno,Conciliación finanzas,Ricardo,30-mar,6-abr,Abril,Alta,Listo,,,
+RP V02,Probar RP v2.0,Jonathan/Ricardo,6-abr,6-abr,Abril,Alta,Listo,,,"27-04 se cierra porque hay otra trea para pruebas20-04 mismo estutus - pruebas 3-04Se están haciendo pruebas con Ángela
+23-03 Manuel estará enviando nuevos ajustes al repo"
+LexLatin,Reporte de LexLatin Marzo,Dasha,30-mar,6-abr,Abril,Alta,Listo,,,"10/04 Enviado 
+06/04 Realizando reporte para compartir hoy en espera de Vo.Bo. para envio. Ajustes en impactos, 3 y 8 horas marcadas como básico. Pendiente asignar tiempo de trabajo a tickets en curso.
+09/03 - entregado / email enviado."
+LexLatin,Reunión con Fernando LL,Ricardo,23-feb,27-feb,Febrero,Alta,Listo,,,02/03/2026 - se realizó junta en línea y se plane tener sesión presencial - Reunión presencial 04/03/2026.
+,,,,,,,,,,
+,,,,,,,,,,
+LexLatin,Entrega de propuesta de Limpieza de Datos LexLatin,Ricardo,9-mar,9-mar,Marzo,Alta,Listo,,,09/03 - entregado / email enviado.
+LexLatin,Actualización de página Programas de Campus,Edgar,9-mar,9-mar,Marzo,Alta,Listo,,,23-03 por nuevos programas
+LexLatin,Legal Branding - Landing page de Campus,Edgar,9-mar,9-mar,Marzo,Alta,Listo,,,23-03 En revisión con el equipo de LL
+Reyes de ,Revisión de nuevos reels y promos ,Jonathan/Ricardo,23-mar,30-mar,Marzo,Alta,Listo,,,04-05 listo 20-04 listo 13-04 sigue en monitoreo
+RP V02,RP subida al ovh para ambiente de calidad,Edgar/Manuel,23-mar,30-mar,Marzo,Alta,Listo,,,"06/04- se trabaja con MIguel, se cierra. 23-03 Manuel estará enviando nuevos ajustes al repo"
+Reyes de francés,Cotización Plataforma school On line,Jonathan/Ricardo,6-abr,6-abr,Abril,Alta,En Curso,,,"04-05 mismo estatus 27-04 esta semana hacer seguimiento 20-04 ya se envió en espera por inicio del proyecto 13-04 Se entregó cotización, pendiente dar seguimiento .
+Entrega hoy SOW y propuesta."
+RDF,Meeting para el proyecto school online,Jonathan/Ricardo,23-mar,30-mar,Marzo,Alta,Listo,,,
+M&T,Follow Up - cotización Ecommerce,Jonathan/Ricardo,6-abr,6-abr,Abril,Alta,En Curso,,,"27-04 Ricardo hacer seguimiento 13-04 Proyecto de Ricardo, se requiere seguimiento al lead."
+Taco Bell - Guatemala,Dar seguimiento a propuesta.,Dasha,13-abr,20-abr,Abril,Alta,Listo,,,"Cliente perdido 
+25/05 cliente no responde
+18/05 Se envía mensaje al lead solicitando junta nueva para negociar entregables y ajustes a su presupuesto
+04/05 excede presupuesto del cliente
+27/04 Se reenvía propuesta para confirmación de recepción
+20-04 dar seguimiento por correo Dasha "
+Cube,Conciliar y cobrar pendientes,Dasha,13-abr,20-abr,Abril,Alta,En Curso,,,"08/06 Pendiente enviar ultima factura
+25/05 Conciliación y facturas al día
+18/05 en espera de EDC para conocer monto final a cobrar. Se factura este viernes.
+04/05 hoy se envía factura pendiente
+27/04 siguen pagos pendientes"
+Taco Bell - Guatemala,Revisar Demo de Taco Bell,Jonathan/Ricardo,6-abr,6-abr,Abril,Alta,Listo,,,
+Taco Bell - Guatemala,Presentar cotización,Jonathan/Ricardo,31-mar,31-mar,Marzo,Alta,Listo,,,
+LexLatin,,,,,,,,,,
+dbb,Emitir factura,Jonathan,13-abr,20-abr,Abril,Alta,En Curso,,,"20-04 si, en proceso"
+Polarix,conciliar y cobrar pendientes,Dasha,13-abr,20-abr,Abril,Alta,En Curso,,,"08/06 Siguen pagos por recibirse, definir junio 
+25/05 Validar si cayó último pago. Mes de junio se hablará con Delbert
+18/05 en espera de EDC para conocer monto final a cobrar. Requerimiento de info para saber si se factura mayo completo o a mitad
+04/05 siguen pendiente pagos por recibir 
+27/04 se enviaron datos bancarios, siguen pagos pendientes"
+Formatex,Hacer presentación de revisiones ,Jonathan,13-abr,20-abr,Abril,Alta,En Curso,,,"04-05 nuerva llamada miercoles a las 12 c on compaqi 27-04 visita el dia miercoles con contabilidad 20-04 gustó ultimo acercamiento , nuevo meet este miercoles con el dueño "
+HAZAMA,Ver estatus y correo de seguimiento,Jonathan / Ricardo,2-mar,6-mar,Marzo,Baja,En Curso,,,"13-04 Retomar esta semana
+09-03 conciliar y enviar email de saludo 
+02/03 - envíe email a Jou"
+LexLatin,Landing Diplomado Finanzas ,Edgar,30-mar,10-abr,Marzo,Media,LIsto,,,"27-04 Se incorporan formularios recibidos
+24-04 Se esperan formularios, Henry está notificado
+23-04 Se configura sección principal y se adapta diseño a paleta de colores del nuevo banner
+14-04 Wendy informa via email que ""Los banners y brochures están previstos para esta semana.""
+10-04 en espera de banner
+09-04 se corrige según observaciones del equipo
+06/04 - se pasó correo. Esperando por LexLatin. 23-03 Se define trabajar con los subdominios l y crm . Monitoreo constante y evaluación de un posible Dominio a futuro. 09-03 Lider envía actualización y se sigue trabajando en pruebas.02/03 - en seguimiento - 23/02  - revisión de Phising DMARC/DKIM, en seguimiento. (Funcionando)."
+Lexlatin,Hacer backup de campus - revisar cada cuánto tiempo se hacen,Edgar,13-abr,20-abr,Abril,Media,Listo,,,Revisión realizada en Cloudways
+Lexlatin,Hacer backup de ágora,Edgar,13-abr,20-abr,Abril,Media,Listo,,,Backup de App en Repositorio
+ConcrePlus,Crear DB en PostgreSQL y configurar accesos desde VPS(OVH),Edgar,14-abr,20-abr,Abril,Media,Listo,,,"14-04 Instalación de contenedor PgAdmin para adminstrar servicio de postgres
+14-04 Creadas 2 Bases de Datos (Prod y Qa) usuario y pruebas de conexión"
+ConcrePlus,Revisión de Backend por fallo en conexión a BD PostgreSQL de Siteground,Edgar,14-abr,20-abr,Abril,Media,Listo,,,
+ConcrePlus,Seguimiento cambios en backend por falla en despliegue y conexión a BD,Edgar,20-abr,24-abr,Abril,Media,Listo,,,"01-06 Se recibió el repositorio y no se continuo el deploy posterior a entrega de Manuel
+04-05 Manuel estará subiendo todo al repo 27-04 Recordar a Manuel hacer actualización de configuración
+20-04 Se le solicita estatus de pruebas a Manuel"
+Rankpilot,"Seguimiento cambios en Backend, unificación de Core y Engine",Edgar,20-abr,24-abr,Abril,Media,Listo,,,"26-04 Miguel notifica que se unificaron las funciones del backend en repositorio ""Core""
+19-04 Se ha venido trabajando en el Rankpitol Core y se conversó con Miguel sobre necesidad de unificar el backend"
+Lexlatin,Actualización de diseño de Landing Arbitraje Internacional,Edgar,27-abr,1-may,Abril,MEdia,Listo,,,27-04 Se están ajustando detalles y validando
+Lexlatin,Nuevos justes de PerfilPlus ,Jonathan,27-abr,1-may,Abril,MEdia,En Curso,,,04-05 se realizaron y se envio para confirmación
+CoteFrance,monitoreo y gestion de campañas ,Jonathan,27-abr,1-may,Abril,MEdia,Listo,,,04-05 en comunicacion con ellos
+TrackeGPs,Seguimiento a jose ornea y el pago ,Jonathan,27-abr,1-may,Abril,MEdia,Listo,,,04-05 hoy se envia respuesta de jose ornelas
+Lexalatin,Landing Page Estrategias para el posicionamiento,Edgar,27-abr,7-may,Mayo,Media,Listo,,,"08-06 Cargados nuevos formularios
+01-06 Se espera formulario por Henry y Rodrigo de Coinbox
+25-05 En espera de código de formulario
+12-05 Carga de Banners, en revisión y  espera de formularios
+07-05 Se completa carga de información inicial y se le solicita al equipo que faltan formularios y banners de sección principal"
+Rankpilot,Crear y migrar a repositorio Rankpilot Core en cuenta de Movida,Edgar,27-abr,30-abr,Abril,Media,Listo,,,
+Rankpilot,Crear y migrar a repositorio Rankpilot Frontend en cuenta de Movida,Edgar,27-abr,30-abr,Abril,Media,Listo,,,"18-05 Se creó fork del repositorio (git@github.com:projects-movidatci/rankpIlot-app.git)
+Se actualizó configuración en VPS y se dieron instrucciones a Mauro para actualizar configuración Local"
+Lexlatin,Crear reporte,Dasha,4-may,10-may,mayo,Alta,En Curso,,,"06/06 Ajjustando reporte a dos mesea
+25/05 En espera de VoBo para el go. Se juntan dos mese?
+18/05 En espera de VoBo y ajuste de horas "
+Polarix,Enviar factura Abril,Dasha,4-may,10-may,mayo,Alta,Listo,,,Enviada a Whatsapp Carlos 04/05
+Lexlatin,Depuración de VirtualHost en BlueHost,Edgar,14-may,22-may,mayo,Alta,Listo,,,"15-05 Se renombraron sub-dominios duplicados y wildcard de agora-lexlatin
+14-05 Se identificaron inconsistencias en configuración de web server bluehost"
+Lexlatin,Seguimiento a restablecimiento de interfaz administrativa de BlueHost (WHM),Edgar,14-may,22-may,mayo,Alta,En Curso,,,14-05 Se encontró problema de acceso a WHM para administrar WebServer de BlueHost
+Lexlatin,Actualización de Diseño pagina de gracias descargas de brochure,Edgar,14-may,22-may,mayo,Alta,LIsto,,,18-05 Se actualizó página de gracias por descarga de brochure de Landing de Posicionamiento
+Polarix,Conciliar con Cliente el monto a facturar por junio ,Ricardo,,,,,,,,
+Giving Out,Seguimiento a pago de anticpo,Dasha,,,,,Listo,,,Cliente deposita
+Giving out,Enviar Complemento de pago a cliente,Jonathan,,,,,,,,
+LexLatin,"Cargar Evento Inter ""Summit Compliance de Marval 2026""",Edgar,8-may,12-may,,,,,,
+LexLatin,Ajustes a la Home Gestión Lexlatin,Edgar,8-may,12-may,,,,,,08-06 Se espera por validación de Rocío
+LexLatin,Accesos Cuenta de Ana Karen,Edgar,8-may,12-may,,,En Curso,,,08-06 Se espera por confirmación por Rocío
+LexLatin,Actualización de Formularios de Agora,Edgar,8-may,12-may,,,Listo,,,
+LexLatin,Actualización de formularios de Perfilplus,Edgar,8-may,12-may,,,Listo,,,
+LexLatin,Actualización de formularios de boletines en Lexlatin.com,Edgar,8-may,12-may,,,Listo,,,
+LexLatin,Ajustes Tablet y Mobile de la Home de Campus,Edgar,8-may,12-may,,,En Curso,,,
+LexLatin,Suspender la vieja pagian de Perfil Plus - LexLatin Original: https://lexlatin.com/perfilplus ,Edgar,8-may,12-may,,,Pendiente,,,
+LexLatin,Agregar / Reactivar usuario de Rocío Mellas en AyudanteX,Edgar,8-may,12-may,,,Listo,,,
+Lexlatin,Suspender cuenta de Ana Karen en AyudanteX,Edgar,8-may,12-may,,,listo,,,
