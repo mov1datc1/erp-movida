@@ -20,9 +20,10 @@ interface Props {
   encargados: Encargado[];
   variant?: 'primary' | 'ghost';
   proyecto_id?: string;
+  defaultClienteId?: string;
 }
 
-export default function NuevaTareaModal({ clientes, encargados, variant = 'primary', proyecto_id }: Props) {
+export default function NuevaTareaModal({ clientes, encargados, variant = 'primary', proyecto_id, defaultClienteId }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
