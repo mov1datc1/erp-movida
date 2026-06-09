@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TareaStatus, Prioridad, CategoriaTarea } from '@prisma/client';
 import { updateTarea } from '@/app/actions/tareas';
 import { MoreHorizontal, Plus, Clock, MessageSquare, Flame } from 'lucide-react';
@@ -62,6 +62,10 @@ const priorityColors: Record<Prioridad, string> = {
 export default function ProyectoKanbanBoard({ proyecto, initialTareas, encargados }: Props) {
   const [tareas, setTareas] = useState<Tarea[]>(initialTareas);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTareas(initialTareas);
+  }, [initialTareas]);
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, taskId: string) => {
     setDraggedTaskId(taskId);
