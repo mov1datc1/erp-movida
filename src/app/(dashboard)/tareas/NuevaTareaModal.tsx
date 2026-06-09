@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, CheckSquare, Loader2, Calendar } from 'lucide-react';
+import { X, CheckSquare, Loader2, Calendar, Plus } from 'lucide-react';
 import { createTarea, createEncargado } from '@/app/actions/tareas';
 
 interface Cliente {
