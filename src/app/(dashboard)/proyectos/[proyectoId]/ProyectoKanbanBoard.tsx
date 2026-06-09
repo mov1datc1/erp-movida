@@ -90,7 +90,7 @@ export default function ProyectoKanbanBoard({ proyecto, initialTareas, encargado
 
     // Actualización optimista
     setTareas(prev => prev.map(t => t.id === draggedTaskId ? { ...t, estatus: status } : t));
-    
+
     // Guardar en backend
     await updateTarea(draggedTaskId, { estatus: status });
     setDraggedTaskId(null);
@@ -106,8 +106,8 @@ export default function ProyectoKanbanBoard({ proyecto, initialTareas, encargado
         const columnTasks = tareas.filter(t => t.estatus === col.id).sort((a, b) => a.orden - b.orden);
 
         return (
-          <div 
-            key={col.id} 
+          <div
+            key={col.id}
             className="w-80 shrink-0 flex flex-col max-h-full"
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, col.id)}
@@ -118,11 +118,11 @@ export default function ProyectoKanbanBoard({ proyecto, initialTareas, encargado
                 {columnTasks.length}
               </span>
             </div>
-            
+
             <div className="flex-1 bg-slate-50/50 border border-slate-200 rounded-b-xl p-3 space-y-3 overflow-y-auto">
               {columnTasks.map(tarea => (
-                <div 
-                  key={tarea.id} 
+                <div
+                  key={tarea.id}
                   draggable
                   onDragStart={(e) => handleDragStart(e, tarea.id)}
                   onDragEnd={handleDragEnd}
@@ -139,7 +139,7 @@ export default function ProyectoKanbanBoard({ proyecto, initialTareas, encargado
                       {tarea.prioridad}
                     </span>
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <EditarTareaModal 
+                      <EditarTareaModal
                         tareaToEdit={tarea}
                         clientes={proyecto.cliente ? [proyecto.cliente] : []}
                         encargados={encargados}
@@ -169,7 +169,7 @@ export default function ProyectoKanbanBoard({ proyecto, initialTareas, encargado
                         {tarea.fecha_limite ? formatDateShort(tarea.fecha_limite) : '-'}
                       </span>
                     </div>
-                    
+
                     {tarea.comentarios.length > 0 && (
                       <div className="flex items-center gap-1 text-slate-400" title={`${tarea.comentarios.length} comentarios`}>
                         <MessageSquare className="w-3.5 h-3.5" />
@@ -179,11 +179,11 @@ export default function ProyectoKanbanBoard({ proyecto, initialTareas, encargado
                   </div>
                 </div>
               ))}
-              
+
               <div className="pt-2">
-                <NuevaTareaModal 
-                  clientes={proyecto.cliente ? [proyecto.cliente] : []} 
-                  encargados={encargados} 
+                <NuevaTareaModal
+                  clientes={proyecto.cliente ? [proyecto.cliente] : []}
+                  encargados={encargados}
                   variant="ghost"
                   proyecto_id={proyecto.id}
                 />

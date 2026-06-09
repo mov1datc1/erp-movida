@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, CheckSquare, Loader2, Calendar, Plus, Trash2 } from 'lucide-react';
+import { X, CheckSquare, Loader2, Calendar, Plus, Trash2, Search, ChevronDown } from 'lucide-react';
 import { deleteEncargado } from '@/app/actions/tareas';
 import { createTarea, createEncargado } from '@/app/actions/tareas';
 
@@ -31,6 +31,12 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
   const [selectedEncargados, setSelectedEncargados] = useState<string[]>([]);
   const [encargadoToDelete, setEncargadoToDelete] = useState<Encargado | null>(null);
   const [isDeletingEncargado, setIsDeletingEncargado] = useState(false);
+  
+  const [searchCliente, setSearchCliente] = useState('');
+  const [selectedClienteId, setSelectedClienteId] = useState(defaultClienteId || (clientes.length === 1 ? clientes[0].id : ""));
+  const [showClienteDropdown, setShowClienteDropdown] = useState(false);
+  
+  const filteredClientes = clientes.filter(c => c.nombre.toLowerCase().includes(searchCliente.toLowerCase()));
 
   const handleDeleteEncargado = async () => {
     if (!encargadoToDelete) return;
@@ -49,7 +55,7 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    
+
     const formData = new FormData(e.currentTarget);
     // Remove the checkboxes so they don't get sent as is, we append them manually
     formData.delete('encargados');
@@ -58,7 +64,7 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
     });
 
     const result = await createTarea(formData);
-    
+
     if (result.success) {
       setIsOpen(false);
       setSelectedEncargados([]);
@@ -73,10 +79,10 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
     e.stopPropagation();
     setIsCreatingEncargado(true);
     setError(null);
-    
+
     const formData = new FormData(e.currentTarget);
     const result = await createEncargado(formData);
-    
+
     if (result.success) {
       setShowNewEncargado(false);
       if (result.data) {
@@ -89,17 +95,17 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
   };
 
   const toggleEncargado = (id: string) => {
-    setSelectedEncargados(prev => 
+    setSelectedEncargados(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
   };
 
   return (
     <>
-      <button 
+      <button
         onClick={() => setIsOpen(true)}
         className={
-          variant === 'primary' 
+          variant === 'primary'
             ? "bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-primary/20"
             : "w-full py-2 flex items-center justify-center gap-2 text-slate-500 hover:text-primary hover:bg-white border border-dashed border-slate-300 hover:border-primary/50 rounded-lg text-sm font-medium transition-all"
         }
@@ -110,7 +116,7 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div 
+          <div
             className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
@@ -119,7 +125,7 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
                 <CheckSquare className="w-5 h-5 text-primary" />
                 Nueva Tarea
               </h2>
-              <button 
+              <button
                 onClick={() => setIsOpen(false)}
                 className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg transition-colors"
               >
@@ -138,22 +144,22 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
                 <form onSubmit={handleCreateEncargado} className="mb-6 p-4 bg-blue-50/50 border border-blue-100 rounded-xl">
                   <h3 className="text-sm font-bold text-blue-900 mb-3">Añadir Nuevo Encargado (Solo Admin)</h3>
                   <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      name="nombre" 
-                      required 
+                    <input
+                      type="text"
+                      name="nombre"
+                      required
                       placeholder="Nombre del responsable"
                       className="flex-1 px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                     />
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={() => setShowNewEncargado(false)}
                       className="px-3 py-2 text-slate-500 hover:bg-slate-200 rounded-lg"
                     >
                       Cancelar
                     </button>
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       disabled={isCreatingEncargado}
                       className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
                     >
@@ -167,10 +173,10 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
                 {proyecto_id && <input type="hidden" name="proyecto_id" value={proyecto_id} />}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Título de la Tarea *</label>
-                  <input 
-                    type="text" 
-                    name="titulo" 
-                    required 
+                  <input
+                    type="text"
+                    name="titulo"
+                    required
                     placeholder="Ej. Revisar cotización de cliente"
                     className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                   />
@@ -179,24 +185,69 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Cliente / Proyecto</label>
-                    <select 
-                      name="cliente_id" 
-                      defaultValue={clientes.length === 1 ? clientes[0].id : ""}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none bg-white"
-                    >
-                      <option value="">Sin cliente asociado</option>
-                      {clientes.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <input type="hidden" name="cliente_id" value={selectedClienteId} />
+                      <div 
+                        className="w-full px-4 py-2 border border-slate-200 rounded-lg flex justify-between items-center bg-white cursor-pointer hover:border-primary/50 transition-colors"
+                        onClick={() => setShowClienteDropdown(!showClienteDropdown)}
+                      >
+                        <span className={selectedClienteId ? "text-slate-800" : "text-slate-500"}>
+                          {selectedClienteId ? clientes.find(c => c.id === selectedClienteId)?.nombre : 'Sin cliente asociado'}
+                        </span>
+                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                      </div>
+                      
+                      {showClienteDropdown && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setShowClienteDropdown(false)}></div>
+                          <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+                            <div className="p-2 border-b border-slate-100 bg-slate-50/50">
+                              <div className="relative">
+                                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                                <input 
+                                  type="text" 
+                                  placeholder="Buscar cliente..." 
+                                  className="w-full pl-9 pr-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                                  value={searchCliente}
+                                  onChange={e => setSearchCliente(e.target.value)}
+                                  autoFocus
+                                />
+                              </div>
+                            </div>
+                            <div className="max-h-48 overflow-y-auto p-1.5 scrollbar-thin scrollbar-thumb-slate-200">
+                              <div 
+                                className="px-3 py-2 text-sm hover:bg-slate-50 cursor-pointer rounded-lg text-slate-500 transition-colors"
+                                onClick={() => { setSelectedClienteId(''); setShowClienteDropdown(false); setSearchCliente(''); }}
+                              >
+                                Sin cliente asociado
+                              </div>
+                              {filteredClientes.map(c => (
+                                <div 
+                                  key={c.id} 
+                                  className="px-3 py-2 text-sm hover:bg-primary/5 hover:text-primary cursor-pointer rounded-lg transition-colors font-medium text-slate-700"
+                                  onClick={() => { setSelectedClienteId(c.id); setShowClienteDropdown(false); setSearchCliente(''); }}
+                                >
+                                  {c.nombre}
+                                </div>
+                              ))}
+                              {filteredClientes.length === 0 && (
+                                <div className="px-3 py-4 text-sm text-center text-slate-400">
+                                  No se encontraron clientes
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1 flex justify-between">
                       <span>Encargados</span>
                       {!showNewEncargado && (
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => setShowNewEncargado(true)}
                           className="text-primary hover:underline text-xs"
                         >
@@ -208,8 +259,8 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
                       {encargados.map(e => (
                         <div key={e.id} className="flex items-center justify-between group p-1 hover:bg-slate-50 rounded">
                           <label className="flex items-center gap-2 text-sm cursor-pointer flex-1">
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               checked={selectedEncargados.includes(e.id)}
                               onChange={() => toggleEncargado(e.id)}
                               className="rounded border-slate-300 text-primary focus:ring-primary"
@@ -229,7 +280,7 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
                       {encargados.length === 0 && (
                         <p className="text-xs text-slate-400 text-center py-2">No hay encargados registrados</p>
                       )}
-                      
+
                       {/* Confirmation Modal overlay for deleting encargado */}
                       {encargadoToDelete && (
                         <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center p-4 z-10 text-center rounded-lg border border-slate-200">
@@ -259,8 +310,8 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Prioridad</label>
-                    <select 
-                      name="prioridad" 
+                    <select
+                      name="prioridad"
                       defaultValue="MEDIA"
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none bg-white"
                     >
@@ -273,8 +324,8 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Categoría</label>
-                    <select 
-                      name="categoria" 
+                    <select
+                      name="categoria"
                       defaultValue="OTRO"
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none bg-white"
                     >
@@ -290,9 +341,9 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
                     <label className="block text-sm font-medium text-slate-700 mb-1">Fecha Límite</label>
                     <div className="relative">
                       <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input 
-                        type="date" 
-                        name="fecha_limite" 
+                      <input
+                        type="date"
+                        name="fecha_limite"
                         className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                       />
                     </div>
@@ -300,8 +351,8 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
 
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Notas Adicionales</label>
-                    <textarea 
-                      name="descripcion" 
+                    <textarea
+                      name="descripcion"
                       rows={3}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none"
                       placeholder="Detalles sobre la tarea..."
@@ -310,16 +361,16 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
                 </div>
 
                 <div className="pt-6 flex justify-end gap-3 border-t border-slate-100 mt-6">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setIsOpen(false)}
                     disabled={isLoading}
                     className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors"
                   >
                     Cancelar
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     form="create-task-form"
                     disabled={isLoading}
                     className="bg-primary hover:bg-primary-light text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-primary/20 flex items-center gap-2"

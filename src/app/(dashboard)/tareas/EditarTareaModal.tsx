@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Edit2, Loader2, Calendar, Trash2 } from 'lucide-react';
+import { X, Edit2, Loader2, Calendar, Trash2, Search, ChevronDown } from 'lucide-react';
 import { updateTarea, createEncargado, deleteEncargado } from '@/app/actions/tareas';
 
 interface Cliente {
@@ -32,6 +32,12 @@ export default function EditarTareaModal({ tareaToEdit, clientes, encargados, pr
   );
   const [encargadoToDelete, setEncargadoToDelete] = useState<Encargado | null>(null);
   const [isDeletingEncargado, setIsDeletingEncargado] = useState(false);
+
+  const [searchCliente, setSearchCliente] = useState('');
+  const [selectedClienteId, setSelectedClienteId] = useState(tareaToEdit.cliente_id || "");
+  const [showClienteDropdown, setShowClienteDropdown] = useState(false);
+  
+  const filteredClientes = clientes.filter(c => c.nombre.toLowerCase().includes(searchCliente.toLowerCase()));
 
   const handleDeleteEncargado = async () => {
     if (!encargadoToDelete) return;
@@ -179,16 +185,61 @@ export default function EditarTareaModal({ tareaToEdit, clientes, encargados, pr
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Cliente / Proyecto</label>
-                    <select 
-                      name="cliente_id" 
-                      defaultValue={tareaToEdit.cliente?.id || ""}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none bg-white"
-                    >
-                      <option value="">Sin cliente asociado</option>
-                      {clientes.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <input type="hidden" name="cliente_id" value={selectedClienteId} />
+                      <div 
+                        className="w-full px-4 py-2 border border-slate-200 rounded-lg flex justify-between items-center bg-white cursor-pointer hover:border-primary/50 transition-colors"
+                        onClick={() => setShowClienteDropdown(!showClienteDropdown)}
+                      >
+                        <span className={selectedClienteId ? "text-slate-800" : "text-slate-500"}>
+                          {selectedClienteId ? clientes.find(c => c.id === selectedClienteId)?.nombre : 'Sin cliente asociado'}
+                        </span>
+                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                      </div>
+                      
+                      {showClienteDropdown && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setShowClienteDropdown(false)}></div>
+                          <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+                            <div className="p-2 border-b border-slate-100 bg-slate-50/50">
+                              <div className="relative">
+                                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                                <input 
+                                  type="text" 
+                                  placeholder="Buscar cliente..." 
+                                  className="w-full pl-9 pr-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                                  value={searchCliente}
+                                  onChange={e => setSearchCliente(e.target.value)}
+                                  autoFocus
+                                />
+                              </div>
+                            </div>
+                            <div className="max-h-48 overflow-y-auto p-1.5 scrollbar-thin scrollbar-thumb-slate-200">
+                              <div 
+                                className="px-3 py-2 text-sm hover:bg-slate-50 cursor-pointer rounded-lg text-slate-500 transition-colors"
+                                onClick={() => { setSelectedClienteId(''); setShowClienteDropdown(false); setSearchCliente(''); }}
+                              >
+                                Sin cliente asociado
+                              </div>
+                              {filteredClientes.map(c => (
+                                <div 
+                                  key={c.id} 
+                                  className="px-3 py-2 text-sm hover:bg-primary/5 hover:text-primary cursor-pointer rounded-lg transition-colors font-medium text-slate-700"
+                                  onClick={() => { setSelectedClienteId(c.id); setShowClienteDropdown(false); setSearchCliente(''); }}
+                                >
+                                  {c.nombre}
+                                </div>
+                              ))}
+                              {filteredClientes.length === 0 && (
+                                <div className="px-3 py-4 text-sm text-center text-slate-400">
+                                  No se encontraron clientes
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   <div>

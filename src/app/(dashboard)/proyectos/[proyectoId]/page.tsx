@@ -40,8 +40,8 @@ export default async function ProyectoPage({ params }: Props) {
   return (
     <div className="space-y-6 h-[calc(100vh-4rem)] flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center gap-4 shrink-0">
-        <Link 
-          href="/proyectos" 
+        <Link
+          href="/proyectos"
           className="p-2 bg-white rounded-xl border border-slate-200 text-slate-500 hover:text-primary hover:border-primary/30 transition-colors shadow-sm"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -53,9 +53,9 @@ export default async function ProyectoPage({ params }: Props) {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <ProyectoKanbanBoard 
-          proyecto={proyecto} 
-          initialTareas={proyecto.tareas} 
+        <ProyectoKanbanBoard
+          proyecto={proyecto}
+          initialTareas={proyecto.tareas}
           encargados={encargados}
         />
       </div>
