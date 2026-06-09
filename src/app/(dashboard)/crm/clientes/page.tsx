@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function ClientesPage() {
   // We will handle the timeout gracefully in case DB is unreachable
-  let clientes = [];
+  let clientes: any[] = [];
   try {
     clientes = await prisma.cliente.findMany({
       orderBy: { createdAt: 'desc' }

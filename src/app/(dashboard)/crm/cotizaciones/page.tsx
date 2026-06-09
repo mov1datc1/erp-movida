@@ -6,8 +6,8 @@ import NuevaCotizacionBoton from "./NuevaCotizacionBoton";
 export const dynamic = 'force-dynamic';
 
 export default async function CotizacionesPage() {
-  let cotizaciones = [];
-  let clientes = [];
+  let cotizaciones: any[] = [];
+  let clientes: any[] = [];
   let errorMsg = null;
   try {
     cotizaciones = await prisma.cotizacion.findMany({

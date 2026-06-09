@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = 'force-dynamic';
 
 export default async function FacturacionPage() {
-  let facturas = [];
+  let facturas: any[] = [];
   try {
     facturas = await prisma.factura.findMany({
       include: { cliente: true },
