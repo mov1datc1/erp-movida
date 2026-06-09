@@ -163,3 +163,17 @@ export async function toggleFocus(id: string, is_focus: boolean) {
     return { success: false, error: 'Ocurrió un error al actualizar el focus de la tarea' }
   }
 }
+
+export async function deleteEncargado(id: string) {
+  try {
+    const encargado = await prisma.encargado.delete({
+      where: { id }
+    })
+    revalidatePath('/tareas')
+    revalidatePath('/proyectos')
+    return { success: true, data: encargado }
+  } catch (error) {
+    console.error("Error deleting encargado:", error)
+    return { success: false, error: 'Ocurrió un error al eliminar el encargado' }
+  }
+}

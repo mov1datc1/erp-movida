@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, CheckSquare, Loader2, Calendar, Plus } from 'lucide-react';
+import { X, CheckSquare, Loader2, Calendar, Plus, Trash2 } from 'lucide-react';
+import { deleteEncargado } from '@/app/actions/tareas';
 import { createTarea, createEncargado } from '@/app/actions/tareas';
 
 interface Cliente {
@@ -28,6 +29,21 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
   const [showNewEncargado, setShowNewEncargado] = useState(false);
   const [isCreatingEncargado, setIsCreatingEncargado] = useState(false);
   const [selectedEncargados, setSelectedEncargados] = useState<string[]>([]);
+  const [encargadoToDelete, setEncargadoToDelete] = useState<Encargado | null>(null);
+  const [isDeletingEncargado, setIsDeletingEncargado] = useState(false);
+
+  const handleDeleteEncargado = async () => {
+    if (!encargadoToDelete) return;
+    setIsDeletingEncargado(true);
+    const result = await deleteEncargado(encargadoToDelete.id);
+    if (result.success) {
+      setSelectedEncargados(prev => prev.filter(id => id !== encargadoToDelete.id));
+      setEncargadoToDelete(null);
+    } else {
+      setError(result.error || 'Error al eliminar encargado');
+    }
+    setIsDeletingEncargado(false);
+  };
 
   const handleCreateTask = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -188,20 +204,55 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
                         </button>
                       )}
                     </label>
-                    <div className="border border-slate-200 rounded-lg max-h-32 overflow-y-auto p-2 bg-white space-y-1">
+                    <div className="border border-slate-200 rounded-lg max-h-32 overflow-y-auto p-2 bg-white space-y-1 relative">
                       {encargados.map(e => (
-                        <label key={e.id} className="flex items-center gap-2 text-sm p-1 hover:bg-slate-50 cursor-pointer rounded">
-                          <input 
-                            type="checkbox" 
-                            checked={selectedEncargados.includes(e.id)}
-                            onChange={() => toggleEncargado(e.id)}
-                            className="rounded border-slate-300 text-primary focus:ring-primary"
-                          />
-                          {e.nombre}
-                        </label>
+                        <div key={e.id} className="flex items-center justify-between group p-1 hover:bg-slate-50 rounded">
+                          <label className="flex items-center gap-2 text-sm cursor-pointer flex-1">
+                            <input 
+                              type="checkbox" 
+                              checked={selectedEncargados.includes(e.id)}
+                              onChange={() => toggleEncargado(e.id)}
+                              className="rounded border-slate-300 text-primary focus:ring-primary"
+                            />
+                            {e.nombre}
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setEncargadoToDelete(e)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-all"
+                            title="Eliminar encargado"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       ))}
                       {encargados.length === 0 && (
                         <p className="text-xs text-slate-400 text-center py-2">No hay encargados registrados</p>
+                      )}
+                      
+                      {/* Confirmation Modal overlay for deleting encargado */}
+                      {encargadoToDelete && (
+                        <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center p-4 z-10 text-center rounded-lg border border-slate-200">
+                          <p className="text-sm font-bold text-slate-800 mb-1">¿Eliminar a {encargadoToDelete.nombre}?</p>
+                          <p className="text-xs text-slate-500 mb-3">Esta acción no se puede deshacer.</p>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setEncargadoToDelete(null)}
+                              className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleDeleteEncargado}
+                              disabled={isDeletingEncargado}
+                              className="px-3 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors flex items-center gap-1"
+                            >
+                              {isDeletingEncargado ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Sí, eliminar'}
+                            </button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
