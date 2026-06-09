@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default async function ProyectoPage({ params }: Props) {
-  const { proyectoId } = params;
+  const { proyectoId } = await params;
 
   const proyecto = await prisma.proyecto.findUnique({
     where: { id: proyectoId },
