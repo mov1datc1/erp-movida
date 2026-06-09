@@ -15,7 +15,7 @@ export default async function ContablePage() {
     fecha: format(m.fecha, "dd MMM yyyy", { locale: es }),
     descripcion: m.descripcion,
     monto: m.monto,
-    tipo: m.sentido === 'INGRESO' ? 'Ingreso' : 'Egreso' as const,
+    tipo: (m.sentido === 'INGRESO' ? 'Ingreso' : 'Egreso') as 'Ingreso' | 'Egreso',
     categoria: (m.sentido === 'INGRESO' ? m.categoria_ingreso : m.categoria_egreso) || ''
   }));
 
