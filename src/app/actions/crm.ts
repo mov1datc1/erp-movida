@@ -61,7 +61,7 @@ export async function createOportunidad(formData: FormData) {
   }
 }
 
-export async function updateOportunidadEtapa(id: string, etapa: string) {
+export async function updateOportunidadEtapa(id: string, etapa: any) {
   try {
     const oportunidad = await prisma.oportunidad.update({
       where: { id },
