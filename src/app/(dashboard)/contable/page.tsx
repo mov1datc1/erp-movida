@@ -13,8 +13,11 @@ export default async function ContablePage() {
   const movimientos = dbMovimientos.map(m => ({
     id: m.id,
     fecha: format(m.fecha, "dd MMM yyyy", { locale: es }),
+    rawFecha: m.fecha.toISOString().split('T')[0],
     descripcion: m.descripcion,
     monto: m.monto,
+    monto_usd: m.monto_usd,
+    origen: m.origen,
     tipo: (m.sentido === 'INGRESO' ? 'Ingreso' : 'Egreso') as 'Ingreso' | 'Egreso',
     categoria: (m.sentido === 'INGRESO' ? m.categoria_ingreso : m.categoria_egreso) || ''
   }));
@@ -36,7 +39,8 @@ export default async function ContablePage() {
       movimientos={movimientos} 
       ingresosMes={ingresosMes} 
       egresosMes={egresosMes} 
-      balanceTotal={balanceTotal} 
+      balanceTotal={balanceTotal}
+      rawMovimientos={dbMovimientos}
     />
   );
 }

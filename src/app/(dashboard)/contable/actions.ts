@@ -7,9 +7,11 @@ import { SentidoMovimiento, TipoFlujo } from '@prisma/client'
 export async function createMovimiento(data: {
   tipo: 'Ingreso' | 'Egreso',
   monto: number,
+  monto_usd?: number,
   fecha: string,
   categoria: string,
-  descripcion: string
+  descripcion: string,
+  origen: string
 }) {
   try {
     await prisma.movimientoFinanciero.create({
@@ -17,9 +19,10 @@ export async function createMovimiento(data: {
         fecha: new Date(data.fecha),
         descripcion: data.descripcion,
         monto: data.monto,
+        monto_usd: data.monto_usd || null,
         sentido: data.tipo === 'Ingreso' ? SentidoMovimiento.INGRESO : SentidoMovimiento.EGRESO,
         tipo_flujo: TipoFlujo.OPERATIVO, // Default to operativo for now
-        origen: 'Manual',
+        origen: data.origen,
         categoria_ingreso: data.tipo === 'Ingreso' ? data.categoria : null,
         categoria_egreso: data.tipo === 'Egreso' ? data.categoria : null,
       }
@@ -30,5 +33,53 @@ export async function createMovimiento(data: {
   } catch (error) {
     console.error('Error creating movimiento:', error)
     return { success: false, error: 'Failed to create movimiento' }
+  }
+}
+
+export async function updateMovimiento(
+  id: string,
+  data: {
+    tipo: 'Ingreso' | 'Egreso',
+    monto: number,
+    monto_usd?: number,
+    fecha: string,
+    categoria: string,
+    descripcion: string,
+    origen: string
+  }
+) {
+  try {
+    await prisma.movimientoFinanciero.update({
+      where: { id },
+      data: {
+        fecha: new Date(data.fecha),
+        descripcion: data.descripcion,
+        monto: data.monto,
+        monto_usd: data.monto_usd || null,
+        sentido: data.tipo === 'Ingreso' ? SentidoMovimiento.INGRESO : SentidoMovimiento.EGRESO,
+        origen: data.origen,
+        categoria_ingreso: data.tipo === 'Ingreso' ? data.categoria : null,
+        categoria_egreso: data.tipo === 'Egreso' ? data.categoria : null,
+      }
+    })
+
+    revalidatePath('/contable')
+    return { success: true }
+  } catch (error) {
+    console.error('Error updating movimiento:', error)
+    return { success: false, error: 'Failed to update movimiento' }
+  }
+}
+
+export async function deleteMovimiento(id: string) {
+  try {
+    await prisma.movimientoFinanciero.delete({
+      where: { id }
+    })
+    revalidatePath('/contable')
+    return { success: true }
+  } catch (error) {
+    console.error('Error deleting movimiento:', error)
+    return { success: false, error: 'Failed to delete movimiento' }
   }
 }

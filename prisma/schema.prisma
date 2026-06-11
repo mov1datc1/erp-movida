@@ -262,6 +262,7 @@ model MovimientoFinanciero {
   fecha             DateTime
   descripcion       String
   monto             Float
+  monto_usd         Float?
   tipo_flujo        TipoFlujo
   sentido           SentidoMovimiento
   origen            String
