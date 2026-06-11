@@ -1,21 +1,16 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { ArrowUpRight, ArrowDownRight, TrendingUp } from 'lucide-react';
 import { MovimientoFinanciero } from '@prisma/client';
 
 interface FlujoCajaViewProps {
   movimientos: MovimientoFinanciero[];
+  anio: string;
+  mes: string;
 }
 
-export function FlujoCajaView({ movimientos }: FlujoCajaViewProps) {
-  const [anio, setAnio] = useState(new Date().getFullYear().toString());
-  const [mes, setMes] = useState((new Date().getMonth() + 1).toString());
-
-  const years = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    return Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
-  }, []);
+export function FlujoCajaView({ movimientos, anio, mes }: FlujoCajaViewProps) {
 
   const data = useMemo(() => {
     let filtrados = movimientos.filter(m => {
@@ -77,40 +72,6 @@ export function FlujoCajaView({ movimientos }: FlujoCajaViewProps) {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-        <div>
-          <h2 className="text-lg font-bold text-slate-800">Filtros</h2>
-        </div>
-        <div className="flex gap-3">
-          <select
-            value={anio}
-            onChange={(e) => setAnio(e.target.value)}
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-medium text-slate-700 bg-slate-50"
-          >
-            {years.map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
-          <select
-            value={mes}
-            onChange={(e) => setMes(e.target.value)}
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-medium text-slate-700 bg-slate-50"
-          >
-            <option value="">Todo el año</option>
-            <option value="1">Enero</option>
-            <option value="2">Febrero</option>
-            <option value="3">Marzo</option>
-            <option value="4">Abril</option>
-            <option value="5">Mayo</option>
-            <option value="6">Junio</option>
-            <option value="7">Julio</option>
-            <option value="8">Agosto</option>
-            <option value="9">Septiembre</option>
-            <option value="10">Octubre</option>
-            <option value="11">Noviembre</option>
-            <option value="12">Diciembre</option>
-          </select>
-        </div>
-      </div>
-
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="bg-gradient-to-br from-emerald-500 via-emerald-400 to-emerald-600 p-6 rounded-2xl shadow-lg border border-emerald-300/40">
           <div className="flex justify-between items-start">

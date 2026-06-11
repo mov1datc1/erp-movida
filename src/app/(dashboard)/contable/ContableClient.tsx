@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Plus, ArrowDownRight, ArrowUpRight, Filter, Download, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
 import { MovimientoModal, MovimientoData } from "@/components/contable/MovimientoModal";
 import { DetalleMovimientoModal } from "@/components/contable/DetalleMovimientoModal";
@@ -32,6 +32,33 @@ interface ContableClientProps {
 export default function ContableClient({ movimientos, balanceTotal, ingresosMes, egresosMes, rawMovimientos }: ContableClientProps) {
   const [activeTab, setActiveTab] = useState<'resumen' | 'flujo' | 'resultados'>('resumen');
   
+  const [anio, setAnio] = useState(new Date().getFullYear().toString());
+  const [mes, setMes] = useState((new Date().getMonth() + 1).toString());
+
+  const years = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
+  }, []);
+
+  const { filteredMovimientos, filteredIngresos, filteredEgresos } = useMemo(() => {
+    const filtered = movimientos.filter(m => {
+      // m.rawFecha format is 'YYYY-MM-DD'
+      const [y, mStr] = m.rawFecha.split('-');
+      const yearMatch = y === anio;
+      const monthMatch = mes === '' || parseInt(mStr, 10).toString() === mes;
+      return yearMatch && monthMatch;
+    });
+
+    const fIngresos = filtered.filter(m => m.tipo === 'Ingreso').reduce((acc, curr) => acc + curr.monto, 0);
+    const fEgresos = filtered.filter(m => m.tipo === 'Egreso').reduce((acc, curr) => acc + curr.monto, 0);
+
+    return {
+      filteredMovimientos: filtered,
+      filteredIngresos: fIngresos,
+      filteredEgresos: fEgresos
+    };
+  }, [movimientos, anio, mes]);
+
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'Ingreso' | 'Egreso' | null>(null);
@@ -116,32 +143,64 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200">
-        <button
-          onClick={() => setActiveTab('resumen')}
-          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'resumen' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-          }`}
-        >
-          Resumen
-        </button>
-        <button
-          onClick={() => setActiveTab('flujo')}
-          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'flujo' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-          }`}
-        >
-          Flujo de Dinero
-        </button>
-        <button
-          onClick={() => setActiveTab('resultados')}
-          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'resultados' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-          }`}
-        >
-          Estado de Resultados
-        </button>
+      {/* Tabs and Filters */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-200 gap-4 md:gap-0">
+        <div className="flex">
+          <button
+            onClick={() => setActiveTab('resumen')}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'resumen' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            Resumen
+          </button>
+          <button
+            onClick={() => setActiveTab('flujo')}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'flujo' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            Flujo de Dinero
+          </button>
+          <button
+            onClick={() => setActiveTab('resultados')}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'resultados' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            Estado de Resultados
+          </button>
+        </div>
+        
+        {/* Global Filters */}
+        <div className="flex gap-3 pb-2 md:pb-3 px-2 md:px-0">
+          <select
+            value={anio}
+            onChange={(e) => setAnio(e.target.value)}
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-medium text-slate-700 bg-slate-50"
+          >
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <select
+            value={mes}
+            onChange={(e) => setMes(e.target.value)}
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-medium text-slate-700 bg-slate-50"
+          >
+            <option value="">Todo el año</option>
+            <option value="1">Enero</option>
+            <option value="2">Febrero</option>
+            <option value="3">Marzo</option>
+            <option value="4">Abril</option>
+            <option value="5">Mayo</option>
+            <option value="6">Junio</option>
+            <option value="7">Julio</option>
+            <option value="8">Agosto</option>
+            <option value="9">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12">Diciembre</option>
+          </select>
+        </div>
       </div>
 
       {/* Tab Content */}
@@ -157,8 +216,8 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
                 <ArrowUpRight className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-sm font-medium text-text-muted">Ingresos (Mes)</p>
-                <h3 className="text-2xl font-bold text-text-main mt-1">{formatCurrency(ingresosMes)}</h3>
+                <p className="text-sm font-medium text-text-muted">Ingresos (Período)</p>
+                <h3 className="text-2xl font-bold text-text-main mt-1">{formatCurrency(filteredIngresos)}</h3>
               </div>
             </div>
             <div className="bg-surface p-6 rounded-2xl border border-slate-100 card-shadow flex gap-4">
@@ -166,8 +225,8 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
                 <ArrowDownRight className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-sm font-medium text-text-muted">Egresos (Mes)</p>
-                <h3 className="text-2xl font-bold text-text-main mt-1">{formatCurrency(egresosMes)}</h3>
+                <p className="text-sm font-medium text-text-muted">Egresos (Período)</p>
+                <h3 className="text-2xl font-bold text-text-main mt-1">{formatCurrency(filteredEgresos)}</h3>
               </div>
             </div>
           </div>
@@ -196,7 +255,7 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {movimientos.map((mov) => (
+                  {filteredMovimientos.map((mov) => (
                     <tr key={mov.id} className="hover:bg-slate-50/80 transition-colors group">
                       <td className="py-4 px-6 text-sm text-text-muted">{mov.fecha}</td>
                       <td className="py-4 px-6">
@@ -250,9 +309,9 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
                       </td>
                     </tr>
                   ))}
-                  {movimientos.length === 0 && (
+                  {filteredMovimientos.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-text-muted">No hay movimientos registrados.</td>
+                      <td colSpan={5} className="py-8 text-center text-text-muted">No hay movimientos registrados para este período.</td>
                     </tr>
                   )}
                 </tbody>
@@ -263,11 +322,11 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
       )}
 
       {activeTab === 'flujo' && (
-        <FlujoCajaView movimientos={rawMovimientos} />
+        <FlujoCajaView movimientos={rawMovimientos} anio={anio} mes={mes} />
       )}
 
       {activeTab === 'resultados' && (
-        <EstadoResultadosView movimientos={rawMovimientos} />
+        <EstadoResultadosView movimientos={rawMovimientos} anio={anio} mes={mes} />
       )}
 
       <MovimientoModal 
