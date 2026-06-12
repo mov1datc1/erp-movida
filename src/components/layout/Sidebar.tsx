@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import { logout } from "@/app/login/actions";
 import { 
   Home, 
   CheckSquare, 
@@ -57,9 +58,11 @@ export default function Sidebar() {
             <p className="text-sm font-bold text-text-main truncate">Usuario</p>
             <p className="text-xs text-text-muted truncate">admin@movida.com</p>
           </div>
-          <button className="ml-auto text-slate-400 hover:text-danger transition-colors">
-            <LogOut className="w-4 h-4" />
-          </button>
+          <form action={logout} className="ml-auto">
+            <button type="submit" className="text-slate-400 hover:text-danger transition-colors cursor-pointer">
+              <LogOut className="w-4 h-4" />
+            </button>
+          </form>
         </div>
       </div>
     </aside>
