@@ -21,6 +21,20 @@ model Profile {
   tareasAsignadas       Tarea[]               @relation("TareasAsignadas")
   hitosAsignados        HitoProyecto[]
   tareasAdministrativas TareaAdministrativa[]
+
+  app_role_id String?
+  app_role    AppRole? @relation(fields: [app_role_id], references: [id], onDelete: SetNull)
+}
+
+model AppRole {
+  id          String   @id @default(uuid())
+  nombre      String   @unique
+  descripcion String?
+  permisos    Json     // Array of module permission strings
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  perfiles    Profile[]
 }
 
 enum Role {
@@ -300,3 +314,16 @@ enum TipoTareaAdmin {
   CUENTA_POR_COBRAR
   CUENTA_POR_PAGAR
 }
+
+// -------------------------------------
+// Módulo de Configuración / Integraciones
+// -------------------------------------
+model Integracion {
+  id         String   @id @default(uuid())
+  proveedor  String   @unique // Ej: "SMTP_CORREO", "FACEBOOK_ADS"
+  config     Json     // Configuraciones específicas
+  activa     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
