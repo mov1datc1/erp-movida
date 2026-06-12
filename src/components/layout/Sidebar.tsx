@@ -1,6 +1,8 @@
 import React from "react";
 import Link from "next/link";
 import { logout } from "@/app/login/actions";
+import { createClient } from "@/utils/supabase/server";
+import { prisma } from "@/lib/prisma";
 import { 
   Home, 
   CheckSquare, 
@@ -11,7 +13,17 @@ import {
   LogOut
 } from "lucide-react";
 
-export default function Sidebar() {
+export default async function Sidebar() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  let profile = null;
+  if (user) {
+    profile = await prisma.profile.findUnique({
+      where: { auth_id: user.id },
+      include: { app_role: true }
+    });
+  }
   const menuItems = [
     { name: "Inicio", icon: <Home className="w-5 h-5" />, path: "/" },
     { name: "Tareas", icon: <CheckSquare className="w-5 h-5" />, path: "/tareas" },
@@ -53,10 +65,12 @@ export default function Sidebar() {
         </Link>
         
         <div className="mt-4 p-4 bg-slate-50 rounded-2xl flex items-center gap-3">
-          <div className="w-10 h-10 bg-slate-200 rounded-full flex-shrink-0"></div>
+          <div className="w-10 h-10 bg-slate-200 rounded-full flex-shrink-0 flex items-center justify-center text-slate-500 font-bold">
+            {profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'U'}
+          </div>
           <div className="overflow-hidden">
-            <p className="text-sm font-bold text-text-main truncate">Usuario</p>
-            <p className="text-xs text-text-muted truncate">admin@movida.com</p>
+            <p className="text-sm font-bold text-text-main truncate">{profile?.nombre || 'Usuario'}</p>
+            <p className="text-xs text-text-muted truncate">{user?.email || 'admin@movida.com'}</p>
           </div>
           <form action={logout} className="ml-auto">
             <button type="submit" className="text-slate-400 hover:text-danger transition-colors cursor-pointer">
