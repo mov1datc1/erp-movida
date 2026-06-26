@@ -26,14 +26,19 @@ export default async function Home() {
   let statsData = null;
   
   if (superAdmin) {
+    const now = new Date();
+    // Get the first day of the month 5 months ago
+    const sixMonthsAgoStart = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
     const [
       proyectosActivos,
       tareasPendientes,
-      movimientosMes,
+      movimientosSeisMeses,
       tareasRecientes
     ] = await Promise.all([
       prisma.proyecto.count({
-        where: { estado: 'ACTIVO' }
+        where: { estado: { in: ['ACTIVO', 'PLANIFICACION'] } }
       }),
       prisma.tarea.count({
         where: { estatus: 'PENDIENTE' }
@@ -41,7 +46,7 @@ export default async function Home() {
       prisma.movimientoFinanciero.findMany({
         where: {
           fecha: {
-            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+            gte: sixMonthsAgoStart
           }
         }
       }),
@@ -51,9 +56,30 @@ export default async function Home() {
       })
     ]);
 
-    const ingresosMes = movimientosMes
+    const movimientosMesActual = movimientosSeisMeses.filter(m => m.fecha >= currentMonthStart);
+
+    const ingresosMes = movimientosMesActual
       .filter(m => m.sentido === 'INGRESO')
       .reduce((acc, curr) => acc + curr.monto, 0);
+
+    const chartData = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const nextMonthStart = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      
+      const monthIngresos = movimientosSeisMeses
+        .filter(m => m.fecha >= monthStart && m.fecha < nextMonthStart && m.sentido === 'INGRESO')
+        .reduce((acc, curr) => acc + curr.monto, 0);
+        
+      chartData.push({
+        label: format(monthStart, 'MMM', { locale: es }),
+        ingresos: monthIngresos
+      });
+    }
+
+    const maxIngreso = Math.max(...chartData.map(d => d.ingresos), 1);
+    const chartHeights = chartData.map(d => Math.round((d.ingresos / maxIngreso) * 100));
+    const chartLabels = chartData.map(d => d.label);
 
     const formatCurrency = (amount: number) => {
       return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -63,8 +89,10 @@ export default async function Home() {
       proyectosActivos,
       tareasPendientes,
       ingresosMes: formatCurrency(ingresosMes),
-      movimientosCount: movimientosMes.length,
-      tareasRecientes
+      movimientosCount: movimientosMesActual.length,
+      tareasRecientes,
+      chartHeights,
+      chartLabels
     };
   }
 
@@ -161,10 +189,17 @@ export default async function Home() {
                 <h2 className="text-2xl font-bold mb-2">Resumen Financiero</h2>
                 <p className="text-primary-light mb-8">El flujo de caja se mantiene activo este mes.</p>
                 
-                <div className="h-48 flex items-end gap-4">
-                  {/* Dummy Chart Bars for now, could be wired to actual daily/weekly data later */}
-                  {[40, 70, 45, 90, 65, 85].map((height, i) => (
-                    <div key={i} className="flex-1 bg-white/20 hover:bg-white/40 transition-colors rounded-t-lg" style={{ height: `${height}%` }}></div>
+                <div className="h-52 flex items-end gap-4 mt-6">
+                  {statsData.chartHeights.map((height: number, i: number) => (
+                    <div key={i} className="flex-1 flex flex-col justify-end h-full group">
+                      <div className="w-full flex-1 flex flex-col justify-end relative">
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white text-primary text-xs font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
+                          {statsData.chartLabels[i]}
+                        </div>
+                        <div className="w-full bg-white/20 group-hover:bg-white/40 transition-all duration-300 rounded-t-lg" style={{ height: `${Math.max(height, 2)}%` }}></div>
+                      </div>
+                      <div className="text-center mt-2 text-xs text-white/60 font-medium capitalize">{statsData.chartLabels[i]}</div>
+                    </div>
                   ))}
                 </div>
               </div>
