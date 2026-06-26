@@ -140,11 +140,19 @@ export async function createUserWithRole(data: { email: string; nombre: string; 
   }
 }
 
-export async function updateUserRole(profileId: string, data: { nombre: string, app_role_id: string | null }) {
+export async function updateUserRole(profileId: string, data: { nombre: string, app_role_id: string | null, password?: string }) {
   try {
     const existing = await prisma.profile.findUnique({ where: { id: profileId } });
     if (existing?.rol === 'SUPERADMIN' && data.app_role_id !== existing.app_role_id) {
       return { success: false, error: 'No puedes cambiar el rol de un SUPER ADMIN.' };
+    }
+
+    if (data.password && existing?.auth_id) {
+      const supabaseAdmin = createAdminClient();
+      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(existing.auth_id, {
+        password: data.password
+      });
+      if (authError) throw new Error(`Error actualizando contraseña: ${authError.message}`);
     }
 
     const profile = await prisma.profile.update({

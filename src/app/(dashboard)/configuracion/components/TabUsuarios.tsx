@@ -39,7 +39,7 @@ export default function TabUsuarios({ initialUsuarios, roles }: { initialUsuario
     let res;
 
     if (editingUserId) {
-      res = await updateUserRole(editingUserId, { nombre, app_role_id: appRoleId || null });
+      res = await updateUserRole(editingUserId, { nombre, app_role_id: appRoleId || null, password: password || undefined });
     } else {
       res = await createUserWithRole({ email, nombre, app_role_id: appRoleId, password });
     }
@@ -167,18 +167,18 @@ export default function TabUsuarios({ initialUsuarios, roles }: { initialUsuario
                 />
               </div>
 
-              {!editingUserId && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña Temporal</label>
-                  <input 
-                    type="text" 
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                    placeholder="Si se deja vacío, se usa TempPassword123!"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {editingUserId ? 'Nueva Contraseña (Opcional)' : 'Contraseña Temporal'}
+                </label>
+                <input 
+                  type="text" 
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  placeholder={editingUserId ? "Dejar en blanco para no cambiarla" : "Si se deja vacío, se usa TempPassword123!"}
+                />
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Asignar Rol</label>
