@@ -38,6 +38,7 @@ model AppRole {
 }
 
 enum Role {
+  SUPERADMIN
   ADMIN
   USER
   MANAGER

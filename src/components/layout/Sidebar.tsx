@@ -3,6 +3,7 @@ import Link from "next/link";
 import { logout } from "@/app/login/actions";
 import { createClient } from "@/utils/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { isSuperAdmin, getVisibleModules, ALL_MODULES } from "@/lib/rbac";
 import { 
   Home, 
   CheckSquare, 
@@ -10,7 +11,8 @@ import {
   DollarSign, 
   PieChart, 
   Settings,
-  LogOut
+  LogOut,
+  Target
 } from "lucide-react";
 
 export default async function Sidebar() {
@@ -24,35 +26,29 @@ export default async function Sidebar() {
       include: { app_role: true }
     });
   }
-  const allMenuItems = [
-    { id: "inicio", name: "Inicio", icon: <Home className="w-5 h-5" />, path: "/" },
-    { id: "tareas", name: "Tareas", icon: <CheckSquare className="w-5 h-5" />, path: "/tareas" },
-    { id: "proyectos", name: "Proyectos", icon: <Briefcase className="w-5 h-5" />, path: "/proyectos" },
-    { id: "contable", name: "Contable", icon: <DollarSign className="w-5 h-5" />, path: "/contable" },
-    { id: "crm", name: "CRM / Clientes", icon: <PieChart className="w-5 h-5" />, path: "/crm/clientes" },
-    { id: "oportunidades", name: "Oportunidades", icon: <Briefcase className="w-5 h-5" />, path: "/crm/oportunidades" },
-    { id: "cotizaciones", name: "Cotizaciones", icon: <PieChart className="w-5 h-5" />, path: "/crm/cotizaciones" },
-    { id: "facturacion", name: "Facturación", icon: <DollarSign className="w-5 h-5" />, path: "/crm/facturacion" },
-  ];
 
-  // Parse permissions from JSON if available
-  let permisos: string[] = [];
-  if (profile?.app_role?.permisos) {
-    try {
-      permisos = Array.isArray(profile.app_role.permisos) 
-        ? profile.app_role.permisos 
-        : JSON.parse(profile.app_role.permisos as string);
-    } catch (e) {
-      permisos = [];
-    }
-  }
+  const superAdmin = isSuperAdmin(profile);
+  const visibleModuleIds = getVisibleModules(profile);
 
-  const isSuperAdmin = profile?.rol === 'ADMIN';
+  // Mapeamos los IDs de módulos a sus rutas e íconos correspondientes
+  const moduleConfig = {
+    'inicio': { name: "Inicio", icon: <Home className="w-5 h-5" />, path: "/" },
+    'tareas': { name: "Tareas", icon: <CheckSquare className="w-5 h-5" />, path: "/tareas" },
+    'proyectos': { name: "Proyectos", icon: <Briefcase className="w-5 h-5" />, path: "/proyectos" },
+    'contable': { name: "Contable", icon: <DollarSign className="w-5 h-5" />, path: "/contable" },
+    'crm': { name: "CRM / Clientes", icon: <PieChart className="w-5 h-5" />, path: "/crm/clientes" },
+    'oportunidades': { name: "Oportunidades", icon: <Target className="w-5 h-5" />, path: "/crm/oportunidades" },
+    'cotizaciones': { name: "Cotizaciones", icon: <PieChart className="w-5 h-5" />, path: "/crm/cotizaciones" },
+    'facturacion': { name: "Facturación", icon: <DollarSign className="w-5 h-5" />, path: "/crm/facturacion" },
+  } as Record<string, any>;
 
-  const menuItems = allMenuItems.filter(item => {
-    if (isSuperAdmin) return true;
-    return permisos.includes(item.id);
-  });
+  // Construir los items del menú basados en los módulos visibles
+  const menuItems = ALL_MODULES
+    .filter(mod => mod.id !== 'configuracion' && visibleModuleIds.includes(mod.id))
+    .map(mod => ({
+      id: mod.id,
+      ...(moduleConfig[mod.id] || { name: mod.label, icon: <Briefcase className="w-5 h-5" />, path: `/${mod.id}` })
+    }));
 
   return (
     <aside className="w-64 bg-surface h-screen border-r border-slate-200 flex flex-col fixed left-0 top-0">
@@ -61,7 +57,7 @@ export default async function Sidebar() {
         <span className="font-bold text-xl text-primary">Movida ERP</span>
       </div>
 
-      <nav className="flex-1 px-4 py-4 space-y-2">
+      <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
         {menuItems.map((item) => (
           <Link 
             key={item.name} 
@@ -74,8 +70,8 @@ export default async function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-4 border-t border-slate-100">
-        {isSuperAdmin && (
+      <div className="p-4 border-t border-slate-100 flex-shrink-0">
+        {superAdmin && (
           <Link 
             href="/configuracion"
             className="flex items-center gap-3 px-4 py-3 text-text-muted hover:bg-slate-50 hover:text-primary rounded-xl transition-colors font-medium"
@@ -86,7 +82,7 @@ export default async function Sidebar() {
         )}
         
         <div className="mt-4 p-4 bg-slate-50 rounded-2xl flex items-center gap-3">
-          <div className="w-10 h-10 bg-slate-200 rounded-full flex-shrink-0 flex items-center justify-center text-slate-500 font-bold">
+          <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-sm ${superAdmin ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white' : 'bg-slate-200 text-slate-500'}`}>
             {profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'U'}
           </div>
           <div className="overflow-hidden">
@@ -94,7 +90,7 @@ export default async function Sidebar() {
             <p className="text-xs text-text-muted truncate">{user?.email || 'admin@movida.com'}</p>
           </div>
           <form action={logout} className="ml-auto">
-            <button type="submit" className="text-slate-400 hover:text-danger transition-colors cursor-pointer">
+            <button type="submit" className="text-slate-400 hover:text-danger transition-colors cursor-pointer" title="Cerrar sesión">
               <LogOut className="w-4 h-4" />
             </button>
           </form>

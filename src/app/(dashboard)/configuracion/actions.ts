@@ -23,7 +23,7 @@ export async function createAppRole(data: { nombre: string; descripcion?: string
       data: {
         nombre: data.nombre,
         descripcion: data.descripcion,
-        permisos: data.permisos
+        permisos: data.permisos // ya viene en formato objeto desde el cliente
       }
     });
     revalidatePath('/configuracion');
@@ -35,6 +35,13 @@ export async function createAppRole(data: { nombre: string; descripcion?: string
 
 export async function updateAppRole(id: string, data: { nombre: string; descripcion?: string; permisos: any }) {
   try {
+    const existing = await prisma.appRole.findUnique({ where: { id } });
+    if (existing?.nombre === 'Admin' || existing?.nombre === 'Super Admin') {
+      if (data.nombre !== existing.nombre) {
+         return { success: false, error: 'No puedes cambiar el nombre de un rol reservado del sistema.' };
+      }
+    }
+
     const role = await prisma.appRole.update({
       where: { id },
       data: {
@@ -52,6 +59,11 @@ export async function updateAppRole(id: string, data: { nombre: string; descripc
 
 export async function deleteAppRole(id: string) {
   try {
+    const existing = await prisma.appRole.findUnique({ where: { id } });
+    if (existing?.nombre === 'Admin' || existing?.nombre === 'Super Admin') {
+      return { success: false, error: 'No puedes eliminar un rol reservado del sistema.' };
+    }
+
     await prisma.appRole.delete({ where: { id } });
     revalidatePath('/configuracion');
     return { success: true };
@@ -130,6 +142,11 @@ export async function createUserWithRole(data: { email: string; nombre: string; 
 
 export async function updateUserRole(profileId: string, data: { nombre: string, app_role_id: string | null }) {
   try {
+    const existing = await prisma.profile.findUnique({ where: { id: profileId } });
+    if (existing?.rol === 'SUPERADMIN' && data.app_role_id !== existing.app_role_id) {
+      return { success: false, error: 'No puedes cambiar el rol de un SUPER ADMIN.' };
+    }
+
     const profile = await prisma.profile.update({
       where: { id: profileId },
       data: {
