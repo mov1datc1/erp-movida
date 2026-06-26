@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FileText, ArrowLeft, Plus, Trash2, Tag, Loader2, DollarSign, PackageSearch } from 'lucide-react';
+import { FileText, ArrowLeft, Plus, Trash2, Tag, Loader2, DollarSign, PackageSearch, Download, CheckCircle, Send, XCircle } from 'lucide-react';
 import Link from 'next/link';
-import { addCotizacionItem, deleteCotizacionItem } from './actions';
+import { addCotizacionItem, deleteCotizacionItem, updateCotizacionStatus } from './actions';
 
 export function CotizacionDetalleClient({ cotizacion, catalog }: { cotizacion: any, catalog: any[] }) {
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
@@ -71,22 +71,87 @@ export function CotizacionDetalleClient({ cotizacion, catalog }: { cotizacion: a
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleChangeStatus = async (status: string) => {
+    if (window.confirm(`¿Cambiar estado a ${status}?`)) {
+      await updateCotizacionStatus(cotizacion.id, status);
+    }
+  };
+
+  const statusColor = (status: string) => {
+    switch(status) {
+      case 'ENVIADA': return 'bg-blue-100 text-blue-700';
+      case 'ACEPTADA': return 'bg-success/20 text-success';
+      case 'RECHAZADA': return 'bg-danger/20 text-danger';
+      default: return 'bg-slate-100 text-slate-600';
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link 
-          href="/crm/cotizaciones"
-          className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
-        >
-          <ArrowLeft className="w-5 h-5 text-slate-500" />
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
-            Cotización {cotizacion.folio}
-            <span className="text-sm font-medium px-3 py-1 bg-slate-100 text-slate-600 rounded-full">{cotizacion.estatus}</span>
-          </h1>
-          <p className="text-text-muted mt-1">Cliente: <span className="font-semibold text-slate-700">{cotizacion.cliente.nombre}</span></p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/crm/cotizaciones"
+            className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
+          >
+            <ArrowLeft className="w-5 h-5 text-slate-500" />
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
+              Cotización {cotizacion.folio}
+              <span className={`text-sm font-medium px-3 py-1 rounded-full ${statusColor(cotizacion.estatus)}`}>
+                {cotizacion.estatus}
+              </span>
+            </h1>
+            <p className="text-text-muted mt-1">Cliente: <span className="font-semibold text-slate-700">{cotizacion.cliente.nombre}</span></p>
+          </div>
         </div>
+        
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={handlePrint}
+            className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" /> PDF / Imprimir
+          </button>
+
+          {cotizacion.estatus === 'BORRADOR' && (
+            <button 
+              onClick={() => handleChangeStatus('ENVIADA')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
+            >
+              <Send className="w-4 h-4" /> Marcar Enviada
+            </button>
+          )}
+
+          {cotizacion.estatus === 'ENVIADA' && (
+            <>
+              <button 
+                onClick={() => handleChangeStatus('ACEPTADA')}
+                className="px-4 py-2 bg-success text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors shadow-sm flex items-center gap-2"
+              >
+                <CheckCircle className="w-4 h-4" /> Aceptada
+              </button>
+              <button 
+                onClick={() => handleChangeStatus('RECHAZADA')}
+                className="px-4 py-2 bg-white border border-danger text-danger rounded-xl font-medium hover:bg-danger/5 transition-colors shadow-sm flex items-center gap-2"
+              >
+                <XCircle className="w-4 h-4" /> Rechazada
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Bloque imprimible (Header visible solo al imprimir) */}
+      <div className="hidden print:block mb-8">
+        <h1 className="text-4xl font-bold text-primary mb-2">Cotización {cotizacion.folio}</h1>
+        <p className="text-lg text-slate-700">Para: <strong>{cotizacion.cliente.nombre}</strong> {cotizacion.cliente.empresa ? `(${cotizacion.cliente.empresa})` : ''}</p>
+        <p className="text-slate-500">Fecha: {new Date(cotizacion.createdAt).toLocaleDateString()}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -176,7 +241,7 @@ export function CotizacionDetalleClient({ cotizacion, catalog }: { cotizacion: a
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-6 print:hidden">
           <div className="bg-surface rounded-2xl border border-slate-100 card-shadow p-6">
             <h3 className="font-bold text-slate-800 mb-4">Resumen</h3>
             <div className="space-y-3 text-sm">

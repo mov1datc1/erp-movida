@@ -48,6 +48,22 @@ export async function deleteCotizacionItem(id: string, cotizacion_id: string) {
   }
 }
 
+export async function updateCotizacionStatus(id: string, estatus: any) {
+  try {
+    await prisma.cotizacion.update({
+      where: { id },
+      data: { estatus }
+    });
+    
+    revalidatePath(`/crm/cotizaciones/${id}`);
+    revalidatePath(`/crm/cotizaciones`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating cotizacion status:', error);
+    return { success: false, error: 'Error al actualizar el estatus' };
+  }
+}
+
 async function updateCotizacionTotal(cotizacion_id: string) {
   const items = await prisma.cotizacionItem.findMany({
     where: { cotizacion_id }

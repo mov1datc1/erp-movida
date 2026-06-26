@@ -2,6 +2,7 @@ import React from "react";
 import { Search, FileText, Send, CheckCircle, XCircle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import NuevaCotizacionBoton from "./NuevaCotizacionBoton";
+import CotizacionesList from "./CotizacionesList";
 
 export const dynamic = 'force-dynamic';
 
@@ -75,42 +76,7 @@ export default async function CotizacionesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
-              {cotizaciones.length > 0 ? (
-                cotizaciones.map((cotizacion) => {
-                  const StatusIcon = statusMap[cotizacion.estatus]?.icon || FileText;
-                  return (
-                    <tr key={cotizacion.id} className="hover:bg-slate-50/50 transition-colors group cursor-pointer">
-                      <td className="px-6 py-4 font-mono font-medium text-primary">
-                        {cotizacion.folio}
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-text-main group-hover:text-primary transition-colors">{cotizacion.cliente.nombre}</p>
-                        <p className="text-xs text-text-muted">{cotizacion.cliente.empresa}</p>
-                      </td>
-                      <td className="px-6 py-4 font-bold text-text-main">
-                        {formatCurrency(cotizacion.monto)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 w-fit ${statusMap[cotizacion.estatus]?.color}`}>
-                          <StatusIcon className="w-3.5 h-3.5" />
-                          {statusMap[cotizacion.estatus]?.label}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-text-muted">
-                        {new Date(cotizacion.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  )
-                })
-              ) : (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                    <FileText className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-                    <p className="text-lg font-medium text-text-main">No hay cotizaciones</p>
-                    <p className="text-sm mt-1">Crea una cotización para enviarla a tus prospectos.</p>
-                  </td>
-                </tr>
-              )}
+              <CotizacionesList cotizaciones={cotizaciones} />
             </tbody>
           </table>
         </div>
