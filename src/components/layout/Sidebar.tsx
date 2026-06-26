@@ -12,7 +12,8 @@ import {
   PieChart, 
   Settings,
   LogOut,
-  Target
+  Target,
+  PackageSearch
 } from "lucide-react";
 
 export default async function Sidebar() {
@@ -40,6 +41,7 @@ export default async function Sidebar() {
     'oportunidades': { name: "Oportunidades", icon: <Target className="w-5 h-5" />, path: "/crm/oportunidades" },
     'cotizaciones': { name: "Cotizaciones", icon: <PieChart className="w-5 h-5" />, path: "/crm/cotizaciones" },
     'facturacion': { name: "Facturación", icon: <DollarSign className="w-5 h-5" />, path: "/crm/facturacion" },
+    'lineas-productos': { name: "Catálogo", icon: <PackageSearch className="w-5 h-5" />, path: "/lineas-productos" },
   } as Record<string, any>;
 
   // Construir los items del menú basados en los módulos visibles

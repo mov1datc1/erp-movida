@@ -7,7 +7,22 @@ export const dynamic = 'force-dynamic';
 
 export default async function ContablePage() {
   const dbMovimientos = await prisma.movimientoFinanciero.findMany({
+    include: { linea_producto: true },
     orderBy: { fecha: 'desc' }
+  });
+
+  const facturasPendientes = await prisma.factura.findMany({
+    where: { estatus: 'PENDIENTE' }
+  });
+
+  // Calculate 7 days ago
+  const unaSemanaAtras = new Date();
+  unaSemanaAtras.setDate(unaSemanaAtras.getDate() - 7);
+
+  const oportunidadesSemana = await prisma.oportunidad.findMany({
+    where: {
+      updatedAt: { gte: unaSemanaAtras }
+    }
   });
 
   const movimientos = dbMovimientos.map(m => ({
@@ -41,6 +56,8 @@ export default async function ContablePage() {
       egresosMes={egresosMes} 
       balanceTotal={balanceTotal}
       rawMovimientos={dbMovimientos}
+      facturasPendientes={facturasPendientes}
+      oportunidadesSemana={oportunidadesSemana}
     />
   );
 }

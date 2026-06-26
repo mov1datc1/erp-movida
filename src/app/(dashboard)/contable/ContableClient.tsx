@@ -7,6 +7,7 @@ import { DetalleMovimientoModal } from "@/components/contable/DetalleMovimientoM
 import { deleteMovimiento } from "./actions";
 import { FlujoCajaView } from "./components/FlujoCajaView";
 import { EstadoResultadosView } from "./components/EstadoResultadosView";
+import { KpiSemanalesView } from "./components/KpiSemanalesView";
 import { MovimientoFinanciero } from "@prisma/client";
 
 type Movimiento = {
@@ -26,11 +27,13 @@ interface ContableClientProps {
   balanceTotal: number;
   ingresosMes: number;
   egresosMes: number;
-  rawMovimientos: MovimientoFinanciero[];
+  rawMovimientos: any[];
+  facturasPendientes?: any[];
+  oportunidadesSemana?: any[];
 }
 
-export default function ContableClient({ movimientos, balanceTotal, ingresosMes, egresosMes, rawMovimientos }: ContableClientProps) {
-  const [activeTab, setActiveTab] = useState<'resumen' | 'flujo' | 'resultados'>('resumen');
+export default function ContableClient({ movimientos, balanceTotal, ingresosMes, egresosMes, rawMovimientos, facturasPendientes = [], oportunidadesSemana = [] }: ContableClientProps) {
+  const [activeTab, setActiveTab] = useState<'resumen' | 'flujo' | 'resultados' | 'kpis'>('kpis');
   
   const [anio, setAnio] = useState(new Date().getFullYear().toString());
   const [mes, setMes] = useState((new Date().getMonth() + 1).toString());
@@ -169,6 +172,14 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
             }`}
           >
             Estado de Resultados
+          </button>
+          <button
+            onClick={() => setActiveTab('kpis')}
+            className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${
+              activeTab === 'kpis' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            KPIs Semanales
           </button>
         </div>
         
@@ -327,6 +338,14 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
 
       {activeTab === 'resultados' && (
         <EstadoResultadosView movimientos={rawMovimientos} anio={anio} mes={mes} />
+      )}
+
+      {activeTab === 'kpis' && (
+        <KpiSemanalesView 
+          rawMovimientos={rawMovimientos} 
+          facturasPendientes={facturasPendientes} 
+          oportunidadesSemana={oportunidadesSemana} 
+        />
       )}
 
       <MovimientoModal 

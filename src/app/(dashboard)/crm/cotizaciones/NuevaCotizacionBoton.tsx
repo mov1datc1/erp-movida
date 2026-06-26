@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, X, FileText, DollarSign, User, Loader2 } from 'lucide-react';
+import { Plus, X, FileText, User, Loader2 } from 'lucide-react';
 import { createCotizacion } from '@/app/actions/crm';
+import { useRouter } from 'next/navigation';
 
 interface Cliente {
   id: string;
@@ -14,6 +15,7 @@ export default function NuevaCotizacionBoton({ clientes }: { clientes: Cliente[]
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   // Generamos un folio sugerido
   const prefijo = "COT-";
@@ -29,6 +31,7 @@ export default function NuevaCotizacionBoton({ clientes }: { clientes: Cliente[]
     
     if (result.success) {
       setIsOpen(false);
+      router.push(`/crm/cotizaciones/${result.data.id}`);
     } else {
       setError(result.error || 'Error desconocido');
     }
@@ -82,22 +85,6 @@ export default function NuevaCotizacionBoton({ clientes }: { clientes: Cliente[]
                       required 
                       defaultValue={folioSugerido}
                       className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg font-mono focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Monto (MXN) *</label>
-                  <div className="relative">
-                    <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input 
-                      type="number" 
-                      name="monto" 
-                      required
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                      className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                     />
                   </div>
                 </div>

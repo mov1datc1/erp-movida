@@ -232,6 +232,7 @@ model Cotizacion {
   updatedAt DateTime @updatedAt
 
   facturas Factura[]
+  items    CotizacionItem[]
 }
 
 enum CotizacionStatus {
@@ -283,6 +284,10 @@ model MovimientoFinanciero {
   origen            String
   categoria_ingreso String?
   categoria_egreso  String?
+
+  linea_producto_id String?
+  linea_producto    LineaProducto? @relation(fields: [linea_producto_id], references: [id], onDelete: SetNull)
+
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 }
@@ -326,5 +331,49 @@ model Integracion {
   activa     Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+// -------------------------------------
+// Módulo de Catálogo y Líneas de Productos
+// -------------------------------------
+model LineaProducto {
+  id          String   @id @default(uuid())
+  nombre      String
+  descripcion String?
+  activa      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  productos   ProductoServicio[]
+  movimientos MovimientoFinanciero[]
+}
+
+model ProductoServicio {
+  id                String   @id @default(uuid())
+  nombre            String
+  descripcion       String?
+  precio_base       Float?
+  linea_producto_id String
+  linea_producto    LineaProducto @relation(fields: [linea_producto_id], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  cotizacionItems   CotizacionItem[]
+}
+
+model CotizacionItem {
+  id              String   @id @default(uuid())
+  cotizacion_id   String
+  cotizacion      Cotizacion @relation(fields: [cotizacion_id], references: [id], onDelete: Cascade)
+  producto_id     String?
+  producto        ProductoServicio? @relation(fields: [producto_id], references: [id], onDelete: SetNull)
+  descripcion     String
+  cantidad        Int      @default(1)
+  precio_unitario Float
+  monto_total     Float
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
