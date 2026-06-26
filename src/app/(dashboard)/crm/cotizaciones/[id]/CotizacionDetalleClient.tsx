@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FileText, ArrowLeft, Plus, Trash2, Tag, Loader2, DollarSign } from 'lucide-react';
+import { FileText, ArrowLeft, Plus, Trash2, Tag, Loader2, DollarSign, PackageSearch } from 'lucide-react';
 import Link from 'next/link';
 import { addCotizacionItem, deleteCotizacionItem } from './actions';
 
