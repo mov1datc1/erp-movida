@@ -31,7 +31,9 @@ export default function NuevaCotizacionBoton({ clientes }: { clientes: Cliente[]
     
     if (result.success) {
       setIsOpen(false);
-      router.push(`/crm/cotizaciones/${result.data.id}`);
+      if (result.data && result.data.id) {
+        router.push(`/crm/cotizaciones/${result.data.id}`);
+      }
     } else {
       setError(result.error || 'Error desconocido');
     }
