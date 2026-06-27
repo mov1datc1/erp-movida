@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign } from "lucide-react";
-import { createPrefactura } from './actions';
+import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar } from "lucide-react";
+import { createPrefactura, updatePrefactura } from './actions';
 
 export function FacturacionClient({ facturas, clientes }: { facturas: any[], clientes: any[] }) {
   const [activeTab, setActiveTab] = useState<'por_cobrar' | 'historial'>('por_cobrar');
@@ -10,7 +10,16 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({ cliente_id: '', monto_total: '' });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  
+  const [formData, setFormData] = useState({ 
+    cliente_id: '', 
+    monto_total: '',
+    fecha_vencimiento: '' 
+  });
+  
+  // For printing
+  const [printData, setPrintData] = useState<any>(null);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -37,6 +46,27 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
     }
   });
 
+  const openNewModal = () => {
+    setEditingId(null);
+    setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '' });
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (factura: any) => {
+    setEditingId(factura.id);
+    setFormData({
+      cliente_id: factura.cliente_id,
+      monto_total: factura.monto_total.toString(),
+      fecha_vencimiento: factura.fecha_vencimiento ? new Date(factura.fecha_vencimiento).toISOString().split('T')[0] : ''
+    });
+    setPrintData(factura);
+    setIsModalOpen(true);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -45,8 +75,8 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
           <p className="text-text-muted mt-1">Control de prefacturas y pagos de clientes.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-primary/20"
+          onClick={openNewModal}
+          className="bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-primary/20 print:hidden"
         >
           <Plus className="w-5 h-5" />
           Nueva Prefactura
@@ -76,7 +106,7 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
         </div>
       </div>
 
-      <div className="bg-surface rounded-3xl border border-slate-100 card-shadow overflow-hidden">
+      <div className="bg-surface rounded-3xl border border-slate-100 card-shadow overflow-hidden print:hidden">
         {/* Tabs */}
         <div className="flex border-b border-slate-100 px-6 pt-2 gap-2 bg-slate-50/50">
           <button
@@ -127,7 +157,11 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
                 filteredFacturas.map((factura) => {
                   const StatusIcon = statusMap[factura.estatus]?.icon || FileText;
                   return (
-                    <tr key={factura.id} className="hover:bg-slate-50/50 transition-colors group cursor-pointer">
+                    <tr 
+                      key={factura.id} 
+                      onClick={() => openEditModal(factura)}
+                      className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
+                    >
                       <td className="px-6 py-4 font-mono font-medium text-primary">
                         {factura.folio}
                       </td>
@@ -167,23 +201,48 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in print:hidden">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in zoom-in-95 duration-200">
-            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" />
-              Crear Prefactura Manual
-            </h2>
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                {editingId ? 'Detalles de Factura' : 'Crear Prefactura Manual'}
+              </h2>
+              {editingId && (
+                <button 
+                  onClick={handlePrint}
+                  className="p-2 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
+                  title="Descargar PDF"
+                >
+                  <Download className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+            
             <form onSubmit={async (e) => {
               e.preventDefault();
               setIsLoading(true);
-              const res = await createPrefactura({
-                cliente_id: formData.cliente_id,
-                monto_total: parseFloat(formData.monto_total)
-              });
+              
+              let res;
+              if (editingId) {
+                res = await updatePrefactura(editingId, {
+                  cliente_id: formData.cliente_id,
+                  monto_total: parseFloat(formData.monto_total),
+                  fecha_vencimiento: formData.fecha_vencimiento
+                });
+              } else {
+                res = await createPrefactura({
+                  cliente_id: formData.cliente_id,
+                  monto_total: parseFloat(formData.monto_total),
+                  fecha_vencimiento: formData.fecha_vencimiento
+                });
+              }
+              
               setIsLoading(false);
               if (res.success) {
                 setIsModalOpen(false);
-                setFormData({ cliente_id: '', monto_total: '' });
+                setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '' });
+                setEditingId(null);
               } else {
                 alert(res.error);
               }
@@ -203,27 +262,41 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
                 </select>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Monto Total *</label>
-                <div className="relative">
-                  <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input 
-                    type="number" 
-                    required
-                    step="0.01"
-                    min="0"
-                    value={formData.monto_total}
-                    onChange={e => setFormData({...formData, monto_total: e.target.value})}
-                    className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium"
-                    placeholder="0.00"
-                  />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Monto Total *</label>
+                  <div className="relative">
+                    <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input 
+                      type="number" 
+                      required
+                      step="0.01"
+                      min="0"
+                      value={formData.monto_total}
+                      onChange={e => setFormData({...formData, monto_total: e.target.value})}
+                      className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Vencimiento</label>
+                  <div className="relative">
+                    <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input 
+                      type="date" 
+                      value={formData.fecha_vencimiento}
+                      onChange={e => setFormData({...formData, fecha_vencimiento: e.target.value})}
+                      className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-sm"
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="flex gap-3 pt-4">
                 <button 
                   type="button" 
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => { setIsModalOpen(false); setEditingId(null); }}
                   className="flex-1 px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl font-medium transition-colors"
                 >
                   Cancelar
@@ -233,13 +306,72 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
                   disabled={isLoading || !formData.cliente_id || !formData.monto_total}
                   className="flex-1 px-4 py-2 text-white bg-primary hover:bg-primary-light rounded-xl font-bold transition-colors shadow-lg shadow-primary/30 disabled:opacity-70 flex items-center justify-center gap-2"
                 >
-                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Generar'}
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingId ? 'Guardar Cambios' : 'Generar')}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Bloque imprimible (oculto en pantalla) */}
+      <div className="hidden print:block p-8">
+        {printData && (
+          <div className="space-y-6">
+            <div className="border-b-2 border-slate-200 pb-6 mb-6">
+              <h1 className="text-4xl font-bold text-slate-900 mb-2">FACTURA {printData.folio}</h1>
+              <div className="flex justify-between items-start mt-8">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Facturado a:</h3>
+                  <p className="text-xl font-bold text-slate-800">{printData.cliente.nombre}</p>
+                  {printData.cliente.empresa && <p className="text-slate-600">{printData.cliente.empresa}</p>}
+                </div>
+                <div className="text-right">
+                  <div className="mb-2">
+                    <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">Fecha de Emisión:</span>
+                    <p className="font-medium text-slate-800">{new Date(printData.fecha_emision).toLocaleDateString()}</p>
+                  </div>
+                  {printData.fecha_vencimiento && (
+                    <div>
+                      <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">Fecha de Vencimiento:</span>
+                      <p className="font-medium text-slate-800">{new Date(printData.fecha_vencimiento).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <table className="w-full mb-8">
+              <thead>
+                <tr className="border-b-2 border-slate-200 text-left">
+                  <th className="py-3 text-slate-600 font-semibold">Descripción</th>
+                  <th className="py-3 text-right text-slate-600 font-semibold">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-slate-100">
+                  <td className="py-4 text-slate-800 font-medium">Servicios según presupuesto / cotización</td>
+                  <td className="py-4 text-right text-slate-800 font-bold">{formatCurrency(printData.monto_total)}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div className="flex justify-end">
+              <div className="w-64">
+                <div className="flex justify-between py-2 text-lg font-bold">
+                  <span>TOTAL:</span>
+                  <span className="text-primary">{formatCurrency(printData.monto_total)}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-16 pt-8 border-t border-slate-200 text-center text-sm text-slate-500">
+              <p>Estatus de Documento: <strong className="uppercase">{printData.estatus}</strong></p>
+              <p className="mt-2">Gracias por su preferencia.</p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
