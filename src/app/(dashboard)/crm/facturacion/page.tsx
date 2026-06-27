@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 export default async function FacturacionPage() {
   let facturas: any[] = [];
   let clientes: any[] = [];
+  let catalog: any[] = [];
   try {
     facturas = await prisma.factura.findMany({
       include: { cliente: true },
@@ -16,13 +17,19 @@ export default async function FacturacionPage() {
       select: { id: true, nombre: true, empresa: true },
       orderBy: { nombre: 'asc' }
     });
+    catalog = await prisma.lineaProducto.findMany({
+      include: {
+        productos: true
+      },
+      orderBy: { nombre: 'asc' }
+    });
   } catch (e) {
     console.error("Failed to fetch facturas", e);
   }
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <FacturacionClient facturas={facturas} clientes={clientes} />
+      <FacturacionClient facturas={facturas} clientes={clientes} catalog={catalog} />
     </div>
   );
 }

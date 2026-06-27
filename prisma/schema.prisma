@@ -251,6 +251,7 @@ model Factura {
   fecha_emision     DateTime      @default(now())
   fecha_vencimiento DateTime?
   monto_total       Float
+  descripcion       String?       @db.Text
   estatus           FacturaStatus @default(PENDIENTE)
 
   cliente_id String

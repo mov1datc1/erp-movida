@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar } from "lucide-react";
+import React, { useState, useMemo } from 'react';
+import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer } from "lucide-react";
 import { createPrefactura, updatePrefactura } from './actions';
 
-export function FacturacionClient({ facturas, clientes }: { facturas: any[], clientes: any[] }) {
+export function FacturacionClient({ facturas, clientes, catalog = [] }: { facturas: any[], clientes: any[], catalog?: any[] }) {
   const [activeTab, setActiveTab] = useState<'por_cobrar' | 'historial'>('por_cobrar');
   const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+  const [printMode, setPrintMode] = useState<'none' | 'invoice' | 'table'>('none');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -15,7 +18,8 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
   const [formData, setFormData] = useState({ 
     cliente_id: '', 
     monto_total: '',
-    fecha_vencimiento: '' 
+    fecha_vencimiento: '',
+    descripcion: ''
   });
   
   // For printing
@@ -35,20 +39,49 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
   const totalPorCobrar = facturas.filter(f => f.estatus === 'PENDIENTE').reduce((a, b) => a + b.monto_total, 0);
   const totalVencido = facturas.filter(f => f.estatus === 'VENCIDA').reduce((a, b) => a + b.monto_total, 0);
 
-  const filteredFacturas = facturas.filter(f => {
-    const matchesSearch = f.folio.toLowerCase().includes(searchTerm.toLowerCase()) || f.cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase());
-    if (!matchesSearch) return false;
+  const filteredFacturas = useMemo(() => {
+    return facturas.filter(f => {
+      // Search
+      const matchesSearch = f.folio.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            f.cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            (f.cliente.empresa && f.cliente.empresa.toLowerCase().includes(searchTerm.toLowerCase()));
+      if (!matchesSearch) return false;
 
-    if (activeTab === 'por_cobrar') {
-      return f.estatus === 'PENDIENTE' || f.estatus === 'VENCIDA';
-    } else {
-      return true; // Show all in history, or just PAGADA/CANCELADA
-    }
-  });
+      // Tab Filter
+      if (activeTab === 'por_cobrar') {
+        if (f.estatus !== 'PENDIENTE' && f.estatus !== 'VENCIDA') return false;
+      } else {
+        if (f.estatus === 'PENDIENTE' || f.estatus === 'VENCIDA') return false;
+      }
+
+      // Date Filter
+      if (dateFilter !== 'all') {
+        const date = new Date(f.fecha_emision);
+        const now = new Date();
+        const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+        
+        switch(dateFilter) {
+          case '7d': if (diffDays > 7) return false; break;
+          case '15d': if (diffDays > 15) return false; break;
+          case 'this_month': 
+            if (date.getMonth() !== now.getMonth() || date.getFullYear() !== now.getFullYear()) return false;
+            break;
+          case 'last_month':
+            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            if (date.getMonth() !== lastMonth.getMonth() || date.getFullYear() !== lastMonth.getFullYear()) return false;
+            break;
+          case '3m': if (diffDays > 90) return false; break;
+          case '6m': if (diffDays > 180) return false; break;
+        }
+      }
+
+      return true;
+    });
+  }, [facturas, searchTerm, activeTab, dateFilter]);
 
   const openNewModal = () => {
     setEditingId(null);
-    setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '' });
+    setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '' });
     setIsModalOpen(true);
   };
 
@@ -57,19 +90,58 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
     setFormData({
       cliente_id: factura.cliente_id,
       monto_total: factura.monto_total.toString(),
-      fecha_vencimiento: factura.fecha_vencimiento ? new Date(factura.fecha_vencimiento).toISOString().split('T')[0] : ''
+      fecha_vencimiento: factura.fecha_vencimiento ? new Date(factura.fecha_vencimiento).toISOString().split('T')[0] : '',
+      descripcion: factura.descripcion || ''
     });
     setPrintData(factura);
     setIsModalOpen(true);
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrintInvoice = () => {
+    setPrintMode('invoice');
+    setTimeout(() => {
+      window.print();
+      setPrintMode('none');
+    }, 100);
+  };
+
+  const handlePrintTable = () => {
+    setPrintMode('table');
+    setTimeout(() => {
+      window.print();
+      setPrintMode('none');
+    }, 100);
+  };
+
+  const handleExportCSV = () => {
+    let csv = 'Folio,Cliente,Empresa,Monto,Estatus,Emisión,Vencimiento\n';
+    filteredFacturas.forEach(f => {
+      csv += `${f.folio},"${f.cliente.nombre}","${f.cliente.empresa || ''}",${f.monto_total},${f.estatus},${new Date(f.fecha_emision).toLocaleDateString()},${f.fecha_vencimiento ? new Date(f.fecha_vencimiento).toLocaleDateString() : ''}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Cuentas_por_Cobrar_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className={`space-y-6 ${printMode === 'invoice' ? 'print:invoice-mode' : printMode === 'table' ? 'print:table-mode' : ''}`}>
+      <style dangerouslySetInnerHTML={{__html: `
+        @media print {
+          .print\\:invoice-mode .print-table-wrapper { display: none !important; }
+          .print\\:invoice-mode .print-cards { display: none !important; }
+          
+          .print\\:table-mode .print-invoice-wrapper { display: none !important; }
+          .print\\:table-mode .print-cards { display: none !important; }
+          .print\\:table-mode .print-header { display: none !important; }
+        }
+      `}} />
+
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print-header">
         <div>
           <h1 className="text-3xl font-bold text-primary tracking-tight">Cuentas por Cobrar & Facturación</h1>
           <p className="text-text-muted mt-1">Control de prefacturas y pagos de clientes.</p>
@@ -83,7 +155,7 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print-cards">
         <div className="bg-gradient-to-br from-orange-500 to-amber-600 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden group">
           <div className="relative z-10">
             <div className="p-2 bg-white/20 w-fit rounded-xl backdrop-blur-sm mb-4">
@@ -106,29 +178,40 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
         </div>
       </div>
 
-      <div className="bg-surface rounded-3xl border border-slate-100 card-shadow overflow-hidden print:hidden">
-        {/* Tabs */}
-        <div className="flex border-b border-slate-100 px-6 pt-2 gap-2 bg-slate-50/50">
-          <button
-            onClick={() => setActiveTab('por_cobrar')}
-            className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${
-              activeTab === 'por_cobrar' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            Cuentas por Cobrar (Prefacturas)
-          </button>
-          <button
-            onClick={() => setActiveTab('historial')}
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'historial' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            Historial General
-          </button>
+      <div className="bg-surface rounded-3xl border border-slate-100 card-shadow overflow-hidden print-table-wrapper">
+        {/* Tabs and Actions */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-slate-100 bg-slate-50/50">
+          <div className="flex px-6 pt-2 gap-2">
+            <button
+              onClick={() => setActiveTab('por_cobrar')}
+              className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${
+                activeTab === 'por_cobrar' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              Cuentas por Cobrar (Prefacturas)
+            </button>
+            <button
+              onClick={() => setActiveTab('historial')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'historial' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              Historial General
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-3 px-6 py-3 lg:py-0">
+            <button onClick={handleExportCSV} className="text-slate-600 hover:text-success bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-1.5">
+              <FileSpreadsheet className="w-4 h-4" /> Excel
+            </button>
+            <button onClick={handlePrintTable} className="text-slate-600 hover:text-danger bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-1.5">
+              <Printer className="w-4 h-4" /> PDF
+            </button>
+          </div>
         </div>
 
-        <div className="p-4 border-b border-slate-100 flex gap-4">
-          <div className="relative flex-1 max-w-md">
+        <div className="p-4 border-b border-slate-100 flex flex-wrap gap-4 items-center">
+          <div className="relative flex-1 min-w-[250px] max-w-md">
             <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input 
               type="text" 
@@ -137,6 +220,44 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
             />
+          </div>
+
+          {/* Date Filter Dropdown */}
+          <div className="relative">
+            <button 
+              onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
+              className={`flex items-center gap-2 px-4 py-2 bg-white border rounded-lg text-sm font-medium transition-colors shadow-sm ${dateFilter !== 'all' ? 'border-primary text-primary bg-primary/5' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+            >
+              <Filter className="w-4 h-4" />
+              Filtro de Fecha
+            </button>
+            
+            {isFilterMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsFilterMenuOpen(false)}></div>
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95">
+                  <div className="py-1">
+                    {[
+                      { id: 'all', label: 'Todo el tiempo' },
+                      { id: '7d', label: 'Últimos 7 días' },
+                      { id: '15d', label: 'Últimos 15 días' },
+                      { id: 'this_month', label: 'Este mes' },
+                      { id: 'last_month', label: 'Mes pasado' },
+                      { id: '3m', label: 'Últimos 3 meses' },
+                      { id: '6m', label: 'Últimos 6 meses' },
+                    ].map(opt => (
+                      <button
+                        key={opt.id}
+                        onClick={() => { setDateFilter(opt.id); setIsFilterMenuOpen(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${dateFilter === opt.id ? 'bg-primary/10 text-primary font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -214,7 +335,8 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
               </h2>
               {editingId && (
                 <button 
-                  onClick={handlePrint}
+                  type="button"
+                  onClick={handlePrintInvoice}
                   className="p-2 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
                   title="Descargar PDF"
                 >
@@ -232,20 +354,22 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
                 res = await updatePrefactura(editingId, {
                   cliente_id: formData.cliente_id,
                   monto_total: parseFloat(formData.monto_total),
-                  fecha_vencimiento: formData.fecha_vencimiento
+                  fecha_vencimiento: formData.fecha_vencimiento,
+                  descripcion: formData.descripcion
                 });
               } else {
                 res = await createPrefactura({
                   cliente_id: formData.cliente_id,
                   monto_total: parseFloat(formData.monto_total),
-                  fecha_vencimiento: formData.fecha_vencimiento
+                  fecha_vencimiento: formData.fecha_vencimiento,
+                  descripcion: formData.descripcion
                 });
               }
               
               setIsLoading(false);
               if (res.success) {
                 setIsModalOpen(false);
-                setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '' });
+                setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '' });
                 setEditingId(null);
               } else {
                 alert(res.error);
@@ -264,6 +388,25 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
                     <option key={c.id} value={c.id}>{c.nombre} {c.empresa ? `(${c.empresa})` : ''}</option>
                   ))}
                 </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Producto / Concepto Asociado (Catálogo)</label>
+                <select 
+                  value={formData.descripcion}
+                  onChange={e => setFormData({...formData, descripcion: e.target.value})}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-800 bg-white"
+                >
+                  <option value="">-- Personalizado / Según Cotización --</option>
+                  {catalog.map((linea: any) => (
+                    <optgroup key={linea.id} label={linea.nombre}>
+                      {linea.productos.map((prod: any) => (
+                        <option key={prod.id} value={prod.nombre}>{prod.nombre}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500 mt-1">Este será el concepto mostrado en el PDF descargable.</p>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
@@ -318,8 +461,8 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
         </div>
       )}
 
-      {/* Bloque imprimible (oculto en pantalla) */}
-      <div className="hidden print:block p-8">
+      {/* Bloque imprimible de factura (oculto en pantalla) */}
+      <div className="hidden print:block p-8 print-invoice-wrapper">
         {printData && (
           <div className="space-y-6">
             <div className="border-b-2 border-slate-200 pb-6 mb-6">
@@ -354,7 +497,7 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
               </thead>
               <tbody>
                 <tr className="border-b border-slate-100">
-                  <td className="py-4 text-slate-800 font-medium">Servicios según presupuesto / cotización</td>
+                  <td className="py-4 text-slate-800 font-medium">{printData.descripcion || 'Servicios según presupuesto / cotización'}</td>
                   <td className="py-4 text-right text-slate-800 font-bold">{formatCurrency(printData.monto_total)}</td>
                 </tr>
               </tbody>

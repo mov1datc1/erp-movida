@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export async function createPrefactura(data: { cliente_id: string, monto_total: number, cotizacion_id?: string, fecha_vencimiento?: string }) {
+export async function createPrefactura(data: { cliente_id: string, monto_total: number, cotizacion_id?: string, fecha_vencimiento?: string, descripcion?: string }) {
   try {
     const folio = `PRE-${Math.floor(1000 + Math.random() * 9000)}`;
     const fechaVen = data.fecha_vencimiento ? new Date(`${data.fecha_vencimiento}T12:00:00Z`) : new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
@@ -14,6 +14,7 @@ export async function createPrefactura(data: { cliente_id: string, monto_total: 
         cliente_id: data.cliente_id,
         cotizacion_id: data.cotizacion_id,
         monto_total: data.monto_total,
+        descripcion: data.descripcion,
         estatus: 'PENDIENTE',
         fecha_emision: new Date(),
         fecha_vencimiento: fechaVen
@@ -33,7 +34,7 @@ export async function createPrefactura(data: { cliente_id: string, monto_total: 
   }
 }
 
-export async function updatePrefactura(id: string, data: { cliente_id: string, monto_total: number, fecha_vencimiento?: string }) {
+export async function updatePrefactura(id: string, data: { cliente_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string }) {
   try {
     const fechaVen = data.fecha_vencimiento ? new Date(`${data.fecha_vencimiento}T12:00:00Z`) : null;
     
@@ -42,6 +43,7 @@ export async function updatePrefactura(id: string, data: { cliente_id: string, m
       data: {
         cliente_id: data.cliente_id,
         monto_total: data.monto_total,
+        descripcion: data.descripcion,
         ...(fechaVen && { fecha_vencimiento: fechaVen })
       }
     });
