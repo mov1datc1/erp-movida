@@ -1,11 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign } from "lucide-react";
+import { createPrefactura } from './actions';
 
-export function FacturacionClient({ facturas }: { facturas: any[] }) {
+export function FacturacionClient({ facturas, clientes }: { facturas: any[], clientes: any[] }) {
   const [activeTab, setActiveTab] = useState<'por_cobrar' | 'historial'>('por_cobrar');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({ cliente_id: '', monto_total: '' });
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -39,7 +44,10 @@ export function FacturacionClient({ facturas }: { facturas: any[] }) {
           <h1 className="text-3xl font-bold text-primary tracking-tight">Cuentas por Cobrar & Facturación</h1>
           <p className="text-text-muted mt-1">Control de prefacturas y pagos de clientes.</p>
         </div>
-        <button className="bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-primary/20">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-primary/20"
+        >
           <Plus className="w-5 h-5" />
           Nueva Prefactura
         </button>
@@ -157,6 +165,81 @@ export function FacturacionClient({ facturas }: { facturas: any[] }) {
           </table>
         </div>
       </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in zoom-in-95 duration-200">
+            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              Crear Prefactura Manual
+            </h2>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setIsLoading(true);
+              const res = await createPrefactura({
+                cliente_id: formData.cliente_id,
+                monto_total: parseFloat(formData.monto_total)
+              });
+              setIsLoading(false);
+              if (res.success) {
+                setIsModalOpen(false);
+                setFormData({ cliente_id: '', monto_total: '' });
+              } else {
+                alert(res.error);
+              }
+            }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Cliente *</label>
+                <select 
+                  required
+                  value={formData.cliente_id}
+                  onChange={e => setFormData({...formData, cliente_id: e.target.value})}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-800 bg-white"
+                >
+                  <option value="">-- Seleccionar --</option>
+                  {clientes.map(c => (
+                    <option key={c.id} value={c.id}>{c.nombre} {c.empresa ? `(${c.empresa})` : ''}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Monto Total *</label>
+                <div className="relative">
+                  <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input 
+                    type="number" 
+                    required
+                    step="0.01"
+                    min="0"
+                    value={formData.monto_total}
+                    onChange={e => setFormData({...formData, monto_total: e.target.value})}
+                    className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isLoading || !formData.cliente_id || !formData.monto_total}
+                  className="flex-1 px-4 py-2 text-white bg-primary hover:bg-primary-light rounded-xl font-bold transition-colors shadow-lg shadow-primary/30 disabled:opacity-70 flex items-center justify-center gap-2"
+                >
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Generar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

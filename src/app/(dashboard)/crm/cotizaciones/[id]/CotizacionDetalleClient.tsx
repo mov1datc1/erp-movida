@@ -1,13 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FileText, ArrowLeft, Plus, Trash2, Tag, Loader2, DollarSign, PackageSearch, Download, CheckCircle, Send, XCircle } from 'lucide-react';
+import { FileText, ArrowLeft, Plus, Trash2, Tag, Loader2, DollarSign, PackageSearch, Download, CheckCircle, Send, XCircle, FilePlus } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { addCotizacionItem, deleteCotizacionItem, updateCotizacionStatus } from './actions';
+import { createPrefactura } from '../../facturacion/actions';
 
 export function CotizacionDetalleClient({ cotizacion, catalog }: { cotizacion: any, catalog: any[] }) {
+  const router = useRouter();
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [selectedProducto, setSelectedProducto] = useState<any>(null);
   
   const [formData, setFormData] = useState({
@@ -81,6 +85,23 @@ export function CotizacionDetalleClient({ cotizacion, catalog }: { cotizacion: a
     }
   };
 
+  const handleGeneratePrefactura = async () => {
+    if (window.confirm('¿Generar Cuentas por Cobrar (Prefactura) por el monto total de esta cotización?')) {
+      setIsGenerating(true);
+      const res = await createPrefactura({
+        cliente_id: cotizacion.cliente_id,
+        monto_total: cotizacion.monto,
+        cotizacion_id: cotizacion.id
+      });
+      if (res.success) {
+        router.push('/crm/facturacion');
+      } else {
+        alert(res.error);
+        setIsGenerating(false);
+      }
+    }
+  };
+
   const statusColor = (status: string) => {
     switch(status) {
       case 'ENVIADA': return 'bg-blue-100 text-blue-700';
@@ -143,6 +164,17 @@ export function CotizacionDetalleClient({ cotizacion, catalog }: { cotizacion: a
                 <XCircle className="w-4 h-4" /> Rechazada
               </button>
             </>
+          )}
+
+          {cotizacion.estatus === 'ACEPTADA' && (
+            <button 
+              onClick={handleGeneratePrefactura}
+              disabled={isGenerating}
+              className="px-4 py-2 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-70"
+            >
+              {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FilePlus className="w-4 h-4" />}
+              Generar Prefactura (CxC)
+            </button>
           )}
         </div>
       </div>
