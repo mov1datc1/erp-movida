@@ -53,7 +53,7 @@ export default async function Sidebar() {
     }));
 
   return (
-    <aside className="w-64 bg-surface h-screen border-r border-slate-200 flex flex-col fixed left-0 top-0">
+    <aside className="w-64 bg-surface h-screen border-r border-slate-200 flex flex-col fixed left-0 top-0 print:hidden">
       <div className="p-6 flex items-center gap-3">
         <img src="/logo.png" alt="Movida TCI" className="h-8 w-auto object-contain" />
         <span className="font-bold text-xl text-primary">Movida ERP</span>

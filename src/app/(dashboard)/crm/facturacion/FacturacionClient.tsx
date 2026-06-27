@@ -146,6 +146,7 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
               <tr className="bg-slate-50 text-slate-500 text-sm border-b border-slate-100">
                 <th className="px-6 py-4 font-semibold">Folio</th>
                 <th className="px-6 py-4 font-semibold">Cliente</th>
+                <th className="px-6 py-4 font-semibold">Empresa</th>
                 <th className="px-6 py-4 font-semibold">Monto</th>
                 <th className="px-6 py-4 font-semibold">Estatus</th>
                 <th className="px-6 py-4 font-semibold">Emisión</th>
@@ -168,6 +169,9 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
                       <td className="px-6 py-4">
                         <p className="font-bold text-text-main">{factura.cliente.nombre}</p>
                       </td>
+                      <td className="px-6 py-4 text-text-muted">
+                        {factura.cliente.empresa || '-'}
+                      </td>
                       <td className="px-6 py-4 font-bold text-text-main">
                         {formatCurrency(factura.monto_total)}
                       </td>
@@ -188,7 +192,7 @@ export function FacturacionClient({ facturas, clientes }: { facturas: any[], cli
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                     <FileText className="w-12 h-12 mx-auto text-slate-300 mb-3" />
                     <p className="text-lg font-medium text-text-main">No hay registros</p>
                     <p className="text-sm">No se encontraron prefacturas o facturas en esta vista.</p>
