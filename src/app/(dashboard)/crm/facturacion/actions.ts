@@ -57,12 +57,35 @@ export async function updatePrefactura(id: string, data: { cliente_id: string, m
   }
 }
 
-export async function markFacturaAsPagada(id: string) {
+export async function markFacturaAsPagada(id: string, registerInFinance: boolean) {
   try {
+    const factura = await prisma.factura.findUnique({
+      where: { id },
+      include: { cliente: true }
+    });
+
+    if (!factura) throw new Error('Factura no encontrada');
+
     await prisma.factura.update({
       where: { id },
       data: { estatus: 'PAGADA' }
     });
+
+    if (registerInFinance) {
+      // Create associated finance movement
+      await prisma.movimientoFinanciero.create({
+        data: {
+          fecha: new Date(),
+          descripcion: `Pago de Factura ${factura.folio} - ${factura.cliente.nombre}`,
+          monto: factura.monto_total,
+          tipo_flujo: 'OPERATIVO',
+          sentido: 'INGRESO',
+          origen: 'Transferencia / Banco',
+          categoria_ingreso: 'Ventas y Servicios',
+          // Note: we could link it to linea_producto if we had that data easily accessible here
+        }
+      });
+    }
 
     revalidatePath('/crm/facturacion');
     revalidatePath('/contable');

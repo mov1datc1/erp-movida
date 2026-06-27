@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer } from "lucide-react";
-import { createPrefactura, updatePrefactura } from './actions';
+import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare } from "lucide-react";
+import { createPrefactura, updatePrefactura, markFacturaAsPagada } from './actions';
 
 export function FacturacionClient({ facturas, clientes, catalog = [] }: { facturas: any[], clientes: any[], catalog?: any[] }) {
   const [activeTab, setActiveTab] = useState<'por_cobrar' | 'historial'>('por_cobrar');
@@ -333,16 +333,38 @@ export function FacturacionClient({ facturas, clientes, catalog = [] }: { factur
                 <FileText className="w-5 h-5 text-primary" />
                 {editingId ? 'Detalles de Factura' : 'Crear Prefactura Manual'}
               </h2>
-              {editingId && (
-                <button 
-                  type="button"
-                  onClick={handlePrintInvoice}
-                  className="p-2 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
-                  title="Descargar PDF"
-                >
-                  <Download className="w-5 h-5" />
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {editingId && (printData?.estatus === 'PENDIENTE' || printData?.estatus === 'VENCIDA') && (
+                  <button 
+                    type="button"
+                    onClick={async () => {
+                      const registerInFinance = window.confirm('¿Registrar también este ingreso en el módulo de Finanzas automáticamente?');
+                      setIsLoading(true);
+                      const res = await markFacturaAsPagada(editingId, registerInFinance);
+                      setIsLoading(false);
+                      if (res.success) {
+                        setIsModalOpen(false);
+                        setEditingId(null);
+                      } else {
+                        alert(res.error);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors"
+                  >
+                    <CheckSquare className="w-4 h-4" /> Marcar Pagada
+                  </button>
+                )}
+                {editingId && (
+                  <button 
+                    type="button"
+                    onClick={handlePrintInvoice}
+                    className="p-2 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
+                    title="Descargar PDF"
+                  >
+                    <Download className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
             </div>
             
             <form onSubmit={async (e) => {
@@ -450,7 +472,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [] }: { factur
                 </button>
                 <button 
                   type="submit" 
-                  disabled={isLoading || !formData.cliente_id || !formData.monto_total}
+                  disabled={isLoading || !formData.cliente_id || !formData.monto_total || (printData && printData.estatus !== 'PENDIENTE' && printData.estatus !== 'VENCIDA' && printData.estatus !== 'BORRADOR')}
                   className="flex-1 px-4 py-2 text-white bg-primary hover:bg-primary-light rounded-xl font-bold transition-colors shadow-lg shadow-primary/30 disabled:opacity-70 flex items-center justify-center gap-2"
                 >
                   {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingId ? 'Guardar Cambios' : 'Generar')}
