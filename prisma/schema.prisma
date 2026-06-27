@@ -261,6 +261,9 @@ model Factura {
   cotizacion_id String?
   cotizacion    Cotizacion? @relation(fields: [cotizacion_id], references: [id], onDelete: SetNull)
 
+  linea_producto_id String?
+  linea_producto    LineaProducto? @relation(fields: [linea_producto_id], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -383,6 +386,7 @@ model LineaProducto {
   
   productos   ProductoServicio[]
   movimientos MovimientoFinanciero[]
+  facturas    Factura[]
 }
 
 model ProductoServicio {

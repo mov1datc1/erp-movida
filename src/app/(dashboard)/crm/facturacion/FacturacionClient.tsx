@@ -20,7 +20,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     cliente_id: '', 
     monto_total: '',
     fecha_vencimiento: '',
-    descripcion: ''
+    descripcion: '',
+    linea_producto_id: ''
   });
   
   // For printing
@@ -82,7 +83,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
   const openNewModal = () => {
     setEditingId(null);
-    setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '' });
+    setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '' });
     setShowFavoritos(false);
     setIsModalOpen(true);
   };
@@ -93,7 +94,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
       cliente_id: factura.cliente_id,
       monto_total: factura.monto_total.toString(),
       fecha_vencimiento: factura.fecha_vencimiento ? new Date(factura.fecha_vencimiento).toISOString().split('T')[0] : '',
-      descripcion: factura.descripcion || ''
+      descripcion: factura.descripcion || '',
+      linea_producto_id: factura.linea_producto_id || ''
     });
     setPrintData(factura);
     setShowFavoritos(false);
@@ -496,17 +498,27 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Producto / Concepto Asociado (Catálogo)</label>
+                <div className="flex justify-between mb-1">
+                  <label className="block text-sm font-medium text-slate-700">Producto / Concepto Asociado (Catálogo)</label>
+                </div>
                 <select 
-                  value={formData.descripcion}
-                  onChange={e => setFormData({...formData, descripcion: e.target.value})}
+                  value={formData.linea_producto_id ? `${formData.linea_producto_id}|${formData.descripcion}` : formData.descripcion}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val.includes('|')) {
+                      const [lineaId, nombre] = val.split('|');
+                      setFormData({...formData, linea_producto_id: lineaId, descripcion: nombre});
+                    } else {
+                      setFormData({...formData, linea_producto_id: '', descripcion: val});
+                    }
+                  }}
                   className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-800 bg-white"
                 >
                   <option value="">-- Personalizado / Según Cotización --</option>
                   {catalog.map((linea: any) => (
                     <optgroup key={linea.id} label={linea.nombre}>
                       {linea.productos.map((prod: any) => (
-                        <option key={prod.id} value={prod.nombre}>{prod.nombre}</option>
+                        <option key={prod.id} value={`${linea.id}|${prod.nombre}`}>{prod.nombre}</option>
                       ))}
                     </optgroup>
                   ))}
