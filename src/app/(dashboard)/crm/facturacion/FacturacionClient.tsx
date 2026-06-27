@@ -564,6 +564,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             </form>
           </div>
         </div>
+      </div>
       )}
 
       {/* Bloque imprimible de factura (oculto en pantalla) */}
