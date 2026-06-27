@@ -41,6 +41,7 @@ export default async function Sidebar() {
     'oportunidades': { name: "Oportunidades", icon: <Target className="w-5 h-5" />, path: "/crm/oportunidades" },
     'cotizaciones': { name: "Cotizaciones", icon: <PieChart className="w-5 h-5" />, path: "/crm/cotizaciones" },
     'facturacion': { name: "Facturación", icon: <DollarSign className="w-5 h-5" />, path: "/crm/facturacion" },
+    'cuentas-por-pagar': { name: "Cuentas por Pagar", icon: <DollarSign className="w-5 h-5" />, path: "/cuentas-por-pagar" },
     'lineas-productos': { name: "Catálogo", icon: <PackageSearch className="w-5 h-5" />, path: "/lineas-productos" },
   } as Record<string, any>;
 

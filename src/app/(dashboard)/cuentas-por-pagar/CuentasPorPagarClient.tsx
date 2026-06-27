@@ -2,10 +2,10 @@
 
 import React, { useState, useMemo } from 'react';
 import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare, Star, Trash2 } from "lucide-react";
-import { createPrefactura, updatePrefactura, markFacturaAsPagada, saveFavoritoCXC, deleteFavoritoCXC } from './actions';
+import { createCuentaPorPagar, updateCuentaPorPagar, markCuentaAsPagada, saveFavoritoCXP, deleteFavoritoCXP, createProveedor } from './actions';
 
-export function FacturacionClient({ facturas, clientes, catalog = [], favoritos = [] }: { facturas: any[], clientes: any[], catalog?: any[], favoritos?: any[] }) {
-  const [activeTab, setActiveTab] = useState<'por_cobrar' | 'historial'>('por_cobrar');
+export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cuentas: any[], proveedores: any[], favoritos: any[] }) {
+  const [activeTab, setActiveTab] = useState<'por_pagar' | 'historial'>('por_pagar');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
@@ -17,7 +17,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
   const [showFavoritos, setShowFavoritos] = useState(false);
   
   const [formData, setFormData] = useState({ 
-    cliente_id: '', 
+    proveedor_id: '', 
     monto_total: '',
     fecha_vencimiento: '',
     descripcion: ''
@@ -26,38 +26,42 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
   // For printing
   const [printData, setPrintData] = useState<any>(null);
 
+  // New Proveedor modal
+  const [isProveedorModalOpen, setIsProveedorModalOpen] = useState(false);
+  const [newProveedorName, setNewProveedorName] = useState('');
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   };
 
   const statusMap: Record<string, { label: string, color: string, icon: any }> = {
-    'PENDIENTE': { label: 'Por Cobrar', color: 'bg-orange-100 text-orange-600', icon: Clock },
+    'PENDIENTE': { label: 'Por Pagar', color: 'bg-orange-100 text-orange-600', icon: Clock },
     'PAGADA': { label: 'Pagada', color: 'bg-success/20 text-success', icon: CheckCircle },
     'VENCIDA': { label: 'Vencida', color: 'bg-danger/20 text-danger', icon: AlertTriangle },
     'CANCELADA': { label: 'Cancelada', color: 'bg-slate-200 text-slate-600', icon: FileText }
   };
 
-  const totalPorCobrar = facturas.filter(f => f.estatus === 'PENDIENTE').reduce((a, b) => a + b.monto_total, 0);
-  const totalVencido = facturas.filter(f => f.estatus === 'VENCIDA').reduce((a, b) => a + b.monto_total, 0);
+  const totalPorPagar = cuentas.filter(c => c.estatus === 'PENDIENTE').reduce((a, b) => a + b.monto_total, 0);
+  const totalVencido = cuentas.filter(c => c.estatus === 'VENCIDA').reduce((a, b) => a + b.monto_total, 0);
 
-  const filteredFacturas = useMemo(() => {
-    return facturas.filter(f => {
+  const filteredCuentas = useMemo(() => {
+    return cuentas.filter(c => {
       // Search
-      const matchesSearch = f.folio.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            f.cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            (f.cliente.empresa && f.cliente.empresa.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesSearch = c.folio.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            c.proveedor.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            (c.proveedor.empresa && c.proveedor.empresa.toLowerCase().includes(searchTerm.toLowerCase()));
       if (!matchesSearch) return false;
 
       // Tab Filter
-      if (activeTab === 'por_cobrar') {
-        if (f.estatus !== 'PENDIENTE' && f.estatus !== 'VENCIDA') return false;
+      if (activeTab === 'por_pagar') {
+        if (c.estatus !== 'PENDIENTE' && c.estatus !== 'VENCIDA') return false;
       } else {
-        if (f.estatus === 'PENDIENTE' || f.estatus === 'VENCIDA') return false;
+        if (c.estatus === 'PENDIENTE' || c.estatus === 'VENCIDA') return false;
       }
 
       // Date Filter
       if (dateFilter !== 'all') {
-        const date = new Date(f.fecha_emision);
+        const date = new Date(c.fecha_emision);
         const now = new Date();
         const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
         
@@ -78,24 +82,24 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
       return true;
     });
-  }, [facturas, searchTerm, activeTab, dateFilter]);
+  }, [cuentas, searchTerm, activeTab, dateFilter]);
 
   const openNewModal = () => {
     setEditingId(null);
-    setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '' });
+    setFormData({ proveedor_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '' });
     setShowFavoritos(false);
     setIsModalOpen(true);
   };
 
-  const openEditModal = (factura: any) => {
-    setEditingId(factura.id);
+  const openEditModal = (cuenta: any) => {
+    setEditingId(cuenta.id);
     setFormData({
-      cliente_id: factura.cliente_id,
-      monto_total: factura.monto_total.toString(),
-      fecha_vencimiento: factura.fecha_vencimiento ? new Date(factura.fecha_vencimiento).toISOString().split('T')[0] : '',
-      descripcion: factura.descripcion || ''
+      proveedor_id: cuenta.proveedor_id,
+      monto_total: cuenta.monto_total.toString(),
+      fecha_vencimiento: cuenta.fecha_vencimiento ? new Date(cuenta.fecha_vencimiento).toISOString().split('T')[0] : '',
+      descripcion: cuenta.descripcion || ''
     });
-    setPrintData(factura);
+    setPrintData(cuenta);
     setShowFavoritos(false);
     setIsModalOpen(true);
   };
@@ -117,38 +121,52 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
   };
 
   const handleExportCSV = () => {
-    let csv = 'Folio,Cliente,Empresa,Monto,Estatus,Emisión,Vencimiento\n';
-    filteredFacturas.forEach(f => {
-      csv += `${f.folio},"${f.cliente.nombre}","${f.cliente.empresa || ''}",${f.monto_total},${f.estatus},${new Date(f.fecha_emision).toLocaleDateString()},${f.fecha_vencimiento ? new Date(f.fecha_vencimiento).toLocaleDateString() : ''}\n`;
+    let csv = 'Folio,Proveedor,Empresa,Monto,Estatus,Emisión,Vencimiento\n';
+    filteredCuentas.forEach(c => {
+      csv += `${c.folio},"${c.proveedor.nombre}","${c.proveedor.empresa || ''}",${c.monto_total},${c.estatus},${new Date(c.fecha_emision).toLocaleDateString()},${c.fecha_vencimiento ? new Date(c.fecha_vencimiento).toLocaleDateString() : ''}\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `Cuentas_por_Cobrar_${new Date().getTime()}.csv`);
+    link.setAttribute('download', `Cuentas_por_Pagar_${new Date().getTime()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   const handleSaveFavorito = async () => {
-    if (!formData.monto_total || !formData.cliente_id || !formData.descripcion) {
-      alert("Para guardar un favorito necesitas ingresar el Cliente, Monto y Descripción.");
+    if (!formData.monto_total || !formData.proveedor_id || !formData.descripcion) {
+      alert("Para guardar un favorito necesitas ingresar el Proveedor, Monto y Descripción.");
       return;
     }
-    const titulo = prompt("Dale un título a este cobro frecuente (Ej: Iguala de Marketing X):");
+    const titulo = prompt("Dale un título a este pago frecuente (Ej: Renta de Oficina):");
     if (!titulo) return;
     
     setIsLoading(true);
-    const res = await saveFavoritoCXC({
+    const res = await saveFavoritoCXP({
       titulo,
       monto: parseFloat(formData.monto_total),
       descripcion: formData.descripcion,
-      cliente_id: formData.cliente_id
+      proveedor_id: formData.proveedor_id
     });
     setIsLoading(false);
     if (res.success) {
       alert("¡Favorito guardado!");
+    } else {
+      alert(res.error);
+    }
+  };
+
+  const handleCreateProveedor = async (e: any) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const res = await createProveedor({ nombre: newProveedorName });
+    setIsLoading(false);
+    if (res.success) {
+      setIsProveedorModalOpen(false);
+      setNewProveedorName('');
+      if (res.data) setFormData({...formData, proveedor_id: res.data.id});
     } else {
       alert(res.error);
     }
@@ -169,27 +187,27 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print-header">
         <div>
-          <h1 className="text-3xl font-bold text-primary tracking-tight">Cuentas por Cobrar & Facturación</h1>
-          <p className="text-text-muted mt-1">Control de prefacturas y pagos de clientes.</p>
+          <h1 className="text-3xl font-bold text-primary tracking-tight">Cuentas por Pagar</h1>
+          <p className="text-text-muted mt-1">Control de pagos a proveedores y obligaciones.</p>
         </div>
         <button 
           onClick={openNewModal}
           className="bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-primary/20 print:hidden"
         >
           <Plus className="w-5 h-5" />
-          Nueva Prefactura
+          Nuevo Egreso por Pagar
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print-cards">
-        <div className="bg-gradient-to-br from-orange-500 to-amber-600 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden group">
+        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden group">
           <div className="relative z-10">
             <div className="p-2 bg-white/20 w-fit rounded-xl backdrop-blur-sm mb-4">
               <Clock className="w-6 h-6 text-white" />
             </div>
-            <p className="text-orange-100 font-medium text-sm">Total Cuentas por Cobrar (Prefacturas)</p>
-            <h3 className="text-4xl font-bold mt-1 tracking-tight">{formatCurrency(totalPorCobrar)}</h3>
-            <p className="text-xs font-medium text-orange-100 mt-2">Dinero pendiente de recaudo</p>
+            <p className="text-indigo-100 font-medium text-sm">Total Cuentas por Pagar</p>
+            <h3 className="text-4xl font-bold mt-1 tracking-tight">{formatCurrency(totalPorPagar)}</h3>
+            <p className="text-xs font-medium text-indigo-100 mt-2">Dinero pendiente de pagar a proveedores</p>
           </div>
           <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
         </div>
@@ -200,21 +218,20 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
           </div>
           <p className="text-slate-500 font-medium text-sm">Total Vencido</p>
           <h3 className="text-3xl font-bold text-danger mt-1 tracking-tight">{formatCurrency(totalVencido)}</h3>
-          <p className="text-xs font-medium text-slate-400 mt-2">Requiere seguimiento inmediato con el cliente</p>
+          <p className="text-xs font-medium text-slate-400 mt-2">Requiere pago inmediato</p>
         </div>
       </div>
 
       <div className="bg-surface rounded-3xl border border-slate-100 card-shadow overflow-hidden print-table-wrapper">
-        {/* Tabs and Actions */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-slate-100 bg-slate-50/50">
           <div className="flex px-6 pt-2 gap-2">
             <button
-              onClick={() => setActiveTab('por_cobrar')}
+              onClick={() => setActiveTab('por_pagar')}
               className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${
-                activeTab === 'por_cobrar' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                activeTab === 'por_pagar' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
-              Cuentas por Cobrar (Prefacturas)
+              Cuentas por Pagar
             </button>
             <button
               onClick={() => setActiveTab('historial')}
@@ -241,14 +258,13 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input 
               type="text" 
-              placeholder="Buscar por folio o cliente..." 
+              placeholder="Buscar por folio o proveedor..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
             />
           </div>
 
-          {/* Date Filter Dropdown */}
           <div className="relative">
             <button 
               onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
@@ -292,8 +308,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             <thead>
               <tr className="bg-slate-50 text-slate-500 text-sm border-b border-slate-100">
                 <th className="px-6 py-4 font-semibold">Folio</th>
-                <th className="px-6 py-4 font-semibold">Cliente</th>
-                <th className="px-6 py-4 font-semibold">Empresa</th>
+                <th className="px-6 py-4 font-semibold">Proveedor</th>
                 <th className="px-6 py-4 font-semibold">Monto</th>
                 <th className="px-6 py-4 font-semibold">Estatus</th>
                 <th className="px-6 py-4 font-semibold">Emisión</th>
@@ -301,48 +316,46 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
-              {filteredFacturas.length > 0 ? (
-                filteredFacturas.map((factura) => {
-                  const StatusIcon = statusMap[factura.estatus]?.icon || FileText;
+              {filteredCuentas.length > 0 ? (
+                filteredCuentas.map((cuenta) => {
+                  const StatusIcon = statusMap[cuenta.estatus]?.icon || FileText;
                   return (
                     <tr 
-                      key={factura.id} 
-                      onClick={() => openEditModal(factura)}
+                      key={cuenta.id} 
+                      onClick={() => openEditModal(cuenta)}
                       className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
                     >
                       <td className="px-6 py-4 font-mono font-medium text-primary">
-                        {factura.folio}
+                        {cuenta.folio}
                       </td>
                       <td className="px-6 py-4">
-                        <p className="font-bold text-text-main">{factura.cliente.nombre}</p>
-                      </td>
-                      <td className="px-6 py-4 text-text-muted">
-                        {factura.cliente.empresa || '-'}
+                        <p className="font-bold text-text-main">{cuenta.proveedor.nombre}</p>
+                        {cuenta.descripcion && <p className="text-xs text-text-muted mt-0.5 truncate max-w-[200px]">{cuenta.descripcion}</p>}
                       </td>
                       <td className="px-6 py-4 font-bold text-text-main">
-                        {formatCurrency(factura.monto_total)}
+                        {formatCurrency(cuenta.monto_total)}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 w-fit ${statusMap[factura.estatus]?.color}`}>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 w-fit ${statusMap[cuenta.estatus]?.color}`}>
                           <StatusIcon className="w-3.5 h-3.5" />
-                          {statusMap[factura.estatus]?.label}
+                          {statusMap[cuenta.estatus]?.label}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-text-muted">
-                        {new Date(factura.fecha_emision).toLocaleDateString()}
+                        {new Date(cuenta.fecha_emision).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-text-muted">
-                        {factura.fecha_vencimiento ? new Date(factura.fecha_vencimiento).toLocaleDateString() : '-'}
+                        {cuenta.fecha_vencimiento ? new Date(cuenta.fecha_vencimiento).toLocaleDateString() : '-'}
                       </td>
                     </tr>
                   )
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
                     <FileText className="w-12 h-12 mx-auto text-slate-300 mb-3" />
                     <p className="text-lg font-medium text-text-main">No hay registros</p>
-                    <p className="text-sm">No se encontraron prefacturas o facturas en esta vista.</p>
+                    <p className="text-sm">No se encontraron cuentas por pagar en esta vista.</p>
                   </td>
                 </tr>
               )}
@@ -353,11 +366,11 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in print:hidden">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl p-0 animate-in zoom-in-95 duration-200 overflow-hidden flex">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-0 animate-in zoom-in-95 duration-200 overflow-hidden flex">
             
             {/* Favoritos Sidebar (Only on new) */}
             {(!editingId || showFavoritos) && (
-              <div className="w-64 bg-slate-50 border-r border-slate-100 flex flex-col h-[600px] overflow-hidden hidden md:flex">
+              <div className="w-64 bg-slate-50 border-r border-slate-100 flex flex-col h-[600px] overflow-hidden hidden sm:flex">
                 <div className="p-4 border-b border-slate-200 bg-slate-100 flex items-center gap-2">
                   <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
                   <span className="font-bold text-slate-800 text-sm">Frecuentes / Favoritos</span>
@@ -370,7 +383,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                       <div key={fav.id} className="bg-white p-3 rounded-xl border border-slate-200 hover:border-primary/50 cursor-pointer group shadow-sm transition-all"
                         onClick={() => {
                           setFormData({
-                            cliente_id: fav.cliente_id || '',
+                            proveedor_id: fav.proveedor_id || '',
                             monto_total: fav.monto.toString(),
                             descripcion: fav.descripcion || '',
                             fecha_vencimiento: formData.fecha_vencimiento
@@ -383,7 +396,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                             onClick={async (e) => {
                               e.stopPropagation();
                               if(window.confirm("¿Eliminar favorito?")) {
-                                await deleteFavoritoCXC(fav.id);
+                                await deleteFavoritoCXP(fav.id);
                               }
                             }}
                             className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-danger transition-opacity"
@@ -391,7 +404,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                        <p className="text-xs text-slate-500 mt-1">{fav.cliente?.nombre}</p>
+                        <p className="text-xs text-slate-500 mt-1">{fav.proveedor?.nombre}</p>
                         <p className="font-bold text-primary mt-1">{formatCurrency(fav.monto)}</p>
                       </div>
                     ))
@@ -401,164 +414,201 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             )}
 
             <div className="flex-1 p-6 flex flex-col h-[600px] overflow-y-auto">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-primary" />
-                {editingId ? 'Detalles de Factura' : 'Crear Prefactura Manual'}
-              </h2>
-              <div className="flex items-center gap-2">
-                {editingId && (printData?.estatus === 'PENDIENTE' || printData?.estatus === 'VENCIDA') && (
-                  <button 
-                    type="button"
-                    onClick={async () => {
-                      const registerInFinance = window.confirm('¿Registrar también este ingreso en el módulo de Finanzas automáticamente?');
-                      setIsLoading(true);
-                      const res = await markFacturaAsPagada(editingId, registerInFinance);
-                      setIsLoading(false);
-                      if (res.success) {
-                        setIsModalOpen(false);
-                        setEditingId(null);
-                      } else {
-                        alert(res.error);
-                      }
-                    }}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors"
-                  >
-                    <CheckSquare className="w-4 h-4" /> Marcar Pagada
-                  </button>
-                )}
-                {editingId && (
-                  <button 
-                    type="button"
-                    onClick={handlePrintInvoice}
-                    className="p-2 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
-                    title="Descargar PDF"
-                  >
-                    <Download className="w-5 h-5" />
-                  </button>
-                )}
-                {!editingId && (
-                  <button 
-                    type="button"
-                    onClick={handleSaveFavorito}
-                    className="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-colors"
-                    title="Guardar como Favorito (Requiere llenar cliente, monto y descripción)"
-                  >
-                    <Star className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
-            </div>
-            
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              setIsLoading(true);
-              
-              let res;
-              if (editingId) {
-                res = await updatePrefactura(editingId, {
-                  cliente_id: formData.cliente_id,
-                  monto_total: parseFloat(formData.monto_total),
-                  fecha_vencimiento: formData.fecha_vencimiento,
-                  descripcion: formData.descripcion
-                });
-              } else {
-                res = await createPrefactura({
-                  cliente_id: formData.cliente_id,
-                  monto_total: parseFloat(formData.monto_total),
-                  fecha_vencimiento: formData.fecha_vencimiento,
-                  descripcion: formData.descripcion
-                });
-              }
-              
-              setIsLoading(false);
-              if (res.success) {
-                setIsModalOpen(false);
-                setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '' });
-                setEditingId(null);
-              } else {
-                alert(res.error);
-              }
-            }} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Cliente *</label>
-                <select 
-                  required
-                  value={formData.cliente_id}
-                  onChange={e => setFormData({...formData, cliente_id: e.target.value})}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-800 bg-white"
-                >
-                  <option value="">-- Seleccionar --</option>
-                  {clientes.map(c => (
-                    <option key={c.id} value={c.id}>{c.nombre} {c.empresa ? `(${c.empresa})` : ''}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Producto / Concepto Asociado (Catálogo)</label>
-                <select 
-                  value={formData.descripcion}
-                  onChange={e => setFormData({...formData, descripcion: e.target.value})}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-800 bg-white"
-                >
-                  <option value="">-- Personalizado / Según Cotización --</option>
-                  {catalog.map((linea: any) => (
-                    <optgroup key={linea.id} label={linea.nombre}>
-                      {linea.productos.map((prod: any) => (
-                        <option key={prod.id} value={prod.nombre}>{prod.nombre}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-                <p className="text-xs text-slate-500 mt-1">Este será el concepto mostrado en el PDF descargable.</p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Monto Total *</label>
-                  <div className="relative">
-                    <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input 
-                      type="number" 
-                      required
-                      step="0.01"
-                      min="0"
-                      value={formData.monto_total}
-                      onChange={e => setFormData({...formData, monto_total: e.target.value})}
-                      className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Vencimiento</label>
-                  <div className="relative">
-                    <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input 
-                      type="date" 
-                      value={formData.fecha_vencimiento}
-                      onChange={e => setFormData({...formData, fecha_vencimiento: e.target.value})}
-                      className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-sm"
-                    />
-                  </div>
+              <div className="flex justify-between items-start mb-6">
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  {editingId ? 'Detalles de Cuenta por Pagar' : 'Registrar Pago Pendiente'}
+                </h2>
+                <div className="flex items-center gap-2">
+                  {editingId && (printData?.estatus === 'PENDIENTE' || printData?.estatus === 'VENCIDA') && (
+                    <button 
+                      type="button"
+                      onClick={async () => {
+                        const registerInFinance = window.confirm('¿Registrar también este EGRESO en el módulo de Finanzas automáticamente?');
+                        setIsLoading(true);
+                        const res = await markCuentaAsPagada(editingId, registerInFinance);
+                        setIsLoading(false);
+                        if (res.success) {
+                          setIsModalOpen(false);
+                          setEditingId(null);
+                        } else {
+                          alert(res.error);
+                        }
+                      }}
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors"
+                    >
+                      <CheckSquare className="w-4 h-4" /> Marcar Pagada
+                    </button>
+                  )}
+                  {editingId && (
+                    <button 
+                      type="button"
+                      onClick={handlePrintInvoice}
+                      className="p-2 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
+                      title="Descargar PDF"
+                    >
+                      <Download className="w-5 h-5" />
+                    </button>
+                  )}
+                  {!editingId && (
+                    <button 
+                      type="button"
+                      onClick={handleSaveFavorito}
+                      className="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-colors"
+                      title="Guardar como Favorito (Requiere llenar proveedor, monto y descripción)"
+                    >
+                      <Star className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
               </div>
+              
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                
+                let res;
+                if (editingId) {
+                  res = await updateCuentaPorPagar(editingId, {
+                    proveedor_id: formData.proveedor_id,
+                    monto_total: parseFloat(formData.monto_total),
+                    fecha_vencimiento: formData.fecha_vencimiento,
+                    descripcion: formData.descripcion
+                  });
+                } else {
+                  res = await createCuentaPorPagar({
+                    proveedor_id: formData.proveedor_id,
+                    monto_total: parseFloat(formData.monto_total),
+                    fecha_vencimiento: formData.fecha_vencimiento,
+                    descripcion: formData.descripcion
+                  });
+                }
+                
+                setIsLoading(false);
+                if (res.success) {
+                  setIsModalOpen(false);
+                  setFormData({ proveedor_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '' });
+                  setEditingId(null);
+                } else {
+                  alert(res.error);
+                }
+              }} className="space-y-4 flex-1">
+                
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="block text-sm font-medium text-slate-700">Proveedor *</label>
+                    <button type="button" onClick={() => setIsProveedorModalOpen(true)} className="text-xs text-primary hover:underline font-semibold">
+                      + Crear Nuevo
+                    </button>
+                  </div>
+                  <select 
+                    required
+                    value={formData.proveedor_id}
+                    onChange={e => setFormData({...formData, proveedor_id: e.target.value})}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-800 bg-white"
+                  >
+                    <option value="">-- Seleccionar Proveedor --</option>
+                    {proveedores.map(p => (
+                      <option key={p.id} value={p.id}>{p.nombre} {p.empresa ? `(${p.empresa})` : ''}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Concepto / Descripción *</label>
+                  <input 
+                    type="text"
+                    required
+                    value={formData.descripcion}
+                    onChange={e => setFormData({...formData, descripcion: e.target.value})}
+                    placeholder="Ej: Renta de oficina del mes, Compra de insumos..."
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-slate-800 bg-white"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Monto Total *</label>
+                    <div className="relative">
+                      <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input 
+                        type="number" 
+                        required
+                        step="0.01"
+                        min="0"
+                        value={formData.monto_total}
+                        onChange={e => setFormData({...formData, monto_total: e.target.value})}
+                        className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Vencimiento</label>
+                    <div className="relative">
+                      <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input 
+                        type="date" 
+                        value={formData.fecha_vencimiento}
+                        onChange={e => setFormData({...formData, fecha_vencimiento: e.target.value})}
+                        className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
 
-              <div className="flex gap-3 pt-4">
+                <div className="flex gap-3 pt-4 mt-auto">
+                  <button 
+                    type="button" 
+                    onClick={() => { setIsModalOpen(false); setEditingId(null); }}
+                    className="flex-1 px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl font-medium transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={isLoading || !formData.proveedor_id || !formData.monto_total || !formData.descripcion || (printData && printData.estatus !== 'PENDIENTE' && printData.estatus !== 'VENCIDA')}
+                    className="flex-1 px-4 py-2 text-white bg-primary hover:bg-primary-light rounded-xl font-bold transition-colors shadow-lg shadow-primary/30 disabled:opacity-70 flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingId ? 'Guardar Cambios' : 'Registrar Cuenta')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Proveedor Modal */}
+      {isProveedorModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] flex items-center justify-center animate-in fade-in print:hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-in zoom-in-95 duration-200">
+            <h2 className="text-xl font-bold text-slate-800 mb-4">Nuevo Proveedor</h2>
+            <form onSubmit={handleCreateProveedor} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Nombre Comercial / Razón Social *</label>
+                <input 
+                  type="text"
+                  required
+                  value={newProveedorName}
+                  onChange={e => setNewProveedorName(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-slate-800 bg-white"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
                 <button 
                   type="button" 
-                  onClick={() => { setIsModalOpen(false); setEditingId(null); }}
+                  onClick={() => setIsProveedorModalOpen(false)}
                   className="flex-1 px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl font-medium transition-colors"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit" 
-                  disabled={isLoading || !formData.cliente_id || !formData.monto_total || (printData && printData.estatus !== 'PENDIENTE' && printData.estatus !== 'VENCIDA' && printData.estatus !== 'BORRADOR')}
-                  className="flex-1 px-4 py-2 text-white bg-primary hover:bg-primary-light rounded-xl font-bold transition-colors shadow-lg shadow-primary/30 disabled:opacity-70 flex items-center justify-center gap-2"
+                  disabled={isLoading || !newProveedorName}
+                  className="flex-1 px-4 py-2 text-white bg-primary hover:bg-primary-light rounded-xl font-bold transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
                 >
-                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingId ? 'Guardar Cambios' : 'Generar')}
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Crear'}
                 </button>
               </div>
             </form>
@@ -571,12 +621,12 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
         {printData && (
           <div className="space-y-6">
             <div className="border-b-2 border-slate-200 pb-6 mb-6">
-              <h1 className="text-4xl font-bold text-slate-900 mb-2">FACTURA {printData.folio}</h1>
+              <h1 className="text-4xl font-bold text-slate-900 mb-2">CUENTA POR PAGAR {printData.folio}</h1>
               <div className="flex justify-between items-start mt-8">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Facturado a:</h3>
-                  <p className="text-xl font-bold text-slate-800">{printData.cliente.nombre}</p>
-                  {printData.cliente.empresa && <p className="text-slate-600">{printData.cliente.empresa}</p>}
+                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">A favor de:</h3>
+                  <p className="text-xl font-bold text-slate-800">{printData.proveedor.nombre}</p>
+                  {printData.proveedor.empresa && <p className="text-slate-600">{printData.proveedor.empresa}</p>}
                 </div>
                 <div className="text-right">
                   <div className="mb-2">
@@ -596,13 +646,13 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             <table className="w-full mb-8">
               <thead>
                 <tr className="border-b-2 border-slate-200 text-left">
-                  <th className="py-3 text-slate-600 font-semibold">Descripción</th>
+                  <th className="py-3 text-slate-600 font-semibold">Concepto</th>
                   <th className="py-3 text-right text-slate-600 font-semibold">Total</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b border-slate-100">
-                  <td className="py-4 text-slate-800 font-medium">{printData.descripcion || 'Servicios según presupuesto / cotización'}</td>
+                  <td className="py-4 text-slate-800 font-medium">{printData.descripcion || 'Sin descripción'}</td>
                   <td className="py-4 text-right text-slate-800 font-bold">{formatCurrency(printData.monto_total)}</td>
                 </tr>
               </tbody>
@@ -619,7 +669,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             
             <div className="mt-16 pt-8 border-t border-slate-200 text-center text-sm text-slate-500">
               <p>Estatus de Documento: <strong className="uppercase">{printData.estatus}</strong></p>
-              <p className="mt-2">Gracias por su preferencia.</p>
+              <p className="mt-2">Registro de Cuentas por Pagar Interno.</p>
             </div>
           </div>
         )}

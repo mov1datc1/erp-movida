@@ -63,6 +63,7 @@ model Cliente {
   cotizaciones  Cotizacion[]
   facturas      Factura[]
   tareas        Tarea[]
+  transacciones_freq TransaccionFrecuente[]
 }
 
 enum ClienteStatus {
@@ -272,6 +273,41 @@ enum FacturaStatus {
 }
 
 // -------------------------------------
+// Módulo de Cuentas por Pagar (Proveedores)
+// -------------------------------------
+model Proveedor {
+  id                String   @id @default(uuid())
+  nombre            String
+  empresa           String?
+  rfc               String?
+  correo            String?
+  telefono          String?
+  direccion         String?
+  notas             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  cuentas_por_pagar CuentaPorPagar[]
+  transacciones_freq TransaccionFrecuente[]
+}
+
+model CuentaPorPagar {
+  id                String        @id @default(uuid())
+  folio             String        @unique
+  fecha_emision     DateTime      @default(now())
+  fecha_vencimiento DateTime?
+  monto_total       Float
+  descripcion       String?       @db.Text
+  estatus           FacturaStatus @default(PENDIENTE)
+
+  proveedor_id      String
+  proveedor         Proveedor     @relation(fields: [proveedor_id], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+// -------------------------------------
 // Módulo Financiero / Administrativo
 // -------------------------------------
 model MovimientoFinanciero {
@@ -378,3 +414,27 @@ model CotizacionItem {
   updatedAt       DateTime @updatedAt
 }
 
+// -------------------------------------
+// Transacciones Frecuentes (Favoritos)
+// -------------------------------------
+model TransaccionFrecuente {
+  id                String   @id @default(uuid())
+  tipo              TipoTransaccionFrecuente // CXC o CXP
+  titulo            String   // Ej: "Renta de Oficina" o "Retainer Cliente X"
+  monto             Float
+  descripcion       String?
+  
+  cliente_id        String?
+  cliente           Cliente? @relation(fields: [cliente_id], references: [id], onDelete: SetNull)
+
+  proveedor_id      String?
+  proveedor         Proveedor? @relation(fields: [proveedor_id], references: [id], onDelete: SetNull)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+enum TipoTransaccionFrecuente {
+  CXC
+  CXP
+}

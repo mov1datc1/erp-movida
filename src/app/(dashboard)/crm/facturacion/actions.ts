@@ -95,3 +95,36 @@ export async function markFacturaAsPagada(id: string, registerInFinance: boolean
     return { success: false, error: 'Error al actualizar el estado a pagada' };
   }
 }
+
+// ---------------------------
+// FAVORITOS (CXC)
+// ---------------------------
+export async function saveFavoritoCXC(data: { titulo: string, monto: number, descripcion?: string, cliente_id: string }) {
+  try {
+    await prisma.transaccionFrecuente.create({
+      data: {
+        tipo: 'CXC',
+        titulo: data.titulo,
+        monto: data.monto,
+        descripcion: data.descripcion,
+        cliente_id: data.cliente_id
+      }
+    });
+    revalidatePath('/crm/facturacion');
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving favorito:', error);
+    return { success: false, error: 'Error al guardar favorito' };
+  }
+}
+
+export async function deleteFavoritoCXC(id: string) {
+  try {
+    await prisma.transaccionFrecuente.delete({ where: { id } });
+    revalidatePath('/crm/facturacion');
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting favorito:', error);
+    return { success: false, error: 'Error al eliminar favorito' };
+  }
+}

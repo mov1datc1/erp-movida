@@ -16,6 +16,7 @@ export const ALL_MODULES = [
   { id: 'oportunidades', label: 'Oportunidades', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },
   { id: 'cotizaciones', label: 'Cotizaciones', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },
   { id: 'facturacion', label: 'Facturación', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },
+  { id: 'cuentas-por-pagar', label: 'Cuentas por Pagar', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },
   { id: 'lineas-productos', label: 'Catálogo / Líneas', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },
   { id: 'configuracion', label: 'Configuración', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },
 ];
