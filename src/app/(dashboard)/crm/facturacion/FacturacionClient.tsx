@@ -375,7 +375,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                             cliente_id: fav.cliente_id || '',
                             monto_total: fav.monto.toString(),
                             descripcion: fav.descripcion || '',
-                            fecha_vencimiento: formData.fecha_vencimiento
+                            fecha_vencimiento: formData.fecha_vencimiento,
+                            linea_producto_id: ''
                           });
                         }}
                       >
