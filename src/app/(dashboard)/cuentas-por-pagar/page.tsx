@@ -3,9 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { CuentasPorPagarClient } from './CuentasPorPagarClient';
 
 export default async function CuentasPorPagarPage() {
-  let cuentas = [];
-  let proveedores = [];
-  let favoritos = [];
+  let cuentas: any[] = [];
+  let proveedores: any[] = [];
+  let favoritos: any[] = [];
   
   try {
     cuentas = await prisma.cuentaPorPagar.findMany({
