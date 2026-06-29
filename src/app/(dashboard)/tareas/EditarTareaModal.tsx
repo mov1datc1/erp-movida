@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Edit2, Loader2, Calendar, Trash2, Search, ChevronDown } from 'lucide-react';
 import { updateTarea, createEncargado, deleteEncargado } from '@/app/actions/tareas';
 
@@ -32,6 +33,11 @@ export default function EditarTareaModal({ tareaToEdit, clientes, encargados, pr
   );
   const [encargadoToDelete, setEncargadoToDelete] = useState<Encargado | null>(null);
   const [isDeletingEncargado, setIsDeletingEncargado] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [searchCliente, setSearchCliente] = useState('');
   const [selectedClienteId, setSelectedClienteId] = useState(tareaToEdit.cliente_id || "");
@@ -114,8 +120,8 @@ export default function EditarTareaModal({ tareaToEdit, clientes, encargados, pr
         <Edit2 className="w-4 h-4" />
       </button>
 
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+      {isOpen && mounted && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div 
             className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
@@ -384,7 +390,7 @@ export default function EditarTareaModal({ tareaToEdit, clientes, encargados, pr
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </>
   );
 }
