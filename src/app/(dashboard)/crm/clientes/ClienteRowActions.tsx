@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { MoreVertical, Edit2, Trash2, Loader2, User, Building2, Mail, Phone, FileText, X } from 'lucide-react';
-import { deleteCliente, updateCliente } from '@/app/actions/crm';
+import { deleteCliente, updateCliente, updateClienteEstatus } from '@/app/actions/crm';
 
 interface Cliente {
   id: string;
@@ -11,6 +11,7 @@ interface Cliente {
   email: string | null;
   telefono: string | null;
   rfc_taxid: string | null;
+  estatus: 'LEAD' | 'ACTIVO' | 'INACTIVO';
 }
 
 export default function ClienteRowActions({ cliente }: { cliente: Cliente }) {
@@ -61,18 +62,28 @@ export default function ClienteRowActions({ cliente }: { cliente: Cliente }) {
     setIsUpdating(false);
   };
 
+  const handleChangeEstatus = async (newEstatus: 'LEAD' | 'ACTIVO' | 'INACTIVO') => {
+    setIsOpen(false);
+    setIsUpdating(true);
+    const result = await updateClienteEstatus(cliente.id, newEstatus);
+    if (!result.success) {
+      alert(result.error);
+    }
+    setIsUpdating(false);
+  };
+
   return (
     <div className="relative" ref={menuRef}>
       <button 
-        onClick={() => setIsOpen(!isOpen)}
-        disabled={isDeleting}
-        className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
+        onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+        disabled={isDeleting || isUpdating}
+        className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 relative z-10"
       >
-        {isDeleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <MoreVertical className="w-5 h-5" />}
+        {(isDeleting || isUpdating) ? <Loader2 className="w-5 h-5 animate-spin" /> : <MoreVertical className="w-5 h-5" />}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-10 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border border-slate-100 py-1 z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
           <button
             onClick={() => {
               setIsOpen(false);
@@ -83,6 +94,40 @@ export default function ClienteRowActions({ cliente }: { cliente: Cliente }) {
             <Edit2 className="w-4 h-4" />
             Editar Cliente
           </button>
+          
+          <div className="h-px bg-slate-100 my-1 mx-2"></div>
+          
+          {cliente.estatus !== 'ACTIVO' && (
+            <button
+              onClick={() => handleChangeEstatus('ACTIVO')}
+              className="w-full px-4 py-2 text-left text-sm font-medium text-slate-700 hover:bg-success/10 hover:text-success flex items-center gap-2 transition-colors"
+            >
+              <div className="w-4 h-4 rounded-full border-2 border-success"></div>
+              Marcar como ACTIVO
+            </button>
+          )}
+          
+          {cliente.estatus !== 'LEAD' && (
+            <button
+              onClick={() => handleChangeEstatus('LEAD')}
+              className="w-full px-4 py-2 text-left text-sm font-medium text-slate-700 hover:bg-blue-500/10 hover:text-blue-600 flex items-center gap-2 transition-colors"
+            >
+              <div className="w-4 h-4 rounded-full border-2 border-blue-500"></div>
+              Marcar como LEAD
+            </button>
+          )}
+          
+          {cliente.estatus !== 'INACTIVO' && (
+            <button
+              onClick={() => handleChangeEstatus('INACTIVO')}
+              className="w-full px-4 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-600 flex items-center gap-2 transition-colors"
+            >
+              <div className="w-4 h-4 rounded-full border-2 border-slate-400"></div>
+              Marcar como INACTIVO
+            </button>
+          )}
+
+          <div className="h-px bg-slate-100 my-1 mx-2"></div>
           <button
             onClick={() => {
               setIsOpen(false);

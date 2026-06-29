@@ -148,3 +148,17 @@ export async function updateCliente(id: string, formData: FormData) {
     return { success: false, error: 'Ocurrió un error al actualizar el cliente' }
   }
 }
+
+export async function updateClienteEstatus(id: string, estatus: 'LEAD' | 'ACTIVO' | 'INACTIVO') {
+  try {
+    const cliente = await prisma.cliente.update({
+      where: { id },
+      data: { estatus }
+    })
+    revalidatePath('/crm/clientes')
+    return { success: true, data: cliente }
+  } catch (error) {
+    console.error("Error updating cliente estatus:", error)
+    return { success: false, error: 'Ocurrió un error al cambiar el estatus' }
+  }
+}
