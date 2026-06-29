@@ -214,6 +214,48 @@ export default function TareasDataGrid({ initialTareas, clientes, encargados }: 
     });
   };
 
+  const handleBoardCardDrop = async (e: React.DragEvent<HTMLDivElement>, targetTareaId: string, columnId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!boardDraggedTareaId || boardDraggedTareaId === targetTareaId) return;
+
+    let updatedTareas = [...tareas];
+    const draggedIdx = updatedTareas.findIndex(t => t.id === boardDraggedTareaId);
+    const targetIdx = updatedTareas.findIndex(t => t.id === targetTareaId);
+
+    if (draggedIdx === -1 || targetIdx === -1) return;
+
+    const draggedItem = { ...updatedTareas[draggedIdx] };
+    const isSameColumn = (columnId === 'unassigned' && draggedItem.encargados.length === 0) || 
+                         (columnId !== 'unassigned' && draggedItem.encargados.some(en => en.id === columnId));
+
+    if (!isSameColumn) {
+       const isUnassigned = columnId === 'unassigned';
+       draggedItem.encargados = isUnassigned ? [] : encargados.filter(en => en.id === columnId);
+    }
+
+    updatedTareas.splice(draggedIdx, 1);
+    const newTargetIdx = updatedTareas.findIndex(t => t.id === targetTareaId);
+    updatedTareas.splice(newTargetIdx, 0, draggedItem);
+    
+    const payload = updatedTareas.map((t, idx) => {
+       t.orden = idx;
+       return { id: t.id, orden: t.orden };
+    });
+
+    setTareas(updatedTareas);
+    setBoardDraggedTareaId(null);
+
+    if (!isSameColumn) {
+      const isUnassigned = columnId === 'unassigned';
+      await updateTarea(boardDraggedTareaId, { 
+        encargadosIds: isUnassigned ? [] : [columnId] 
+      });
+    }
+    await reorderTareas(payload);
+  };
+
   const updateStatus = async (tareaId: string, newStatus: TareaStatus) => {
     setTareas(prev => prev.map(t => t.id === tareaId ? { ...t, estatus: newStatus } : t));
     await updateTarea(tareaId, { estatus: newStatus });
@@ -251,12 +293,14 @@ export default function TareasDataGrid({ initialTareas, clientes, encargados }: 
     </th>
   );
 
-  const renderCard = (tarea: Tarea) => {
+  const renderCard = (tarea: Tarea, columnId: string) => {
     return (
       <div 
         key={tarea.id}
         draggable
         onDragStart={e => handleBoardDragStart(e, tarea.id)}
+        onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+        onDrop={e => handleBoardCardDrop(e, tarea.id, columnId)}
         className={`bg-white rounded-xl p-4 shadow-sm border border-slate-200 hover:shadow-md hover:border-slate-300 hover:-translate-y-1 transition-all cursor-grab active:cursor-grabbing flex flex-col gap-3 relative ${tarea.is_focus ? 'border-l-4 border-l-red-500' : ''}`}
       >
         <div className="flex justify-between items-start gap-2">
@@ -343,7 +387,7 @@ export default function TareasDataGrid({ initialTareas, clientes, encargados }: 
           const colTareas = tareasFiltradas.filter(t => {
             if (col.id === 'unassigned') return t.encargados.length === 0;
             return t.encargados.some(e => e.id === col.id);
-          }).sort((a, b) => pesosPrioridad[b.prioridad] - pesosPrioridad[a.prioridad]);
+          }).sort((a, b) => a.orden - b.orden || pesosPrioridad[b.prioridad] - pesosPrioridad[a.prioridad]);
 
           if (colTareas.length === 0 && col.id === 'unassigned') return null; // hide unassigned if empty
 
@@ -357,7 +401,7 @@ export default function TareasDataGrid({ initialTareas, clientes, encargados }: 
                   <span className="bg-white text-slate-600 shadow-sm font-semibold text-xs py-0.5 px-2.5 rounded-full">{colTareas.length}</span>
                </h3>
                <div className="flex flex-col gap-3 flex-1 overflow-y-auto min-h-[150px]">
-                  {colTareas.map(tarea => renderCard(tarea))}
+                  {colTareas.map(tarea => renderCard(tarea, col.id))}
                   {colTareas.length === 0 && (
                     <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-xl h-[100px] pointer-events-none">
                       Arrastra tareas aquí
