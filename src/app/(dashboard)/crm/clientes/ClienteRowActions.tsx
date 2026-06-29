@@ -20,6 +20,7 @@ export default function ClienteRowActions({ cliente }: { cliente: Cliente }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openUpwards, setOpenUpwards] = useState(false);
   
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -72,10 +73,22 @@ export default function ClienteRowActions({ cliente }: { cliente: Cliente }) {
     setIsUpdating(false);
   };
 
+  const handleToggleMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isOpen) {
+      // Check space below
+      const rect = e.currentTarget.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      // If less than 250px below, open upwards
+      setOpenUpwards(spaceBelow < 250);
+    }
+    setIsOpen(!isOpen);
+  };
+
   return (
     <div className="relative" ref={menuRef}>
       <button 
-        onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+        onClick={handleToggleMenu}
         disabled={isDeleting || isUpdating}
         className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 relative z-10"
       >
@@ -83,7 +96,7 @@ export default function ClienteRowActions({ cliente }: { cliente: Cliente }) {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border border-slate-100 py-1 z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className={`absolute right-0 ${openUpwards ? 'bottom-full mb-1 slide-in-from-bottom-2' : 'top-full mt-1 slide-in-from-top-2'} w-48 bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border border-slate-100 py-1 z-[60] animate-in fade-in duration-200`}>
           <button
             onClick={() => {
               setIsOpen(false);
