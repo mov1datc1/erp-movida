@@ -20,7 +20,7 @@ export async function createProveedor(data: { nombre: string, empresa?: string }
 // ---------------------------
 // CUENTAS POR PAGAR
 // ---------------------------
-export async function createCuentaPorPagar(data: { proveedor_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string }) {
+export async function createCuentaPorPagar(data: { proveedor_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string, categoria?: string }) {
   try {
     const folio = `CXP-${Math.floor(1000 + Math.random() * 9000)}`;
     const fechaVen = data.fecha_vencimiento ? new Date(`${data.fecha_vencimiento}T12:00:00Z`) : new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
@@ -31,6 +31,7 @@ export async function createCuentaPorPagar(data: { proveedor_id: string, monto_t
         proveedor_id: data.proveedor_id,
         monto_total: data.monto_total,
         descripcion: data.descripcion,
+        categoria: data.categoria,
         estatus: 'PENDIENTE',
         fecha_emision: new Date(),
         fecha_vencimiento: fechaVen
@@ -45,7 +46,7 @@ export async function createCuentaPorPagar(data: { proveedor_id: string, monto_t
   }
 }
 
-export async function updateCuentaPorPagar(id: string, data: { proveedor_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string }) {
+export async function updateCuentaPorPagar(id: string, data: { proveedor_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string, categoria?: string }) {
   try {
     const fechaVen = data.fecha_vencimiento ? new Date(`${data.fecha_vencimiento}T12:00:00Z`) : null;
     
@@ -55,6 +56,7 @@ export async function updateCuentaPorPagar(id: string, data: { proveedor_id: str
         proveedor_id: data.proveedor_id,
         monto_total: data.monto_total,
         descripcion: data.descripcion,
+        categoria: data.categoria,
         ...(fechaVen && { fecha_vencimiento: fechaVen })
       }
     });
@@ -90,7 +92,7 @@ export async function markCuentaAsPagada(id: string, registerInFinance: boolean)
           tipo_flujo: 'OPERATIVO',
           sentido: 'EGRESO',
           origen: 'Transferencia / Banco',
-          categoria_egreso: 'Cuentas por Pagar',
+          categoria_egreso: cxp.categoria || 'Otros',
         }
       });
     }

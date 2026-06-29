@@ -253,8 +253,11 @@ export function MovimientoModal({ isOpen, onClose, initialType, initialData }: M
                   <option value="" disabled>Selecciona una categoría</option>
                   {tipo === 'Ingreso' ? (
                     <>
-                      <option value="Ventas">Ventas / Proyectos</option>
-                      <option value="Servicios">Servicios Adicionales</option>
+                      <option value="Ventas y Servicios">Ventas y Servicios</option>
+                      <option value="Subarrendamiento">Subarrendamiento</option>
+                      <option value="Venta de Activos">Venta de Activos</option>
+                      <option value="Comisiones">Comisiones</option>
+                      <option value="Reembolsos">Reembolsos</option>
                       <option value="Otros">Otros Ingresos</option>
                     </>
                   ) : (
@@ -263,6 +266,8 @@ export function MovimientoModal({ isOpen, onClose, initialType, initialData }: M
                       <option value="Servicios">Servicios (Luz, Internet)</option>
                       <option value="Software">Licencias de Software</option>
                       <option value="Impuestos">Impuestos</option>
+                      <option value="Operaciones">Operaciones</option>
+                      <option value="Marketing">Marketing y Ventas</option>
                       <option value="Otros">Otros Egresos</option>
                     </>
                   )}

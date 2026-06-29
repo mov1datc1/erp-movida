@@ -21,7 +21,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     monto_total: '',
     fecha_vencimiento: '',
     descripcion: '',
-    linea_producto_id: ''
+    linea_producto_id: '',
+    categoria: ''
   });
   
   // For printing
@@ -83,7 +84,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
   const openNewModal = () => {
     setEditingId(null);
-    setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '' });
+    setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '' });
     setShowFavoritos(false);
     setIsModalOpen(true);
   };
@@ -95,7 +96,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
       monto_total: factura.monto_total.toString(),
       fecha_vencimiento: factura.fecha_vencimiento ? new Date(factura.fecha_vencimiento).toISOString().split('T')[0] : '',
       descripcion: factura.descripcion || '',
-      linea_producto_id: factura.linea_producto_id || ''
+      linea_producto_id: factura.linea_producto_id || '',
+      categoria: factura.categoria || ''
     });
     setPrintData(factura);
     setShowFavoritos(false);
@@ -295,7 +297,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               <tr className="bg-slate-50 text-slate-500 text-sm border-b border-slate-100">
                 <th className="px-6 py-4 font-semibold">Folio</th>
                 <th className="px-6 py-4 font-semibold">Cliente</th>
-                <th className="px-6 py-4 font-semibold">Empresa</th>
+                <th className="px-6 py-4 font-semibold">Categoría</th>
                 <th className="px-6 py-4 font-semibold">Monto</th>
                 <th className="px-6 py-4 font-semibold">Estatus</th>
                 <th className="px-6 py-4 font-semibold">Emisión</th>
@@ -304,37 +306,39 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
               {filteredFacturas.length > 0 ? (
-                filteredFacturas.map((factura) => {
-                  const StatusIcon = statusMap[factura.estatus]?.icon || FileText;
+                filteredFacturas.map((f) => {
+                  const StatusIcon = statusMap[f.estatus]?.icon || FileText;
                   return (
                     <tr 
-                      key={factura.id} 
-                      onClick={() => openEditModal(factura)}
+                      key={f.id} 
+                      onClick={() => openEditModal(f)}
                       className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
                     >
                       <td className="px-6 py-4 font-mono font-medium text-primary">
-                        {factura.folio}
+                        {f.folio}
                       </td>
                       <td className="px-6 py-4">
-                        <p className="font-bold text-text-main">{factura.cliente.nombre}</p>
+                        <p className="font-bold text-text-main">{f.cliente.nombre}</p>
+                        {f.cliente.empresa && <p className="text-xs text-text-muted mt-0.5">{f.cliente.empresa}</p>}
+                        {f.descripcion && <p className="text-xs text-text-muted mt-0.5 truncate max-w-[200px]">{f.descripcion}</p>}
                       </td>
-                      <td className="px-6 py-4 text-text-muted">
-                        {factura.cliente.empresa || '-'}
+                      <td className="px-6 py-4 text-slate-600 font-medium">
+                        {f.categoria || '-'}
                       </td>
                       <td className="px-6 py-4 font-bold text-text-main">
-                        {formatCurrency(factura.monto_total)}
+                        {formatCurrency(f.monto_total)}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 w-fit ${statusMap[factura.estatus]?.color}`}>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 w-fit ${statusMap[f.estatus]?.color}`}>
                           <StatusIcon className="w-3.5 h-3.5" />
-                          {statusMap[factura.estatus]?.label}
+                          {statusMap[f.estatus]?.label}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-text-muted">
-                        {new Date(factura.fecha_emision).toLocaleDateString()}
+                        {new Date(f.fecha_emision).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-text-muted">
-                        {factura.fecha_vencimiento ? new Date(factura.fecha_vencimiento).toLocaleDateString() : '-'}
+                        {f.fecha_vencimiento ? new Date(f.fecha_vencimiento).toLocaleDateString() : '-'}
                       </td>
                     </tr>
                   )
@@ -344,7 +348,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                   <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                     <FileText className="w-12 h-12 mx-auto text-slate-300 mb-3" />
                     <p className="text-lg font-medium text-text-main">No hay registros</p>
-                    <p className="text-sm">No se encontraron prefacturas o facturas en esta vista.</p>
+                    <p className="text-sm">No se encontraron facturas en esta vista.</p>
                   </td>
                 </tr>
               )}
@@ -375,8 +379,9 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                             cliente_id: fav.cliente_id || '',
                             monto_total: fav.monto.toString(),
                             descripcion: fav.descripcion || '',
-                            fecha_vencimiento: formData.fecha_vencimiento,
-                            linea_producto_id: ''
+                            linea_producto_id: '',
+                            categoria: '',
+                            fecha_vencimiento: formData.fecha_vencimiento
                           });
                         }}
                       >
@@ -463,21 +468,23 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                   cliente_id: formData.cliente_id,
                   monto_total: parseFloat(formData.monto_total),
                   fecha_vencimiento: formData.fecha_vencimiento,
-                  descripcion: formData.descripcion
+                  descripcion: formData.descripcion,
+                  categoria: formData.categoria
                 });
               } else {
                 res = await createPrefactura({
                   cliente_id: formData.cliente_id,
                   monto_total: parseFloat(formData.monto_total),
                   fecha_vencimiento: formData.fecha_vencimiento,
-                  descripcion: formData.descripcion
+                  descripcion: formData.descripcion,
+                  categoria: formData.categoria
                 });
               }
               
               setIsLoading(false);
               if (res.success) {
                 setIsModalOpen(false);
-                setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '' });
+                setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '' });
                 setEditingId(null);
               } else {
                 alert(res.error);
@@ -525,6 +532,24 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                   ))}
                 </select>
                 <p className="text-xs text-slate-500 mt-1">Este será el concepto mostrado en el PDF descargable.</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Categoría de Ingreso *</label>
+                <select 
+                  required
+                  value={formData.categoria}
+                  onChange={e => setFormData({...formData, categoria: e.target.value})}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-800 bg-white"
+                >
+                  <option value="">-- Seleccionar Categoría --</option>
+                  <option value="Ventas y Servicios">Ventas y Servicios</option>
+                  <option value="Subarrendamiento">Subarrendamiento</option>
+                  <option value="Venta de Activos">Venta de Activos</option>
+                  <option value="Comisiones">Comisiones</option>
+                  <option value="Reembolsos">Reembolsos</option>
+                  <option value="Otros">Otros Ingresos</option>
+                </select>
               </div>
               
               <div className="grid grid-cols-2 gap-4">

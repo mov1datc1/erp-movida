@@ -253,6 +253,7 @@ model Factura {
   fecha_vencimiento DateTime?
   monto_total       Float
   descripcion       String?       @db.Text
+  categoria         String?
   estatus           FacturaStatus @default(PENDIENTE)
 
   cliente_id String
@@ -301,6 +302,7 @@ model CuentaPorPagar {
   fecha_vencimiento DateTime?
   monto_total       Float
   descripcion       String?       @db.Text
+  categoria         String?
   estatus           FacturaStatus @default(PENDIENTE)
 
   proveedor_id      String

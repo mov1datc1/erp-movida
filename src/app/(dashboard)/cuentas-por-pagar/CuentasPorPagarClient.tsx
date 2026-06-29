@@ -20,7 +20,8 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
     proveedor_id: '', 
     monto_total: '',
     fecha_vencimiento: '',
-    descripcion: ''
+    descripcion: '',
+    categoria: ''
   });
   
   // For printing
@@ -86,7 +87,7 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
 
   const openNewModal = () => {
     setEditingId(null);
-    setFormData({ proveedor_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '' });
+    setFormData({ proveedor_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', categoria: '' });
     setShowFavoritos(false);
     setIsModalOpen(true);
   };
@@ -97,7 +98,8 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
       proveedor_id: cuenta.proveedor_id,
       monto_total: cuenta.monto_total.toString(),
       fecha_vencimiento: cuenta.fecha_vencimiento ? new Date(cuenta.fecha_vencimiento).toISOString().split('T')[0] : '',
-      descripcion: cuenta.descripcion || ''
+      descripcion: cuenta.descripcion || '',
+      categoria: cuenta.categoria || ''
     });
     setPrintData(cuenta);
     setShowFavoritos(false);
@@ -309,6 +311,7 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
               <tr className="bg-slate-50 text-slate-500 text-sm border-b border-slate-100">
                 <th className="px-6 py-4 font-semibold">Folio</th>
                 <th className="px-6 py-4 font-semibold">Proveedor</th>
+                <th className="px-6 py-4 font-semibold">Categoría</th>
                 <th className="px-6 py-4 font-semibold">Monto</th>
                 <th className="px-6 py-4 font-semibold">Estatus</th>
                 <th className="px-6 py-4 font-semibold">Emisión</th>
@@ -332,6 +335,9 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
                         <p className="font-bold text-text-main">{cuenta.proveedor.nombre}</p>
                         {cuenta.descripcion && <p className="text-xs text-text-muted mt-0.5 truncate max-w-[200px]">{cuenta.descripcion}</p>}
                       </td>
+                      <td className="px-6 py-4 text-slate-600 font-medium">
+                        {cuenta.categoria || '-'}
+                      </td>
                       <td className="px-6 py-4 font-bold text-text-main">
                         {formatCurrency(cuenta.monto_total)}
                       </td>
@@ -352,7 +358,7 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                     <FileText className="w-12 h-12 mx-auto text-slate-300 mb-3" />
                     <p className="text-lg font-medium text-text-main">No hay registros</p>
                     <p className="text-sm">No se encontraron cuentas por pagar en esta vista.</p>
@@ -386,6 +392,7 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
                             proveedor_id: fav.proveedor_id || '',
                             monto_total: fav.monto.toString(),
                             descripcion: fav.descripcion || '',
+                            categoria: '',
                             fecha_vencimiento: formData.fecha_vencimiento
                           });
                         }}
@@ -473,21 +480,23 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
                     proveedor_id: formData.proveedor_id,
                     monto_total: parseFloat(formData.monto_total),
                     fecha_vencimiento: formData.fecha_vencimiento,
-                    descripcion: formData.descripcion
+                    descripcion: formData.descripcion,
+                    categoria: formData.categoria
                   });
                 } else {
                   res = await createCuentaPorPagar({
                     proveedor_id: formData.proveedor_id,
                     monto_total: parseFloat(formData.monto_total),
                     fecha_vencimiento: formData.fecha_vencimiento,
-                    descripcion: formData.descripcion
+                    descripcion: formData.descripcion,
+                    categoria: formData.categoria
                   });
                 }
                 
                 setIsLoading(false);
                 if (res.success) {
                   setIsModalOpen(false);
-                  setFormData({ proveedor_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '' });
+                  setFormData({ proveedor_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', categoria: '' });
                   setEditingId(null);
                 } else {
                   alert(res.error);
@@ -524,6 +533,25 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
                     placeholder="Ej: Renta de oficina del mes, Compra de insumos..."
                     className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-slate-800 bg-white"
                   />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Categoría de Gasto *</label>
+                  <select 
+                    required
+                    value={formData.categoria}
+                    onChange={e => setFormData({...formData, categoria: e.target.value})}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-800 bg-white"
+                  >
+                    <option value="">-- Seleccionar Categoría --</option>
+                    <option value="Nomina">Nómina</option>
+                    <option value="Servicios">Servicios (Luz, Internet)</option>
+                    <option value="Software">Licencias de Software</option>
+                    <option value="Impuestos">Impuestos</option>
+                    <option value="Operaciones">Operaciones</option>
+                    <option value="Marketing">Marketing y Ventas</option>
+                    <option value="Otros">Otros Egresos</option>
+                  </select>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
