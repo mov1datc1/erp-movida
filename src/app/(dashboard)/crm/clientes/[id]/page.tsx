@@ -10,7 +10,13 @@ export default async function ClienteDetailPage({ params }: { params: Promise<{ 
   const result = await getClienteCompleto(id);
 
   if (!result.success || !result.data) {
-    notFound();
+    return (
+      <div className="p-8 text-center text-red-500">
+        <h1 className="text-2xl font-bold mb-2">Error al cargar cliente</h1>
+        <p>{result.error || "Cliente no encontrado"}</p>
+        <p className="mt-4 font-mono text-sm">{JSON.stringify(result)}</p>
+      </div>
+    );
   }
 
   return (

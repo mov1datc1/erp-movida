@@ -229,9 +229,9 @@ export async function getClienteCompleto(id: string) {
       }
     });
     return { success: true, data: cliente };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching cliente completo:", error);
-    return { success: false, error: 'Ocurrió un error al cargar el perfil del cliente' };
+    return { success: false, error: 'Ocurrió un error al cargar el perfil del cliente: ' + (error.message || String(error)) };
   }
 }
 
