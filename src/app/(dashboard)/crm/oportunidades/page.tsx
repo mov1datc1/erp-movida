@@ -31,8 +31,8 @@ export default async function OportunidadesPage() {
         <NuevaOportunidadBoton clientes={clientes} />
       </div>
 
-      {/* Kanban Board */}
-      <KanbanBoard initialOportunidades={oportunidades} />
+      {/* KanbanBoard */}
+      <KanbanBoard initialOportunidades={oportunidades} clientes={clientes} />
     </div>
   );
 }

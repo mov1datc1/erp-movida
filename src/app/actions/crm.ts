@@ -75,6 +75,46 @@ export async function updateOportunidadEtapa(id: string, etapa: any) {
   }
 }
 
+export async function updateOportunidad(id: string, formData: FormData) {
+  try {
+    const titulo = formData.get('titulo') as string
+    const valor_estimado = parseFloat(formData.get('valor_estimado') as string)
+    const cliente_id = formData.get('cliente_id') as string
+
+    if (!titulo || !cliente_id) {
+      return { success: false, error: 'El título y el cliente son obligatorios' }
+    }
+
+    const oportunidad = await prisma.oportunidad.update({
+      where: { id },
+      data: {
+        titulo,
+        valor_estimado: isNaN(valor_estimado) ? 0 : valor_estimado,
+        cliente_id,
+      }
+    })
+
+    revalidatePath('/crm/oportunidades')
+    return { success: true, data: oportunidad }
+  } catch (error) {
+    console.error("Error updating oportunidad:", error)
+    return { success: false, error: 'Ocurrió un error al actualizar la oportunidad' }
+  }
+}
+
+export async function deleteOportunidad(id: string) {
+  try {
+    await prisma.oportunidad.delete({
+      where: { id }
+    })
+    revalidatePath('/crm/oportunidades')
+    return { success: true }
+  } catch (error) {
+    console.error("Error deleting oportunidad:", error)
+    return { success: false, error: 'Ocurrió un error al eliminar la oportunidad' }
+  }
+}
+
 export async function createCotizacion(formData: FormData) {
   try {
     const folio = formData.get('folio') as string

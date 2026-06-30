@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare, Star, Trash2 } from "lucide-react";
+import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare, Star, Trash2, ChevronDown } from "lucide-react";
 import { createPrefactura, updatePrefactura, markFacturaAsPagada, saveFavoritoCXC, deleteFavoritoCXC } from './actions';
 
 export function FacturacionClient({ facturas, clientes, catalog = [], favoritos = [] }: { facturas: any[], clientes: any[], catalog?: any[], favoritos?: any[] }) {
@@ -15,6 +15,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
   const [isLoading, setIsLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showFavoritos, setShowFavoritos] = useState(false);
+  const [favSearchTerm, setFavSearchTerm] = useState('');
   
   const [formData, setFormData] = useState({ 
     cliente_id: '', 
@@ -27,6 +28,23 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
   
   // For printing
   const [printData, setPrintData] = useState<any>(null);
+
+  // Dropdown States
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const [searchClient, setSearchClient] = useState('');
+  
+  const [showCatDropdown, setShowCatDropdown] = useState(false);
+  const [searchCat, setSearchCat] = useState('');
+
+  // Notification / Popup States
+  const [notification, setNotification] = useState<{show: boolean, message: string, type: 'success'|'error'}>({show: false, message: '', type: 'success'});
+  const [favPromptOpen, setFavPromptOpen] = useState(false);
+  const [favTitleInput, setFavTitleInput] = useState('');
+
+  const showNotification = (message: string, type: 'success'|'error' = 'success') => {
+    setNotification({show: true, message, type});
+    setTimeout(() => setNotification({show: false, message: '', type: 'success'}), 3000);
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -86,6 +104,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     setEditingId(null);
     setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '' });
     setShowFavoritos(false);
+    setFavSearchTerm('');
     setIsModalOpen(true);
   };
 
@@ -101,6 +120,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     });
     setPrintData(factura);
     setShowFavoritos(false);
+    setFavSearchTerm('');
     setIsModalOpen(true);
   };
 
@@ -137,24 +157,29 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
   const handleSaveFavorito = async () => {
     if (!formData.monto_total || !formData.cliente_id || !formData.descripcion) {
-      alert("Para guardar un favorito necesitas ingresar el Cliente, Monto y Descripción.");
+      showNotification("Para guardar un favorito necesitas ingresar el Cliente, Monto y Descripción.", 'error');
       return;
     }
-    const titulo = prompt("Dale un título a este cobro frecuente (Ej: Iguala de Marketing X):");
-    if (!titulo) return;
+    setFavTitleInput('');
+    setFavPromptOpen(true);
+  };
+
+  const confirmSaveFavorito = async () => {
+    if (!favTitleInput.trim()) return;
+    setFavPromptOpen(false);
     
     setIsLoading(true);
     const res = await saveFavoritoCXC({
-      titulo,
+      titulo: favTitleInput,
       monto: parseFloat(formData.monto_total),
       descripcion: formData.descripcion,
       cliente_id: formData.cliente_id
     });
     setIsLoading(false);
     if (res.success) {
-      alert("¡Favorito guardado!");
+      showNotification("¡Favorito guardado correctamente!", 'success');
     } else {
-      alert(res.error);
+      showNotification(res.error || 'Error al guardar favorito', 'error');
     }
   };
 
@@ -307,37 +332,40 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             <tbody className="divide-y divide-slate-100 text-sm">
               {filteredFacturas.length > 0 ? (
                 filteredFacturas.map((f) => {
-                  const StatusIcon = statusMap[f.estatus]?.icon || FileText;
+                  const isVencida = f.estatus === 'PENDIENTE' && f.fecha_vencimiento && new Date(f.fecha_vencimiento) < new Date(new Date().setHours(0,0,0,0));
+                  const currentStatus = isVencida ? 'VENCIDA' : f.estatus;
+                  const StatusIcon = statusMap[currentStatus]?.icon || FileText;
+                  
                   return (
                     <tr 
                       key={f.id} 
                       onClick={() => openEditModal(f)}
-                      className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
+                      className={`transition-colors group cursor-pointer ${isVencida ? 'bg-red-50/40 hover:bg-red-50/80 border-b border-red-100' : 'hover:bg-slate-50/50'}`}
                     >
-                      <td className="px-6 py-4 font-mono font-medium text-primary">
+                      <td className={`px-6 py-4 font-mono font-medium ${isVencida ? 'text-red-600' : 'text-primary'}`}>
                         {f.folio}
                       </td>
                       <td className="px-6 py-4">
-                        <p className="font-bold text-text-main">{f.cliente.nombre}</p>
-                        {f.cliente.empresa && <p className="text-xs text-text-muted mt-0.5">{f.cliente.empresa}</p>}
-                        {f.descripcion && <p className="text-xs text-text-muted mt-0.5 truncate max-w-[200px]">{f.descripcion}</p>}
+                        <p className={`font-bold ${isVencida ? 'text-red-900' : 'text-text-main'}`}>{f.cliente.nombre}</p>
+                        {f.cliente.empresa && <p className={`text-xs mt-0.5 ${isVencida ? 'text-red-700' : 'text-text-muted'}`}>{f.cliente.empresa}</p>}
+                        {f.descripcion && <p className={`text-xs mt-0.5 truncate max-w-[200px] ${isVencida ? 'text-red-700' : 'text-text-muted'}`}>{f.descripcion}</p>}
                       </td>
                       <td className="px-6 py-4 text-slate-600 font-medium">
                         {f.categoria || '-'}
                       </td>
-                      <td className="px-6 py-4 font-bold text-text-main">
+                      <td className={`px-6 py-4 font-bold ${isVencida ? 'text-red-700' : 'text-text-main'}`}>
                         {formatCurrency(f.monto_total)}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 w-fit ${statusMap[f.estatus]?.color}`}>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 w-fit ${statusMap[currentStatus]?.color}`}>
                           <StatusIcon className="w-3.5 h-3.5" />
-                          {statusMap[f.estatus]?.label}
+                          {statusMap[currentStatus]?.label}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-text-muted">
                         {new Date(f.fecha_emision).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 text-text-muted">
+                      <td className={`px-6 py-4 font-medium ${isVencida ? 'text-red-600' : 'text-text-muted'}`}>
                         {f.fecha_vencimiento ? new Date(f.fecha_vencimiento).toLocaleDateString() : '-'}
                       </td>
                     </tr>
@@ -359,20 +387,64 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in print:hidden">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl p-0 animate-in zoom-in-95 duration-200 overflow-hidden flex">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl p-0 animate-in zoom-in-95 duration-200 overflow-visible flex relative">
             
+            {/* Inline Notification Overlay */}
+            {notification.show && (
+              <div className={`absolute top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg text-sm font-semibold animate-in slide-in-from-top-2 ${
+                notification.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
+              }`}>
+                {notification.message}
+              </div>
+            )}
+
+            {/* Inline Prompt for Favorito */}
+            {favPromptOpen && (
+              <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 z-40 text-center rounded-2xl animate-in fade-in">
+                <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-xl max-w-sm w-full">
+                  <Star className="w-10 h-10 text-amber-500 fill-amber-500 mx-auto mb-3" />
+                  <h3 className="text-lg font-bold text-slate-800 mb-2">Guardar como Favorito</h3>
+                  <p className="text-sm text-slate-500 mb-4">Dale un título a este cobro frecuente (Ej: Iguala de Marketing X):</p>
+                  <input 
+                    type="text"
+                    value={favTitleInput}
+                    onChange={(e) => setFavTitleInput(e.target.value)}
+                    placeholder="Título del favorito..."
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none mb-4"
+                    autoFocus
+                  />
+                  <div className="flex gap-2 w-full">
+                    <button onClick={() => setFavPromptOpen(false)} className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-colors text-sm">Cancelar</button>
+                    <button onClick={confirmSaveFavorito} className="flex-1 py-2 bg-primary hover:bg-primary-light text-white rounded-lg font-semibold transition-colors text-sm">Guardar</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Favoritos Sidebar (Only on new) */}
             {(!editingId || showFavoritos) && (
               <div className="w-64 bg-slate-50 border-r border-slate-100 flex flex-col h-[600px] overflow-hidden hidden md:flex">
-                <div className="p-4 border-b border-slate-200 bg-slate-100 flex items-center gap-2">
-                  <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-                  <span className="font-bold text-slate-800 text-sm">Frecuentes / Favoritos</span>
+                <div className="p-4 border-b border-slate-200 bg-slate-100 flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                    <span className="font-bold text-slate-800 text-sm">Frecuentes / Favoritos</span>
+                  </div>
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <input 
+                      type="text" 
+                      placeholder="Buscar favorito..." 
+                      value={favSearchTerm}
+                      onChange={(e) => setFavSearchTerm(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
+                    />
+                  </div>
                 </div>
                 <div className="p-2 overflow-y-auto flex-1 space-y-2">
-                  {favoritos.length === 0 ? (
-                    <div className="text-center p-4 text-sm text-slate-400">No tienes favoritos guardados.</div>
+                  {favoritos.filter(f => f.titulo.toLowerCase().includes(favSearchTerm.toLowerCase()) || f.cliente?.nombre?.toLowerCase().includes(favSearchTerm.toLowerCase())).length === 0 ? (
+                    <div className="text-center p-4 text-sm text-slate-400">No se encontraron favoritos.</div>
                   ) : (
-                    favoritos.map(fav => (
+                    favoritos.filter(f => f.titulo.toLowerCase().includes(favSearchTerm.toLowerCase()) || f.cliente?.nombre?.toLowerCase().includes(favSearchTerm.toLowerCase())).map(fav => (
                       <div key={fav.id} className="bg-white p-3 rounded-xl border border-slate-200 hover:border-primary/50 cursor-pointer group shadow-sm transition-all"
                         onClick={() => {
                           setFormData({
@@ -487,22 +559,68 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                 setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '' });
                 setEditingId(null);
               } else {
-                alert(res.error);
+                showNotification(res.error || 'Error al guardar', 'error');
               }
             }} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Cliente *</label>
-                <select 
-                  required
-                  value={formData.cliente_id}
-                  onChange={e => setFormData({...formData, cliente_id: e.target.value})}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-800 bg-white"
-                >
-                  <option value="">-- Seleccionar --</option>
-                  {clientes.map(c => (
-                    <option key={c.id} value={c.id}>{c.nombre} {c.empresa ? `(${c.empresa})` : ''}</option>
-                  ))}
-                </select>
+                
+                {/* Custom Searchable Dropdown for Cliente */}
+                <div className="relative">
+                  <div 
+                    className={`w-full px-4 py-2.5 border rounded-xl flex justify-between items-center bg-white cursor-pointer transition-all ${showClientDropdown ? 'border-primary ring-2 ring-primary/20' : 'border-slate-200 hover:border-primary/50'}`}
+                    onClick={() => {
+                      setShowClientDropdown(!showClientDropdown);
+                      if (showCatDropdown) setShowCatDropdown(false);
+                    }}
+                  >
+                    <span className={formData.cliente_id ? "text-slate-800 font-medium" : "text-slate-400"}>
+                      {formData.cliente_id 
+                        ? clientes.find(c => c.id === formData.cliente_id)?.nombre || 'Seleccionar Cliente'
+                        : '-- Seleccionar Cliente --'}
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  </div>
+
+                  {showClientDropdown && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setShowClientDropdown(false)}></div>
+                      <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+                        <div className="p-2 border-b border-slate-100 bg-slate-50">
+                          <div className="relative">
+                            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                            <input 
+                              type="text" 
+                              placeholder="Buscar cliente..."
+                              className="w-full pl-9 pr-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-primary"
+                              value={searchClient}
+                              onChange={e => setSearchClient(e.target.value)}
+                              autoFocus
+                            />
+                          </div>
+                        </div>
+                        <div className="max-h-48 overflow-y-auto p-1.5">
+                          {clientes.filter(c => c.nombre.toLowerCase().includes(searchClient.toLowerCase()) || (c.empresa && c.empresa.toLowerCase().includes(searchClient.toLowerCase()))).map(c => (
+                            <div 
+                              key={c.id} 
+                              className="px-3 py-2 text-sm hover:bg-primary/5 hover:text-primary cursor-pointer rounded-lg font-medium text-slate-700"
+                              onClick={() => { 
+                                setFormData({...formData, cliente_id: c.id}); 
+                                setShowClientDropdown(false); 
+                                setSearchClient(''); 
+                              }}
+                            >
+                              {c.nombre} {c.empresa && <span className="text-slate-400 font-normal ml-1">({c.empresa})</span>}
+                            </div>
+                          ))}
+                          {clientes.filter(c => c.nombre.toLowerCase().includes(searchClient.toLowerCase()) || (c.empresa && c.empresa.toLowerCase().includes(searchClient.toLowerCase()))).length === 0 && (
+                            <div className="px-3 py-3 text-sm text-center text-slate-500">No se encontró cliente</div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
               
               <div>
@@ -536,20 +654,58 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Categoría de Ingreso *</label>
-                <select 
-                  required
-                  value={formData.categoria}
-                  onChange={e => setFormData({...formData, categoria: e.target.value})}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-800 bg-white"
-                >
-                  <option value="">-- Seleccionar Categoría --</option>
-                  <option value="Ventas y Servicios">Ventas y Servicios</option>
-                  <option value="Subarrendamiento">Subarrendamiento</option>
-                  <option value="Venta de Activos">Venta de Activos</option>
-                  <option value="Comisiones">Comisiones</option>
-                  <option value="Reembolsos">Reembolsos</option>
-                  <option value="Otros">Otros Ingresos</option>
-                </select>
+                
+                {/* Custom Searchable Dropdown for Categoria */}
+                <div className="relative">
+                  <div 
+                    className={`w-full px-4 py-2.5 border rounded-xl flex justify-between items-center bg-white cursor-pointer transition-all ${showCatDropdown ? 'border-primary ring-2 ring-primary/20' : 'border-slate-200 hover:border-primary/50'}`}
+                    onClick={() => {
+                      setShowCatDropdown(!showCatDropdown);
+                      if (showClientDropdown) setShowClientDropdown(false);
+                    }}
+                  >
+                    <span className={formData.categoria ? "text-slate-800 font-medium" : "text-slate-400"}>
+                      {formData.categoria || '-- Seleccionar Categoría --'}
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  </div>
+
+                  {showCatDropdown && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setShowCatDropdown(false)}></div>
+                      <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+                        <div className="p-2 border-b border-slate-100 bg-slate-50">
+                          <div className="relative">
+                            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                            <input 
+                              type="text" 
+                              placeholder="Buscar categoría..."
+                              className="w-full pl-9 pr-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-primary"
+                              value={searchCat}
+                              onChange={e => setSearchCat(e.target.value)}
+                              autoFocus
+                            />
+                          </div>
+                        </div>
+                        <div className="max-h-48 overflow-y-auto p-1.5">
+                          {['Ventas y Servicios', 'Subarrendamiento', 'Venta de Activos', 'Comisiones', 'Reembolsos', 'Otros'].filter(c => c.toLowerCase().includes(searchCat.toLowerCase())).map(cat => (
+                            <div 
+                              key={cat} 
+                              className="px-3 py-2 text-sm hover:bg-primary/5 hover:text-primary cursor-pointer rounded-lg font-medium text-slate-700"
+                              onClick={() => { 
+                                setFormData({...formData, categoria: cat === 'Otros' ? 'Otros Ingresos' : cat}); 
+                                setShowCatDropdown(false); 
+                                setSearchCat(''); 
+                              }}
+                            >
+                              {cat === 'Otros' ? 'Otros Ingresos' : cat}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">

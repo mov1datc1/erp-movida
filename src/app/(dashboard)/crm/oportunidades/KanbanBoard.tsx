@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { GripVertical } from 'lucide-react';
-import { updateOportunidadEtapa } from '@/app/actions/crm';
+import { GripVertical, X, Briefcase, DollarSign, User, Loader2, Trash2 } from 'lucide-react';
+import { updateOportunidadEtapa, updateOportunidad, deleteOportunidad } from '@/app/actions/crm';
 
 interface Cliente {
   nombre: string;
@@ -19,11 +19,20 @@ interface Oportunidad {
 
 interface KanbanBoardProps {
   initialOportunidades: Oportunidad[];
+  clientes: {id: string, nombre: string, empresa: string | null}[];
 }
 
-export default function KanbanBoard({ initialOportunidades }: KanbanBoardProps) {
+export default function KanbanBoard({ initialOportunidades, clientes }: KanbanBoardProps) {
   const [oportunidades, setOportunidades] = useState<Oportunidad[]>(initialOportunidades);
   const [isDragging, setIsDragging] = useState(false);
+  
+  const [editingOportunidad, setEditingOportunidad] = useState<Oportunidad | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setOportunidades(initialOportunidades);
+  }, [initialOportunidades]);
 
   const etapas = [
     { id: "PROSPECTO", name: "Prospecto", color: "bg-slate-200 text-slate-700" },
@@ -61,7 +70,6 @@ export default function KanbanBoard({ initialOportunidades }: KanbanBoardProps) 
       o.id === oportunidadId ? { ...o, etapa: etapaId } : o
     ));
 
-    // Update in database
     const result = await updateOportunidadEtapa(oportunidadId, etapaId);
     if (!result.success) {
       // Revert if error
@@ -70,7 +78,38 @@ export default function KanbanBoard({ initialOportunidades }: KanbanBoardProps) 
     }
   };
 
+  const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingOportunidad) return;
+    
+    setIsSubmitting(true);
+    setError(null);
+    
+    const formData = new FormData(e.currentTarget);
+    const result = await updateOportunidad(editingOportunidad.id, formData);
+    
+    if (result.success) {
+      setEditingOportunidad(null);
+    } else {
+      setError(result.error || 'Error desconocido');
+    }
+    setIsSubmitting(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Estás seguro de eliminar esta oportunidad?')) return;
+    setIsSubmitting(true);
+    const result = await deleteOportunidad(id);
+    if (result.success) {
+      setEditingOportunidad(null);
+    } else {
+      alert(result.error || 'Error al eliminar');
+    }
+    setIsSubmitting(false);
+  };
+
   return (
+    <>
     <div className="flex-1 flex gap-6 overflow-x-auto pb-4">
       {etapas.map(etapa => {
         const leads = oportunidades.filter(o => o.etapa === etapa.id);
@@ -104,6 +143,7 @@ export default function KanbanBoard({ initialOportunidades }: KanbanBoardProps) 
                   draggable
                   onDragStart={(e) => handleDragStart(e, lead.id)}
                   onDragEnd={handleDragEnd}
+                  onClick={() => setEditingOportunidad(lead)}
                   className="bg-white p-4 rounded-xl border border-slate-200 card-shadow hover:border-primary/50 transition-colors cursor-grab active:cursor-grabbing group relative z-10"
                 >
                   <div className="flex justify-between items-start mb-2">
@@ -127,5 +167,119 @@ export default function KanbanBoard({ initialOportunidades }: KanbanBoardProps) 
         );
       })}
     </div>
+
+    {/* Edit Modal */}
+    {editingOportunidad && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+        <div 
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <h2 className="text-xl font-bold text-text-main flex items-center gap-2">
+              <Briefcase className="w-5 h-5 text-primary" />
+              Editar Oportunidad
+            </h2>
+            <button 
+              onClick={() => setEditingOportunidad(null)}
+              className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+            {error && (
+              <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm font-medium border border-red-100">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Título de Oportunidad *</label>
+                <div className="relative">
+                  <Briefcase className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input 
+                    type="text" 
+                    name="titulo" 
+                    required 
+                    defaultValue={editingOportunidad.titulo}
+                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Valor Estimado (MXN) *</label>
+                <div className="relative">
+                  <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input 
+                    type="number" 
+                    name="valor_estimado" 
+                    required
+                    min="0"
+                    step="0.01"
+                    defaultValue={editingOportunidad.valor_estimado}
+                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Cliente Asociado *</label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <select 
+                    name="cliente_id" 
+                    required
+                    defaultValue={editingOportunidad.cliente?.id || ''}
+                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none bg-white"
+                  >
+                    <option value="" disabled>Selecciona un cliente...</option>
+                    {clientes.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.nombre} {c.empresa ? `(${c.empresa})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 flex justify-between items-center border-t border-slate-100 mt-6">
+              <button
+                type="button"
+                onClick={() => handleDelete(editingOportunidad.id)}
+                disabled={isSubmitting}
+                className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors flex items-center gap-1 text-sm font-medium"
+              >
+                <Trash2 className="w-4 h-4" />
+                Eliminar
+              </button>
+              
+              <div className="flex gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setEditingOportunidad(null)}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="bg-primary hover:bg-primary-light text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-primary/20 flex items-center gap-2 disabled:opacity-70"
+                >
+                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Guardar Cambios'}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
