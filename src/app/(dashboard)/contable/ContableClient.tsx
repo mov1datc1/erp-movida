@@ -125,7 +125,7 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
         <div>
           <h1 className="text-3xl font-bold text-primary tracking-tight">Finanzas y Contabilidad</h1>
           <p className="text-text-muted mt-1">Control de ingresos, egresos y reportes financieros.</p>
@@ -147,7 +147,7 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
       </div>
 
       {/* Tabs and Filters */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-200 gap-4 md:gap-0">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-200 gap-4 md:gap-0 print:hidden">
         <div className="flex">
           <button
             onClick={() => setActiveTab('resumen')}
