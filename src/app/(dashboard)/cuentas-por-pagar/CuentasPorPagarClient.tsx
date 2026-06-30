@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare, Star, Trash2, ChevronDown } from "lucide-react";
+import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare, Star, Trash2, ChevronDown, Check } from "lucide-react";
 import { createCuentaPorPagar, updateCuentaPorPagar, markCuentaAsPagada, saveFavoritoCXP, deleteFavoritoCXP, createProveedor } from './actions';
+import { registrarPagoParcialCxP } from '@/app/actions/pagos';
 
 export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cuentas: any[], proveedores: any[], favoritos: any[] }) {
   const [activeTab, setActiveTab] = useState<'por_pagar' | 'historial'>('por_pagar');
@@ -27,6 +28,15 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
   
   // For printing
   const [printData, setPrintData] = useState<any>(null);
+
+  // For partial payments
+  const [isPagoModalOpen, setIsPagoModalOpen] = useState(false);
+  const [pagoFormData, setPagoFormData] = useState({
+    monto: '',
+    fecha: new Date().toISOString().split('T')[0],
+    metodo_pago: 'Transferencia',
+    referencia: ''
+  });
 
   // New Proveedor modal
   const [isProveedorModalOpen, setIsProveedorModalOpen] = useState(false);
@@ -55,13 +65,14 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
 
   const statusMap: Record<string, { label: string, color: string, icon: any }> = {
     'PENDIENTE': { label: 'Por Pagar', color: 'bg-orange-100 text-orange-600', icon: Clock },
+    'PAGADA_PARCIALMENTE': { label: 'Pago Parcial', color: 'bg-blue-100 text-blue-600', icon: Clock },
     'PAGADA': { label: 'Pagada', color: 'bg-success/20 text-success', icon: CheckCircle },
     'VENCIDA': { label: 'Vencida', color: 'bg-danger/20 text-danger', icon: AlertTriangle },
     'CANCELADA': { label: 'Cancelada', color: 'bg-slate-200 text-slate-600', icon: FileText }
   };
 
-  const totalPorPagar = cuentas.filter(c => c.estatus === 'PENDIENTE').reduce((a, b) => a + b.monto_total, 0);
-  const totalVencido = cuentas.filter(c => c.estatus === 'VENCIDA').reduce((a, b) => a + b.monto_total, 0);
+  const totalPorPagar = cuentas.filter(c => c.estatus === 'PENDIENTE' || c.estatus === 'PAGADA_PARCIALMENTE').reduce((a, b) => a + (b.monto_total - (b.monto_pagado || 0)), 0);
+  const totalVencido = cuentas.filter(c => c.estatus === 'VENCIDA').reduce((a, b) => a + (b.monto_total - (b.monto_pagado || 0)), 0);
 
   const filteredCuentas = useMemo(() => {
     return cuentas.filter(c => {
@@ -73,9 +84,9 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
 
       // Tab Filter
       if (activeTab === 'por_pagar') {
-        if (c.estatus !== 'PENDIENTE' && c.estatus !== 'VENCIDA') return false;
+        if (c.estatus !== 'PENDIENTE' && c.estatus !== 'VENCIDA' && c.estatus !== 'PAGADA_PARCIALMENTE') return false;
       } else {
-        if (c.estatus === 'PENDIENTE' || c.estatus === 'VENCIDA') return false;
+        if (c.estatus === 'PENDIENTE' || c.estatus === 'VENCIDA' || c.estatus === 'PAGADA_PARCIALMENTE') return false;
       }
 
       // Date Filter
@@ -346,7 +357,7 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
             <tbody className="divide-y divide-slate-100 text-sm">
               {filteredCuentas.length > 0 ? (
                 filteredCuentas.map((cuenta) => {
-                  const isVencida = cuenta.estatus === 'PENDIENTE' && cuenta.fecha_vencimiento && new Date(cuenta.fecha_vencimiento) < new Date(new Date().setHours(0,0,0,0));
+                  const isVencida = (cuenta.estatus === 'PENDIENTE' || cuenta.estatus === 'PAGADA_PARCIALMENTE') && cuenta.fecha_vencimiento && new Date(cuenta.fecha_vencimiento) < new Date(new Date().setHours(0,0,0,0));
                   const currentStatus = isVencida ? 'VENCIDA' : cuenta.estatus;
                   const StatusIcon = statusMap[currentStatus]?.icon || FileText;
                   
@@ -368,6 +379,7 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
                       </td>
                       <td className={`px-6 py-4 font-bold ${isVencida ? 'text-red-700' : 'text-text-main'}`}>
                         {formatCurrency(cuenta.monto_total)}
+                        {(cuenta.monto_pagado || 0) > 0 && <p className="text-xs font-medium text-emerald-600 mt-0.5">Pagado: {formatCurrency(cuenta.monto_pagado)}</p>}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 w-fit ${statusMap[currentStatus]?.color}`}>
@@ -499,24 +511,21 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
                   {editingId ? 'Detalles de Cuenta por Pagar' : 'Registrar Pago Pendiente'}
                 </h2>
                 <div className="flex items-center gap-2">
-                  {editingId && (printData?.estatus === 'PENDIENTE' || printData?.estatus === 'VENCIDA') && (
+                  {editingId && (printData?.estatus === 'PENDIENTE' || printData?.estatus === 'VENCIDA' || printData?.estatus === 'PAGADA_PARCIALMENTE') && (
                     <button 
                       type="button"
-                      onClick={async () => {
-                        const registerInFinance = window.confirm('¿Registrar también este EGRESO en el módulo de Finanzas automáticamente?');
-                        setIsLoading(true);
-                        const res = await markCuentaAsPagada(editingId, registerInFinance);
-                        setIsLoading(false);
-                        if (res.success) {
-                          setIsModalOpen(false);
-                          setEditingId(null);
-                        } else {
-                          alert(res.error);
-                        }
+                      onClick={() => {
+                        setPagoFormData({
+                          monto: (printData.monto_total - (printData.monto_pagado || 0)).toString(),
+                          fecha: new Date().toISOString().split('T')[0],
+                          metodo_pago: 'Transferencia',
+                          referencia: ''
+                        });
+                        setIsPagoModalOpen(true);
                       }}
                       className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors"
                     >
-                      <CheckSquare className="w-4 h-4" /> Marcar Pagada
+                      <DollarSign className="w-4 h-4" /> Registrar Pago
                     </button>
                   )}
                   {editingId && (
@@ -758,6 +767,117 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Registrar Pago */}
+      {isPagoModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center animate-in fade-in print:hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-emerald-600" />
+                Registrar Pago (Egreso)
+              </h2>
+              <p className="text-sm text-slate-500 mt-1">Monto pendiente: <strong className="text-slate-800">{formatCurrency(printData.monto_total - (printData.monto_pagado || 0))}</strong></p>
+            </div>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setIsLoading(true);
+              
+              const res = await registrarPagoParcialCxP(editingId!, {
+                monto: parseFloat(pagoFormData.monto),
+                fecha: new Date(`${pagoFormData.fecha}T12:00:00`),
+                metodo_pago: pagoFormData.metodo_pago,
+                referencia: pagoFormData.referencia
+              });
+              
+              setIsLoading(false);
+              if (res.success) {
+                setIsPagoModalOpen(false);
+                setIsModalOpen(false);
+                setEditingId(null);
+                showNotification('Pago registrado con éxito. Egreso creado en módulo contable.', 'success');
+              } else {
+                showNotification(res.error || 'Error al registrar pago', 'error');
+              }
+            }} className="p-6 space-y-4">
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Monto a Pagar *</label>
+                  <div className="relative">
+                    <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input 
+                      type="number" 
+                      required
+                      step="0.01"
+                      min="0.01"
+                      max={printData.monto_total - (printData.monto_pagado || 0)}
+                      value={pagoFormData.monto}
+                      onChange={e => setPagoFormData({...pagoFormData, monto: e.target.value})}
+                      className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Fecha *</label>
+                  <input 
+                    type="date" 
+                    required
+                    value={pagoFormData.fecha}
+                    onChange={e => setPagoFormData({...pagoFormData, fecha: e.target.value})}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Método de Pago *</label>
+                <select 
+                  required
+                  value={pagoFormData.metodo_pago}
+                  onChange={e => setPagoFormData({...pagoFormData, metodo_pago: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium bg-white"
+                >
+                  <option value="Transferencia">Transferencia</option>
+                  <option value="Efectivo">Efectivo</option>
+                  <option value="Tarjeta">Tarjeta</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="Otro">Otro</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Referencia (Opcional)</label>
+                <input 
+                  type="text" 
+                  value={pagoFormData.referencia}
+                  onChange={e => setPagoFormData({...pagoFormData, referencia: e.target.value})}
+                  placeholder="# de transacción o comprobante"
+                  className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium text-sm"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-slate-100">
+                <button 
+                  type="button" 
+                  onClick={() => setIsPagoModalOpen(false)}
+                  className="flex-1 px-4 py-2.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isLoading || !pagoFormData.monto}
+                  className="flex-1 px-4 py-2.5 text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold transition-colors shadow-lg shadow-emerald-600/30 disabled:opacity-70 flex items-center justify-center gap-2"
+                >
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar Pago'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

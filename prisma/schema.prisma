@@ -265,12 +265,16 @@ model Factura {
   linea_producto_id String?
   linea_producto    LineaProducto? @relation(fields: [linea_producto_id], references: [id], onDelete: SetNull)
 
+  monto_pagado      Float          @default(0)
+  pagos_parciales   PagoParcial[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 enum FacturaStatus {
   PENDIENTE
+  PAGADA_PARCIALMENTE
   PAGADA
   VENCIDA
   CANCELADA
@@ -308,8 +312,33 @@ model CuentaPorPagar {
   proveedor_id      String
   proveedor         Proveedor     @relation(fields: [proveedor_id], references: [id], onDelete: Cascade)
 
+  monto_pagado      Float         @default(0)
+  pagos_parciales   PagoParcial[]
+
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
+}
+
+// -------------------------------------
+// Pagos Parciales
+// -------------------------------------
+model PagoParcial {
+  id                 String   @id @default(uuid())
+  monto              Float
+  fecha              DateTime @default(now())
+  metodo_pago        String?
+  referencia         String?
+  
+  factura_id         String?
+  factura            Factura? @relation(fields: [factura_id], references: [id], onDelete: Cascade)
+  
+  cuenta_por_pagar_id String?
+  cuenta_por_pagar   CuentaPorPagar? @relation(fields: [cuenta_por_pagar_id], references: [id], onDelete: Cascade)
+  
+  movimiento_id      String? // Reference to the MovimientoFinanciero created
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 // -------------------------------------
