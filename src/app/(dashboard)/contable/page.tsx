@@ -15,13 +15,14 @@ export default async function ContablePage() {
     where: { estatus: 'PENDIENTE' }
   });
 
-  // Calculate 7 days ago
-  const unaSemanaAtras = new Date();
-  unaSemanaAtras.setDate(unaSemanaAtras.getDate() - 7);
+  // Calculate first day of the current month
+  const primerDiaMes = new Date();
+  primerDiaMes.setDate(1);
+  primerDiaMes.setHours(0, 0, 0, 0);
 
-  const oportunidadesSemana = await prisma.oportunidad.findMany({
+  const oportunidadesMes = await prisma.oportunidad.findMany({
     where: {
-      updatedAt: { gte: unaSemanaAtras }
+      updatedAt: { gte: primerDiaMes }
     }
   });
 
@@ -57,7 +58,7 @@ export default async function ContablePage() {
       balanceTotal={balanceTotal}
       rawMovimientos={dbMovimientos}
       facturasPendientes={facturasPendientes}
-      oportunidadesSemana={oportunidadesSemana}
+      oportunidadesMes={oportunidadesMes}
     />
   );
 }

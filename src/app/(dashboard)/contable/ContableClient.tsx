@@ -29,10 +29,10 @@ interface ContableClientProps {
   egresosMes: number;
   rawMovimientos: any[];
   facturasPendientes?: any[];
-  oportunidadesSemana?: any[];
+  oportunidadesMes?: any[];
 }
 
-export default function ContableClient({ movimientos, balanceTotal, ingresosMes, egresosMes, rawMovimientos, facturasPendientes = [], oportunidadesSemana = [] }: ContableClientProps) {
+export default function ContableClient({ movimientos, balanceTotal, ingresosMes, egresosMes, rawMovimientos, facturasPendientes = [], oportunidadesMes = [] }: ContableClientProps) {
   const [activeTab, setActiveTab] = useState<'resumen' | 'flujo' | 'resultados' | 'kpis'>('kpis');
   
   const [anio, setAnio] = useState(new Date().getFullYear().toString());
@@ -344,7 +344,7 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
         <KpiSemanalesView 
           rawMovimientos={rawMovimientos} 
           facturasPendientes={facturasPendientes} 
-          oportunidadesSemana={oportunidadesSemana} 
+          oportunidadesMes={oportunidadesMes} 
         />
       )}
 

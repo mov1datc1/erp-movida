@@ -8,25 +8,34 @@ import { es } from 'date-fns/locale';
 interface KpiSemanalesViewProps {
   rawMovimientos: any[];
   facturasPendientes: any[];
-  oportunidadesSemana: any[];
+  oportunidadesMes: any[];
 }
 
-export function KpiSemanalesView({ rawMovimientos, facturasPendientes, oportunidadesSemana }: KpiSemanalesViewProps) {
+export function KpiSemanalesView({ rawMovimientos, facturasPendientes, oportunidadesMes }: KpiSemanalesViewProps) {
   
   const { cashFlow, marginPorLinea, cuentasPorCobrar, conversion } = useMemo(() => {
     const today = new Date();
     const start = startOfWeek(today, { weekStartsOn: 1 });
     const end = endOfWeek(today, { weekStartsOn: 1 });
     
-    // 1. Cash (Weekly Flow)
+    // 1. Cash (Weekly Flow & Starting Balance)
+    const movsBeforeWeek = rawMovimientos.filter(m => {
+      const d = new Date(m.fecha);
+      return !isAfter(d, start); // Before the start of this week
+    });
+    
     const movsThisWeek = rawMovimientos.filter(m => {
       const d = new Date(m.fecha);
       return isAfter(d, start) && !isAfter(d, end);
     });
 
+    const startingIngresos = movsBeforeWeek.filter(m => m.sentido === 'INGRESO').reduce((acc, curr) => acc + curr.monto, 0);
+    const startingEgresos = movsBeforeWeek.filter(m => m.sentido === 'EGRESO').reduce((acc, curr) => acc + curr.monto, 0);
+    const saldoInicial = startingIngresos - startingEgresos;
+
     const ingresosSemana = movsThisWeek.filter(m => m.sentido === 'INGRESO').reduce((acc, curr) => acc + curr.monto, 0);
     const egresosSemana = movsThisWeek.filter(m => m.sentido === 'EGRESO').reduce((acc, curr) => acc + curr.monto, 0);
-    const cashNeto = ingresosSemana - egresosSemana;
+    const cashNeto = saldoInicial + ingresosSemana - egresosSemana;
 
     // 2. Margen por línea (Only ingresos linked to a line this week)
     const lineasMap = new Map<string, { nombre: string, monto: number }>();
@@ -46,18 +55,18 @@ export function KpiSemanalesView({ rawMovimientos, facturasPendientes, oportunid
     const totalPendiente = facturasPendientes.reduce((acc, curr) => acc + curr.monto_total, 0);
     const totalFacturas = facturasPendientes.length;
 
-    // 4. Conversión Lead (Oportunidades ganadas vs totales activas esta semana)
-    const wonThisWeek = oportunidadesSemana.filter(o => o.etapa === 'GANADO').length;
-    const totalThisWeek = oportunidadesSemana.length;
-    const conversionRate = totalThisWeek > 0 ? (wonThisWeek / totalThisWeek) * 100 : 0;
+    // 4. Conversión Lead (Oportunidades ganadas vs totales activas este mes)
+    const wonThisMonth = oportunidadesMes.filter(o => o.etapa === 'GANADO').length;
+    const totalThisMonth = oportunidadesMes.length;
+    const conversionRate = totalThisMonth > 0 ? (wonThisMonth / totalThisMonth) * 100 : 0;
 
     return {
-      cashFlow: { ingresos: ingresosSemana, egresos: egresosSemana, neto: cashNeto },
+      cashFlow: { ingresos: ingresosSemana, egresos: egresosSemana, neto: cashNeto, inicial: saldoInicial },
       marginPorLinea: marginPorLineaData,
       cuentasPorCobrar: { total: totalPendiente, count: totalFacturas },
-      conversion: { rate: conversionRate, won: wonThisWeek, total: totalThisWeek }
+      conversion: { rate: conversionRate, won: wonThisMonth, total: totalThisMonth }
     };
-  }, [rawMovimientos, facturasPendientes, oportunidadesSemana]);
+  }, [rawMovimientos, facturasPendientes, oportunidadesMes]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -76,14 +85,15 @@ export function KpiSemanalesView({ rawMovimientos, facturasPendientes, oportunid
               </div>
               <span className="text-xs font-semibold bg-white/20 px-2.5 py-1 rounded-full backdrop-blur-sm">Esta Semana</span>
             </div>
-            <p className="text-blue-100 font-medium text-sm">Cash (Flujo Neto)</p>
+            <p className="text-blue-100 font-medium text-sm">Flujo Neto Disponible</p>
             <h3 className="text-3xl font-bold mt-1 tracking-tight">{formatCurrency(cashFlow.neto)}</h3>
+            <p className="text-xs text-blue-200 mt-1">Saldo inicial semana: {formatCurrency(cashFlow.inicial)}</p>
             <div className="mt-4 flex gap-4 text-xs font-medium">
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1" title="Ingresos en la semana">
                 <ArrowUpRight className="w-3.5 h-3.5 text-green-300" />
                 <span className="text-green-100">{formatCurrency(cashFlow.ingresos)}</span>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1" title="Egresos en la semana">
                 <ArrowDownRight className="w-3.5 h-3.5 text-red-300" />
                 <span className="text-red-100">{formatCurrency(cashFlow.egresos)}</span>
               </div>
@@ -116,13 +126,14 @@ export function KpiSemanalesView({ rawMovimientos, facturasPendientes, oportunid
             <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
               <Target className="w-6 h-6" />
             </div>
+            <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">Este Mes</span>
           </div>
-          <p className="text-slate-500 font-medium text-sm">Conversión Lead (Semana)</p>
+          <p className="text-slate-500 font-medium text-sm">Conversión Lead (Mensual)</p>
           <div className="flex items-end gap-2 mt-1">
             <h3 className="text-3xl font-bold text-slate-800 tracking-tight">{conversion.rate.toFixed(1)}%</h3>
           </div>
           <p className="text-xs font-medium text-slate-400 mt-3">
-            <span className="text-slate-600">{conversion.won}</span> cerradas de <span className="text-slate-600">{conversion.total}</span> activas
+            <span className="text-slate-600">{conversion.won}</span> cerradas de <span className="text-slate-600">{conversion.total}</span> activas (Mes actual)
           </p>
         </div>
 

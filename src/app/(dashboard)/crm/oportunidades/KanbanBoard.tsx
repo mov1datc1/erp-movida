@@ -5,6 +5,7 @@ import { GripVertical, X, Briefcase, DollarSign, User, Loader2, Trash2 } from 'l
 import { updateOportunidadEtapa, updateOportunidad, deleteOportunidad } from '@/app/actions/crm';
 
 interface Cliente {
+  id: string;
   nombre: string;
   empresa: string | null;
 }
