@@ -5,8 +5,9 @@ import ClienteDetailClient from "./ClienteDetailClient";
 
 export const dynamic = 'force-dynamic';
 
-export default async function ClienteDetailPage({ params }: { params: { id: string } }) {
-  const result = await getClienteCompleto(params.id);
+export default async function ClienteDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const result = await getClienteCompleto(id);
 
   if (!result.success || !result.data) {
     notFound();
