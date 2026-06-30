@@ -15,6 +15,8 @@ export async function createCliente(formData: FormData) {
       return { success: false, error: 'El nombre es obligatorio' }
     }
 
+    const fuente = (formData.get('fuente') as string) || 'Manual'
+
     const cliente = await prisma.cliente.create({
       data: {
         nombre,
@@ -22,6 +24,7 @@ export async function createCliente(formData: FormData) {
         email,
         telefono,
         rfc_taxid,
+        fuente,
         estatus: 'LEAD',
       }
     })
@@ -170,6 +173,8 @@ export async function updateCliente(id: string, formData: FormData) {
       return { success: false, error: 'El nombre es obligatorio' }
     }
 
+    const fuente = formData.get('fuente') as string
+
     const cliente = await prisma.cliente.update({
       where: { id },
       data: {
@@ -178,6 +183,7 @@ export async function updateCliente(id: string, formData: FormData) {
         email,
         telefono,
         rfc_taxid,
+        ...(fuente ? { fuente } : {}),
       }
     })
 

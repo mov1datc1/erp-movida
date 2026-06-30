@@ -54,6 +54,8 @@ model Cliente {
   email     String?
   telefono  String?
   rfc_taxid String?
+  fuente    String?       // "Meta Ads", "Google Ads", "WordPress", "Manual", etc.
+  notas     String?       // Metadata adicional: campaña, ad set, etc.
   estatus   ClienteStatus @default(LEAD)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt

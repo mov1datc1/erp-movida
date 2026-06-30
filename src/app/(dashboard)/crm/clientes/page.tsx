@@ -1,10 +1,27 @@
 import React from "react";
-import { Users, Plus, Search, MoreVertical, Building2, Phone, Mail } from "lucide-react";
+import { Users, Plus, Search, MoreVertical, Building2, Phone, Mail, Globe, Megaphone } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import NuevoClienteBoton from "./NuevoClienteBoton";
 import ClienteRowActions from "./ClienteRowActions";
 
 export const dynamic = 'force-dynamic';
+
+const fuenteBadge = (fuente: string | null) => {
+  const f = (fuente || 'Manual').toLowerCase();
+  if (f.includes('meta') || f.includes('facebook') || f.includes('instagram')) {
+    return { label: fuente || 'Meta Ads', color: 'bg-blue-500/10 text-blue-600', icon: '📘' };
+  }
+  if (f.includes('google')) {
+    return { label: fuente || 'Google Ads', color: 'bg-emerald-500/10 text-emerald-600', icon: '🟢' };
+  }
+  if (f.includes('wordpress') || f.includes('landing') || f.includes('web')) {
+    return { label: fuente || 'WordPress', color: 'bg-purple-500/10 text-purple-600', icon: '🟣' };
+  }
+  if (f.includes('referido') || f.includes('referral')) {
+    return { label: fuente || 'Referido', color: 'bg-amber-500/10 text-amber-600', icon: '🤝' };
+  }
+  return { label: fuente || 'Manual', color: 'bg-slate-100 text-slate-500', icon: '✏️' };
+};
 
 export default async function ClientesPage() {
   // We will handle the timeout gracefully in case DB is unreachable
@@ -47,6 +64,7 @@ export default async function ClientesPage() {
               <tr className="bg-slate-50 text-slate-500 text-sm border-b border-slate-100">
                 <th className="px-6 py-4 font-semibold">Cliente</th>
                 <th className="px-6 py-4 font-semibold">Contacto</th>
+                <th className="px-6 py-4 font-semibold">Fuente</th>
                 <th className="px-6 py-4 font-semibold">Estatus</th>
                 <th className="px-6 py-4 font-semibold">Registro</th>
                 <th className="px-6 py-4 font-semibold text-right">Acciones</th>
@@ -54,52 +72,61 @@ export default async function ClientesPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
               {clientes.length > 0 ? (
-                clientes.map((cliente) => (
-                  <tr key={cliente.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center font-bold">
-                          {cliente.nombre.charAt(0)}
+                clientes.map((cliente) => {
+                  const badge = fuenteBadge(cliente.fuente);
+                  return (
+                    <tr key={cliente.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center font-bold">
+                            {cliente.nombre.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-bold text-text-main group-hover:text-primary transition-colors">{cliente.nombre}</p>
+                            <p className="text-xs text-text-muted flex items-center gap-1 mt-0.5">
+                              <Building2 className="w-3 h-3" />
+                              {cliente.empresa || "Sin empresa"}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-text-main group-hover:text-primary transition-colors">{cliente.nombre}</p>
-                          <p className="text-xs text-text-muted flex items-center gap-1 mt-0.5">
-                            <Building2 className="w-3 h-3" />
-                            {cliente.empresa || "Sin empresa"}
-                          </p>
+                      </td>
+                      <td className="px-6 py-4 space-y-1">
+                        <div className="flex items-center gap-2 text-text-muted">
+                          <Mail className="w-3.5 h-3.5" />
+                          <span>{cliente.email || "-"}</span>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 space-y-1">
-                      <div className="flex items-center gap-2 text-text-muted">
-                        <Mail className="w-3.5 h-3.5" />
-                        <span>{cliente.email || "-"}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-text-muted">
-                        <Phone className="w-3.5 h-3.5" />
-                        <span>{cliente.telefono || "-"}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        cliente.estatus === 'ACTIVO' ? 'bg-success/10 text-success' :
-                        cliente.estatus === 'LEAD' ? 'bg-blue-500/10 text-blue-600' :
-                        'bg-slate-100 text-slate-500'
-                      }`}>
-                        {cliente.estatus}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-text-muted">
-                      {new Date(cliente.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <ClienteRowActions cliente={cliente} />
-                    </td>
-                  </tr>
-                ))
+                        <div className="flex items-center gap-2 text-text-muted">
+                          <Phone className="w-3.5 h-3.5" />
+                          <span>{cliente.telefono || "-"}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 ${badge.color}`}>
+                          <span>{badge.icon}</span>
+                          {badge.label}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          cliente.estatus === 'ACTIVO' ? 'bg-success/10 text-success' :
+                          cliente.estatus === 'LEAD' ? 'bg-blue-500/10 text-blue-600' :
+                          'bg-slate-100 text-slate-500'
+                        }`}>
+                          {cliente.estatus}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-text-muted">
+                        {new Date(cliente.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <ClienteRowActions cliente={cliente} />
+                      </td>
+                    </tr>
+                  )
+                })
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
                     <Users className="w-12 h-12 mx-auto text-slate-300 mb-3" />
                     <p className="text-lg font-medium text-text-main">No hay clientes registrados</p>
                     <p className="text-sm mt-1">Comienza agregando tu primer cliente o prospecto.</p>
@@ -113,3 +140,4 @@ export default async function ClientesPage() {
     </div>
   );
 }
+
