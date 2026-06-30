@@ -69,41 +69,41 @@ export default function TabIntegraciones({ initialIntegraciones }: { initialInte
             </button>
           </div>
 
-          {/* Facebook Ads */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden opacity-75">
+          {/* Google Calendar / Meet */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
             <div className="absolute top-0 right-0 p-4">
-              <div className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-md uppercase tracking-wider">
-                Fase 2
-              </div>
-            </div>
-            <div className="w-12 h-12 bg-[#1877F2]/10 text-[#1877F2] rounded-xl flex items-center justify-center mb-4">
-              <BarChart2 className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-800">Facebook Ads</h3>
-            <p className="text-sm text-slate-500 mt-1 mb-6 h-10">
-              Sincroniza tus leads directamente desde las campañas de Meta.
-            </p>
-            <button disabled className="w-full py-2.5 bg-slate-50 text-slate-400 font-medium text-sm rounded-xl border border-slate-100 cursor-not-allowed">
-              Próximamente
-            </button>
-          </div>
-
-          {/* Google Ads */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden opacity-75">
-            <div className="absolute top-0 right-0 p-4">
-              <div className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-md uppercase tracking-wider">
-                Fase 2
+              <div className="flex items-center gap-1 text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                <XCircle className="w-3 h-3" /> Inactiva
               </div>
             </div>
             <div className="w-12 h-12 bg-[#EA4335]/10 text-[#EA4335] rounded-xl flex items-center justify-center mb-4">
-              <Search className="w-6 h-6" />
+              <Search className="w-6 h-6" /> {/* Google icon placeholder */}
             </div>
-            <h3 className="text-lg font-bold text-slate-800">Google Ads</h3>
+            <h3 className="text-lg font-bold text-slate-800">Google Meet</h3>
             <p className="text-sm text-slate-500 mt-1 mb-6 h-10">
-              Importa conversiones y prospectos desde tus anuncios de Google.
+              Genera enlaces de reuniones directamente desde el CRM (OAuth 2.0).
             </p>
-            <button disabled className="w-full py-2.5 bg-slate-50 text-slate-400 font-medium text-sm rounded-xl border border-slate-100 cursor-not-allowed">
-              Próximamente
+            <button className="w-full py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium text-sm rounded-xl transition-colors border border-slate-200 flex items-center justify-center gap-2">
+              <Settings className="w-4 h-4" /> Configurar API
+            </button>
+          </div>
+
+          {/* Resend API */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+            <div className="absolute top-0 right-0 p-4">
+              <div className="flex items-center gap-1 text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                <XCircle className="w-3 h-3" /> Inactiva
+              </div>
+            </div>
+            <div className="w-12 h-12 bg-black/5 text-black rounded-xl flex items-center justify-center mb-4">
+              <Mail className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800">Resend API</h3>
+            <p className="text-sm text-slate-500 mt-1 mb-6 h-10">
+              Envío de correos ultra rápidos desde el CRM.
+            </p>
+            <button className="w-full py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium text-sm rounded-xl transition-colors border border-slate-200 flex items-center justify-center gap-2">
+              <Settings className="w-4 h-4" /> Configurar API
             </button>
           </div>
 

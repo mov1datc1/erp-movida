@@ -208,3 +208,57 @@ export async function updateClienteEstatus(id: string, estatus: 'LEAD' | 'ACTIVO
     return { success: false, error: 'Ocurrió un error al cambiar el estatus' }
   }
 }
+
+export async function getClienteCompleto(id: string) {
+  try {
+    const cliente = await prisma.cliente.findUnique({
+      where: { id },
+      include: {
+        actividades_crm: {
+          orderBy: { fecha: 'desc' },
+          include: {
+            usuario: { select: { nombre: true, email: true } }
+          }
+        },
+        oportunidades: {
+          orderBy: { createdAt: 'desc' }
+        },
+        facturas: {
+          orderBy: { fecha_emision: 'desc' }
+        },
+      }
+    });
+    return { success: true, data: cliente };
+  } catch (error) {
+    console.error("Error fetching cliente completo:", error);
+    return { success: false, error: 'Ocurrió un error al cargar el perfil del cliente' };
+  }
+}
+
+export async function crearActividadCRM(
+  cliente_id: string, 
+  tipo: 'NOTA' | 'CORREO' | 'LLAMADA' | 'REUNION' | 'SISTEMA', 
+  titulo: string, 
+  descripcion: string, 
+  metadata: any = null,
+  usuario_id?: string
+) {
+  try {
+    const actividad = await prisma.actividadCRM.create({
+      data: {
+        cliente_id,
+        tipo,
+        titulo,
+        descripcion,
+        metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : null,
+        usuario_id
+      }
+    });
+
+    revalidatePath(`/crm/clientes/${cliente_id}`);
+    return { success: true, data: actividad };
+  } catch (error) {
+    console.error("Error creating actividad crm:", error);
+    return { success: false, error: 'Ocurrió un error al registrar la actividad' };
+  }
+}

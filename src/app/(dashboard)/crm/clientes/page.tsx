@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { Users, Plus, Search, MoreVertical, Building2, Phone, Mail, Globe, Megaphone } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import NuevoClienteBoton from "./NuevoClienteBoton";
@@ -82,7 +83,9 @@ export default async function ClientesPage() {
                             {cliente.nombre.charAt(0)}
                           </div>
                           <div>
-                            <p className="font-bold text-text-main group-hover:text-primary transition-colors">{cliente.nombre}</p>
+                            <Link href={`/crm/clientes/${cliente.id}`} className="font-bold text-text-main group-hover:text-primary transition-colors inline-block">
+                              {cliente.nombre}
+                            </Link>
                             <p className="text-xs text-text-muted flex items-center gap-1 mt-0.5">
                               <Building2 className="w-3 h-3" />
                               {cliente.empresa || "Sin empresa"}

@@ -21,6 +21,7 @@ model Profile {
   tareasAsignadas       Tarea[]               @relation("TareasAsignadas")
   hitosAsignados        HitoProyecto[]
   tareasAdministrativas TareaAdministrativa[]
+  actividades_crm       ActividadCRM[]
 
   app_role_id String?
   app_role    AppRole? @relation(fields: [app_role_id], references: [id], onDelete: SetNull)
@@ -66,6 +67,7 @@ model Cliente {
   facturas      Factura[]
   tareas        Tarea[]
   transacciones_freq TransaccionFrecuente[]
+  actividades_crm ActividadCRM[]
 }
 
 enum ClienteStatus {
@@ -93,6 +95,29 @@ enum EtapaOportunidad {
   NEGOCIACION
   GANADO
   PERDIDO
+}
+
+model ActividadCRM {
+  id           String             @id @default(uuid())
+  cliente_id   String
+  cliente      Cliente            @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+  tipo         TipoActividadCRM
+  titulo       String?
+  descripcion  String?            @db.Text
+  fecha        DateTime           @default(now())
+  usuario_id   String?
+  usuario      Profile?           @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
+  metadata     Json?              // Detalles extra (links de meet, id correo, duración llamada, etc)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+enum TipoActividadCRM {
+  NOTA
+  CORREO
+  LLAMADA
+  REUNION
+  SISTEMA
 }
 
 // -------------------------------------
