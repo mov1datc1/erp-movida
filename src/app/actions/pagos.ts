@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
-export async function registrarPagoParcialCxC(facturaId: string, data: { monto: number, metodo_pago?: string, referencia?: string, fecha?: Date }) {
+export async function registrarPagoParcialCxC(facturaId: string, data: { monto: number, monto_mxn?: number, metodo_pago?: string, referencia?: string, fecha?: Date }) {
   try {
     const factura = await prisma.factura.findUnique({
       where: { id: facturaId },
@@ -22,7 +22,7 @@ export async function registrarPagoParcialCxC(facturaId: string, data: { monto: 
       data: {
         fecha: data.fecha || new Date(),
         descripcion: `Pago de Factura/CxC: ${factura.folio} - ${factura.cliente.nombre}`,
-        monto: data.monto,
+        monto: data.monto_mxn !== undefined && data.monto_mxn > 0 ? data.monto_mxn : data.monto,
         tipo_flujo: 'OPERATIVO',
         sentido: 'INGRESO',
         origen: 'SISTEMA_FACTURACION',

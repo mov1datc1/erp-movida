@@ -246,3 +246,41 @@ export async function timbrarFacturaCFDI(facturaId: string, timbradoData: {
     return { success: false, error: error.message || 'Error desconocido al timbrar' };
   }
 }
+
+export async function crearFacturaUSA(data: { cliente_id: string, monto_total: number, descripcion?: string, linea_producto_id?: string, categoria?: string }) {
+  try {
+    // Buscar la última factura USA para obtener el número actual
+    const lastUsa = await prisma.factura.findFirst({
+      where: { es_usa: true },
+      orderBy: { numero_usa: 'desc' }
+    });
+
+    const nextNumero = lastUsa && lastUsa.numero_usa ? lastUsa.numero_usa + 15 : 1558;
+    
+    // Generar un UUID único para el folio fiscal de la exportación
+    const folioFiscal = crypto.randomUUID().toUpperCase();
+    const folio = `USA-${nextNumero}`;
+
+    const factura = await prisma.factura.create({
+      data: {
+        folio,
+        cliente_id: data.cliente_id,
+        monto_total: data.monto_total,
+        descripcion: data.descripcion,
+        estatus: 'PENDIENTE',
+        fecha_emision: new Date(),
+        es_usa: true,
+        numero_usa: nextNumero,
+        folio_fiscal: folioFiscal,
+        linea_producto_id: data.linea_producto_id,
+        categoria: data.categoria || 'Ventas Internacionales'
+      }
+    });
+
+    revalidatePath('/crm/facturacion');
+    return { success: true, factura };
+  } catch (error) {
+    console.error('Error creating USA Invoice:', error);
+    return { success: false, error: 'No se pudo crear la Factura USA' };
+  }
+}

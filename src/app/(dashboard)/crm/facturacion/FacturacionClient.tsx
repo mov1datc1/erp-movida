@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare, Star, Trash2, ChevronDown, Check } from "lucide-react";
-import { createPrefactura, updatePrefactura, markFacturaAsPagada, saveFavoritoCXC, deleteFavoritoCXC, solicitarFacturacionCFDI, timbrarFacturaCFDI } from './actions';
+import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare, Star, Trash2, ChevronDown, Check, Globe } from "lucide-react";
+import { createPrefactura, updatePrefactura, markFacturaAsPagada, saveFavoritoCXC, deleteFavoritoCXC, solicitarFacturacionCFDI, timbrarFacturaCFDI, crearFacturaUSA } from './actions';
 import { registrarPagoParcialCxC } from '@/app/actions/pagos';
+import QRCode from 'react-qr-code';
 
 export function FacturacionClient({ facturas, clientes, catalog = [], favoritos = [] }: { facturas: any[], clientes: any[], catalog?: any[], favoritos?: any[] }) {
-  const [activeTab, setActiveTab] = useState<'por_cobrar' | 'historial' | 'facturacion'>('por_cobrar');
+  const [activeTab, setActiveTab] = useState<'por_cobrar' | 'historial' | 'facturacion' | 'usa'>('por_cobrar');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
@@ -34,6 +35,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
   const [isPagoModalOpen, setIsPagoModalOpen] = useState(false);
   const [pagoFormData, setPagoFormData] = useState({
     monto: '',
+    monto_mxn: '',
     fecha: new Date().toISOString().split('T')[0],
     metodo_pago: 'Transferencia',
     referencia: ''
@@ -104,14 +106,16 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
       // Tab Filter
       if (activeTab === 'por_cobrar') {
-        if (f.requiere_cfdi) return false; // En facturación
+        if (f.requiere_cfdi || f.es_usa) return false; // En facturación o USA
         if (f.estatus !== 'PENDIENTE' && f.estatus !== 'VENCIDA' && f.estatus !== 'PAGADA_PARCIALMENTE') return false;
       } else if (activeTab === 'facturacion') {
-        if (!f.requiere_cfdi) return false; // Solo cfdi
+        if (!f.requiere_cfdi || f.es_usa) return false; // Solo cfdi
+      } else if (activeTab === 'usa') {
+        if (!f.es_usa) return false; // Solo USA
       } else {
         // historial
         if (f.requiere_cfdi && f.estatus_cfdi !== 'FACTURADO' && f.estatus_cfdi !== 'CANCELADO') return false; // Borradores no van al historial
-        if (f.estatus === 'PENDIENTE' || f.estatus === 'VENCIDA' || f.estatus === 'PAGADA_PARCIALMENTE') return false;
+        if (!f.es_usa && (f.estatus === 'PENDIENTE' || f.estatus === 'VENCIDA' || f.estatus === 'PAGADA_PARCIALMENTE')) return false;
       }
 
       // Date Filter
@@ -165,9 +169,19 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
   const handlePrintInvoice = () => {
     setPrintMode('invoice');
+    
+    // Cambiar el título del documento temporalmente para que al guardar PDF use este nombre
+    const originalTitle = document.title;
+    if (printData?.es_usa) {
+      document.title = `${printData.numero_usa || printData.folio}`;
+    } else if (printData) {
+      document.title = `${printData.folio}`;
+    }
+
     setTimeout(() => {
       window.print();
       setPrintMode('none');
+      document.title = originalTitle;
     }, 100);
   };
 
@@ -240,13 +254,27 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
           <h1 className="text-3xl font-bold text-primary tracking-tight">Cuentas por Cobrar & Facturación</h1>
           <p className="text-text-muted mt-1">Control de prefacturas y pagos de clientes.</p>
         </div>
-        <button 
-          onClick={openNewModal}
-          className="bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-primary/20 print:hidden"
-        >
-          <Plus className="w-5 h-5" />
-          Nueva Prefactura
-        </button>
+        <div className="flex gap-2 print:hidden">
+          {activeTab === 'usa' && (
+            <button 
+              onClick={() => {
+                setEditingId(null);
+                setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '' });
+                setIsModalOpen(true);
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-emerald-600/20"
+            >
+              <Globe className="w-5 h-5" /> Nueva Factura USA
+            </button>
+          )}
+          <button 
+            onClick={openNewModal}
+            className="bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-primary/20"
+          >
+            <Plus className="w-5 h-5" />
+            Nueva Prefactura
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print-cards">
@@ -638,13 +666,22 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                   categoria: formData.categoria
                 });
               } else {
-                res = await createPrefactura({
-                  cliente_id: formData.cliente_id,
-                  monto_total: parseFloat(formData.monto_total),
-                  fecha_vencimiento: formData.fecha_vencimiento,
-                  descripcion: formData.descripcion,
-                  categoria: formData.categoria
-                });
+                if (activeTab === 'usa') {
+                  res = await crearFacturaUSA({
+                    cliente_id: formData.cliente_id,
+                    monto_total: parseFloat(formData.monto_total),
+                    descripcion: formData.descripcion,
+                    categoria: formData.categoria || 'Ventas Internacionales'
+                  });
+                } else {
+                  res = await createPrefactura({
+                    cliente_id: formData.cliente_id,
+                    monto_total: parseFloat(formData.monto_total),
+                    fecha_vencimiento: formData.fecha_vencimiento,
+                    descripcion: formData.descripcion,
+                    categoria: formData.categoria
+                  });
+                }
               }
               
               setIsLoading(false);
@@ -873,6 +910,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               
               const res = await registrarPagoParcialCxC(editingId!, {
                 monto: parseFloat(pagoFormData.monto),
+                monto_mxn: printData.es_usa && pagoFormData.monto_mxn ? parseFloat(pagoFormData.monto_mxn) : undefined,
                 fecha: new Date(`${pagoFormData.fecha}T12:00:00`),
                 metodo_pago: pagoFormData.metodo_pago,
                 referencia: pagoFormData.referencia
@@ -906,6 +944,25 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                     />
                   </div>
                 </div>
+
+                {printData.es_usa && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Monto en Pesos (MXN) *</label>
+                    <div className="relative">
+                      <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input 
+                        type="number" 
+                        required
+                        step="0.01"
+                        min="0.01"
+                        value={pagoFormData.monto_mxn}
+                        onChange={e => setPagoFormData({...pagoFormData, monto_mxn: e.target.value})}
+                        className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+                )}
+                
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Fecha *</label>
                   <input 
@@ -1114,59 +1171,188 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
       {/* Bloque imprimible de factura (oculto en pantalla) */}
       <div className="hidden print:block p-8 print-invoice-wrapper">
         {printData && (
-          <div className="space-y-6">
-            <div className="border-b-2 border-slate-200 pb-6 mb-6">
-              <h1 className="text-4xl font-bold text-slate-900 mb-2">FACTURA {printData.folio}</h1>
-              <div className="flex justify-between items-start mt-8">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Facturado a:</h3>
-                  <p className="text-xl font-bold text-slate-800">{printData.cliente.nombre}</p>
-                  {printData.cliente.empresa && <p className="text-slate-600">{printData.cliente.empresa}</p>}
+          printData.es_usa ? (
+            <div className="usa-invoice text-[12px] leading-tight font-sans text-black">
+              {/* Header */}
+              <div className="flex justify-between items-start mb-6">
+                 <div>
+                   <img src="/images/logo_movida.png" className="h-20 mb-2" alt="Movida TCI" onError={(e) => e.currentTarget.style.display = 'none'} />
+                   <p><strong className="text-sm">Movida TCI</strong></p>
+                   <p>Illinois 27, Ofic 602.</p>
+                   <p>Napoles, Benito Juarez</p>
+                   <p>Ciudad de México, México.C.P.03810</p>
+                   <p>Teléfono: + 52 55 1069 4443</p>
+                   <p>RFC: DES170116QX1</p>
+                   <p className="text-blue-500 underline mt-1">www.movidatci.mx</p>
+                 </div>
+                 <div className="border-[3px] border-blue-500 rounded-3xl p-4 w-[40%] text-center">
+                   <h2 className="font-bold text-xl mb-3">FACTURA</h2>
+                   <p className="font-bold text-[11px]">Folio Fiscal:</p>
+                   <p className="mb-2 text-[10px] break-all">{printData.folio_fiscal}</p>
+                   <p className="font-bold text-[11px]">Factura Número:</p>
+                   <p className="text-lg font-bold mb-2">{printData.numero_usa}</p>
+                   <p className="font-bold text-[11px]">Fecha:</p>
+                   <p>{new Date(printData.fecha_emision).toLocaleDateString('es-MX', {day:'2-digit',month:'2-digit',year:'numeric'})}</p>
+                 </div>
+              </div>
+              
+              {/* Client Details */}
+              <div className="border-[3px] border-blue-500 rounded-2xl mb-4 overflow-hidden">
+                <table className="w-full text-left bg-[#e2e8f0]">
+                  <tbody>
+                    <tr className="bg-[#cbd5e1] border-b border-white">
+                      <td className="p-1 w-36 font-bold">Nombre o Razón Social:</td>
+                      <td className="p-1 font-bold">{printData.cliente.nombre} {printData.cliente.empresa ? `(${printData.cliente.empresa})` : ''}</td>
+                      <td className="p-1 text-right pr-4 font-bold">RFC: XEXX010101000</td>
+                    </tr>
+                    <tr className="border-b border-white">
+                      <td className="p-1 font-bold">Cliente:</td>
+                      <td className="p-1" colSpan={2}>{printData.cliente.id.substring(0,8).toUpperCase()}</td>
+                    </tr>
+                    <tr className="bg-[#cbd5e1] border-b border-white">
+                      <td className="p-1 font-bold">Dirección:</td>
+                      <td className="p-1" colSpan={2}>{printData.cliente.direccion || 'N/A'}</td>
+                    </tr>
+                    <tr className="border-b border-white">
+                      <td className="p-1 font-bold">Colonia:</td>
+                      <td className="p-1" colSpan={2}>-</td>
+                    </tr>
+                    <tr className="bg-[#cbd5e1] border-b border-white">
+                      <td className="p-1 font-bold">Ciudad:</td>
+                      <td className="p-1" colSpan={2}>-</td>
+                    </tr>
+                    <tr>
+                      <td className="p-1 font-bold">C.p:</td>
+                      <td className="p-1" colSpan={2}>-</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Line Items */}
+              <div className="border border-blue-500 rounded mb-4 overflow-hidden">
+                <table className="w-full text-left">
+                  <thead className="bg-[#3b82f6] text-white font-bold">
+                    <tr>
+                      <th className="p-1 w-12 text-center border-r border-blue-400">Cant</th>
+                      <th className="p-1 border-r border-blue-400">Descripción</th>
+                      <th className="p-1 text-right border-r border-blue-400">Valor Unitario</th>
+                      <th className="p-1 text-right">Importe USD</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-slate-300">
+                      <td className="p-1 text-center font-bold border-r border-slate-300">1</td>
+                      <td className="p-1 border-r border-slate-300">{printData.descripcion}</td>
+                      <td className="p-1 text-right font-bold border-r border-slate-300">$ {formatCurrency(printData.monto_total).replace('$', '')}</td>
+                      <td className="p-1 text-right font-bold">$ {formatCurrency(printData.monto_total).replace('$', '')}</td>
+                    </tr>
+                    <tr className="border-b border-slate-300">
+                      <td className="p-1 border-r border-slate-300"></td>
+                      <td className="p-1 text-slate-700 border-r border-slate-300">Clave 82101604</td>
+                      <td className="p-1 border-r border-slate-300"></td>
+                      <td className="p-1"></td>
+                    </tr>
+                    {/* dummy rows */}
+                    {[1,2,3,4,5].map(i => (
+                       <tr key={i} className="border-b border-slate-300"><td className="p-3 border-r border-slate-300"></td><td className="border-r border-slate-300"></td><td className="border-r border-slate-300"></td><td></td></tr>
+                    ))}
+                    <tr className="bg-slate-200 border-t border-slate-300"><td className="p-3 border-r border-slate-300"></td><td className="border-r border-slate-300"></td><td className="border-r border-slate-300"></td><td></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Totals */}
+              <div className="flex justify-between mt-4 items-center">
+                <div className="w-1/2">
+                  <p className="font-bold text-center mb-1">Monto en Letras</p>
+                  <p className="text-center italic">({formatCurrency(printData.monto_total).replace('$', '')} USD)</p>
                 </div>
-                <div className="text-right">
-                  <div className="mb-2">
-                    <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">Fecha de Emisión:</span>
-                    <p className="font-medium text-slate-800">{new Date(printData.fecha_emision).toLocaleDateString()}</p>
+                <div className="w-1/3">
+                  <table className="w-full text-right font-bold bg-[#e2e8f0]">
+                     <tbody>
+                       <tr className="border-b border-white"><td className="p-1 text-left w-24">Sub Total:</td><td className="p-1">$ {formatCurrency(printData.monto_total).replace('$', '')}</td></tr>
+                       <tr className="border-b border-white"><td className="p-1 text-left">Total IVA:</td><td className="p-1">$ -</td></tr>
+                       <tr><td className="p-1 text-left">Total:</td><td className="p-1">$ {formatCurrency(printData.monto_total).replace('$', '')}</td></tr>
+                     </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              {/* Footer */}
+              <div className="flex mt-8">
+                 <div className="w-1/4">
+                   <QRCode value={printData.folio_fiscal || 'N/A'} size={140} />
+                 </div>
+                 <div className="w-3/4 flex flex-col justify-end text-[11px]">
+                   <div className="grid grid-cols-[120px_1fr] gap-x-2 gap-y-1 mb-8">
+                     <div className="font-bold">Moneda:</div><div>USD</div>
+                     <div className="font-bold">Forma de pago:</div><div>Transferencia electrónica de fondos</div>
+                     <div className="font-bold">Método de pago:</div><div>Pago en una sola exhibición</div>
+                   </div>
+                   <div className="text-center text-blue-500 underline text-xs">
+                     <p>facturacion@movidatci.mx</p>
+                     <p>www.movidatci.mx</p>
+                   </div>
+                 </div>
+              </div>
+              
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="border-b-2 border-slate-200 pb-6 mb-6">
+                <h1 className="text-4xl font-bold text-slate-900 mb-2">FACTURA {printData.folio}</h1>
+                <div className="flex justify-between items-start mt-8">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Facturado a:</h3>
+                    <p className="text-xl font-bold text-slate-800">{printData.cliente.nombre}</p>
+                    {printData.cliente.empresa && <p className="text-slate-600">{printData.cliente.empresa}</p>}
                   </div>
-                  {printData.fecha_vencimiento && (
-                    <div>
-                      <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">Fecha de Vencimiento:</span>
-                      <p className="font-medium text-slate-800">{new Date(printData.fecha_vencimiento).toLocaleDateString()}</p>
+                  <div className="text-right">
+                    <div className="mb-2">
+                      <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">Fecha de Emisión:</span>
+                      <p className="font-medium text-slate-800">{new Date(printData.fecha_emision).toLocaleDateString()}</p>
                     </div>
-                  )}
+                    {printData.fecha_vencimiento && (
+                      <div>
+                        <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">Fecha de Vencimiento:</span>
+                        <p className="font-medium text-slate-800">{new Date(printData.fecha_vencimiento).toLocaleDateString()}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <table className="w-full mb-8">
-              <thead>
-                <tr className="border-b-2 border-slate-200 text-left">
-                  <th className="py-3 text-slate-600 font-semibold">Descripción</th>
-                  <th className="py-3 text-right text-slate-600 font-semibold">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-slate-100">
-                  <td className="py-4 text-slate-800 font-medium">{printData.descripcion || 'Servicios según presupuesto / cotización'}</td>
-                  <td className="py-4 text-right text-slate-800 font-bold">{formatCurrency(printData.monto_total)}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div className="flex justify-end">
-              <div className="w-64">
-                <div className="flex justify-between py-2 text-lg font-bold">
-                  <span>TOTAL:</span>
-                  <span className="text-primary">{formatCurrency(printData.monto_total)}</span>
+  
+              <table className="w-full mb-8">
+                <thead>
+                  <tr className="border-b-2 border-slate-200 text-left">
+                    <th className="py-3 text-slate-600 font-semibold">Descripción</th>
+                    <th className="py-3 text-right text-slate-600 font-semibold">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-slate-100">
+                    <td className="py-4 text-slate-800 font-medium">{printData.descripcion || 'Servicios según presupuesto / cotización'}</td>
+                    <td className="py-4 text-right text-slate-800 font-bold">{formatCurrency(printData.monto_total)}</td>
+                  </tr>
+                </tbody>
+              </table>
+  
+              <div className="flex justify-end">
+                <div className="w-64">
+                  <div className="flex justify-between py-2 text-lg font-bold">
+                    <span>TOTAL:</span>
+                    <span className="text-primary">{formatCurrency(printData.monto_total)}</span>
+                  </div>
                 </div>
               </div>
+              
+              <div className="mt-16 pt-8 border-t border-slate-200 text-center text-sm text-slate-500">
+                <p>Estatus de Documento: <strong className="uppercase">{printData.estatus}</strong></p>
+                <p className="mt-2">Gracias por su preferencia.</p>
+              </div>
             </div>
-            
-            <div className="mt-16 pt-8 border-t border-slate-200 text-center text-sm text-slate-500">
-              <p>Estatus de Documento: <strong className="uppercase">{printData.estatus}</strong></p>
-              <p className="mt-2">Gracias por su preferencia.</p>
-            </div>
-          </div>
+          )
         )}
       </div>
     </div>
