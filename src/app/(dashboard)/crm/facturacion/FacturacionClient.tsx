@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare, Star, Trash2, ChevronDown, Check, Globe } from "lucide-react";
-import { createPrefactura, updatePrefactura, markFacturaAsPagada, saveFavoritoCXC, deleteFavoritoCXC, solicitarFacturacionCFDI, timbrarFacturaCFDI, crearFacturaUSA } from './actions';
+import { createPrefactura, updatePrefactura, markFacturaAsPagada, saveFavoritoCXC, deleteFavoritoCXC, solicitarFacturacionCFDI, timbrarFacturaCFDI, crearFacturaUSA, eliminarFactura } from './actions';
 import { registrarPagoParcialCxC } from '@/app/actions/pagos';
 import QRCode from 'react-qr-code';
 
@@ -236,6 +236,25 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     }
   };
 
+  const handleEliminarFactura = async (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!confirm('¿Estás seguro de que deseas eliminar este documento? Esta acción no se puede deshacer.')) return;
+    
+    setIsLoading(true);
+    const res = await eliminarFactura(id);
+    setIsLoading(false);
+    
+    if (res.success) {
+      showNotification('Documento eliminado con éxito', 'success');
+      if (editingId === id) {
+        setIsModalOpen(false);
+        setEditingId(null);
+      }
+    } else {
+      showNotification(res.error || 'Error al eliminar', 'error');
+    }
+  };
+
   return (
     <div className={`space-y-6 ${printMode === 'invoice' ? 'print:invoice-mode' : printMode === 'table' ? 'print:table-mode' : ''}`}>
       <style dangerouslySetInnerHTML={{__html: `
@@ -410,6 +429,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                 <th className="px-6 py-4 font-semibold">Estatus</th>
                 <th className="px-6 py-4 font-semibold">Emisión</th>
                 <th className="px-6 py-4 font-semibold">Vencimiento</th>
+                <th className="px-6 py-4 font-semibold text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
@@ -451,6 +471,30 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                       </td>
                       <td className={`px-6 py-4 font-medium ${isVencida ? 'text-red-600' : 'text-text-muted'}`}>
                         {f.fecha_vencimiento ? new Date(f.fecha_vencimiento).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPrintData(f);
+                              setTimeout(() => {
+                                handlePrintInvoice();
+                              }, 100);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                            title="Imprimir PDF"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => handleEliminarFactura(f.id, e)}
+                            className="p-1.5 text-slate-400 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )

@@ -62,6 +62,21 @@ export async function updatePrefactura(id: string, data: { cliente_id: string, m
   }
 }
 
+export async function eliminarFactura(id: string) {
+  try {
+    // Verificar si tiene pagos
+    const factura = await prisma.factura.findUnique({ where: { id } });
+    if (factura && factura.monto_pagado && factura.monto_pagado > 0) {
+      return { success: false, error: 'No se puede eliminar una factura que ya tiene pagos registrados.' };
+    }
+    await prisma.factura.delete({ where: { id } });
+    revalidatePath('/crm/facturacion');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Error al eliminar la factura' };
+  }
+}
+
 export async function markFacturaAsPagada(id: string, registerInFinance: boolean) {
   try {
     const factura = await prisma.factura.findUnique({
