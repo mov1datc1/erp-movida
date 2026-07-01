@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { MetodoPagoCFDI } from "@prisma/client";
 
 export async function createPrefactura(data: { cliente_id: string, monto_total: number, cotizacion_id?: string, fecha_vencimiento?: string, descripcion?: string, linea_producto_id?: string, categoria?: string }) {
   try {
@@ -233,7 +234,7 @@ export async function timbrarFacturaCFDI(facturaId: string, timbradoData: {
         url_pdf: invoice.verification_url, // Usando la URL de validación temporalmente, o facturapi dashboard url
         url_xml: invoice.verification_url, 
         forma_pago: timbradoData.forma_pago,
-        metodo_pago: timbradoData.metodo_pago,
+        metodo_pago: timbradoData.metodo_pago as MetodoPagoCFDI,
         uso_cfdi: timbradoData.uso_cfdi
       }
     });
