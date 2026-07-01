@@ -964,7 +964,6 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             </form>
           </div>
         </div>
-        </div>
       )}
 
       {/* Modal Timbrado CFDI 4.0 (Paso Intermedio del SAT) */}

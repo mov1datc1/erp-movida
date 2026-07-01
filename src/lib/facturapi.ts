@@ -1,5 +1,5 @@
 import Facturapi from 'facturapi';
-import prisma from './prisma';
+import { prisma } from '@/lib/prisma';
 
 export async function getFacturapiClient() {
   const config = await prisma.integracionConfig.findFirst();
