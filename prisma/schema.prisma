@@ -58,6 +58,12 @@ model Cliente {
   fuente    String?       // "Meta Ads", "Google Ads", "WordPress", "Manual", etc.
   notas     String?       // Metadata adicional: campaña, ad set, etc.
   estatus   ClienteStatus @default(LEAD)
+  
+  // Datos Fiscales
+  razon_social String?
+  regimen_fiscal String?
+  codigo_postal String?
+  
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
@@ -283,6 +289,19 @@ model Factura {
   categoria         String?
   estatus           FacturaStatus @default(PENDIENTE)
 
+  // CFDI 4.0 (Facturapi)
+  requiere_cfdi     Boolean       @default(false)
+  estatus_cfdi      EstatusCFDI?
+  folio_fiscal      String?       // Folio interno (ej. FAC-MOV-510)
+  facturapi_id      String?       // ID de la factura en Facturapi
+  uuid_sat          String?       // UUID oficial del SAT
+  url_pdf           String?
+  url_xml           String?
+  fecha_facturado   DateTime?
+  forma_pago        String?       // 01, 03, etc.
+  metodo_pago       MetodoPagoCFDI? // PUE o PPD
+  uso_cfdi          String?       // G03, P01, etc.
+
   cliente_id String
   cliente    Cliente @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
 
@@ -305,6 +324,17 @@ enum FacturaStatus {
   PAGADA
   VENCIDA
   CANCELADA
+}
+
+enum EstatusCFDI {
+  EN_BORRADOR
+  FACTURADO
+  CANCELADO
+}
+
+enum MetodoPagoCFDI {
+  PUE // Pago en una sola exhibición
+  PPD // Pago en parcialidades o diferido
 }
 
 // -------------------------------------
@@ -364,6 +394,12 @@ model PagoParcial {
   
   movimiento_id      String? // Reference to the MovimientoFinanciero created
   
+  // Complemento de Pago CFDI (REP)
+  requiere_complemento Boolean @default(false)
+  complemento_id       String? // Facturapi Receipt ID
+  url_pdf_complemento  String?
+  url_xml_complemento  String?
+
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }

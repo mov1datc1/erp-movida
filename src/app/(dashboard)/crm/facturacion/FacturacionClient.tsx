@@ -2,11 +2,11 @@
 
 import React, { useState, useMemo } from 'react';
 import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare, Star, Trash2, ChevronDown, Check } from "lucide-react";
-import { createPrefactura, updatePrefactura, markFacturaAsPagada, saveFavoritoCXC, deleteFavoritoCXC } from './actions';
+import { createPrefactura, updatePrefactura, markFacturaAsPagada, saveFavoritoCXC, deleteFavoritoCXC, solicitarFacturacionCFDI, timbrarFacturaCFDI } from './actions';
 import { registrarPagoParcialCxC } from '@/app/actions/pagos';
 
 export function FacturacionClient({ facturas, clientes, catalog = [], favoritos = [] }: { facturas: any[], clientes: any[], catalog?: any[], favoritos?: any[] }) {
-  const [activeTab, setActiveTab] = useState<'por_cobrar' | 'historial'>('por_cobrar');
+  const [activeTab, setActiveTab] = useState<'por_cobrar' | 'historial' | 'facturacion'>('por_cobrar');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
@@ -39,6 +39,16 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     referencia: ''
   });
 
+  // For CFDI Timbrado
+  const [isTimbradoModalOpen, setIsTimbradoModalOpen] = useState(false);
+  const [timbradoFormData, setTimbradoFormData] = useState({
+    uso_cfdi: 'G03',
+    regimen_fiscal: '601',
+    forma_pago: '99',
+    metodo_pago: 'PPD',
+    clave_producto: '80141627'
+  });
+
   // Dropdown States
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [searchClient, setSearchClient] = useState('');
@@ -56,6 +66,19 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     setTimeout(() => setNotification({show: false, message: '', type: 'success'}), 3000);
   };
 
+  const handleSolicitarCFDI = async (id: string) => {
+    setIsLoading(true);
+    const res = await solicitarFacturacionCFDI(id);
+    setIsLoading(false);
+    if(res.success) {
+      showNotification('Enviada a Facturación CFDI', 'success');
+      setIsModalOpen(false);
+      setEditingId(null);
+    } else {
+      showNotification(res.error || 'Error al procesar CFDI', 'error');
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   };
@@ -68,8 +91,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     'CANCELADA': { label: 'Cancelada', color: 'bg-slate-200 text-slate-600', icon: FileText }
   };
 
-  const totalPorCobrar = facturas.filter(f => f.estatus === 'PENDIENTE' || f.estatus === 'PAGADA_PARCIALMENTE').reduce((a, b) => a + (b.monto_total - (b.monto_pagado || 0)), 0);
-  const totalVencido = facturas.filter(f => f.estatus === 'VENCIDA').reduce((a, b) => a + (b.monto_total - (b.monto_pagado || 0)), 0);
+  const totalPorCobrar = facturas.filter(f => !f.requiere_cfdi && (f.estatus === 'PENDIENTE' || f.estatus === 'PAGADA_PARCIALMENTE')).reduce((a, b) => a + (b.monto_total - (b.monto_pagado || 0)), 0);
+  const totalVencido = facturas.filter(f => !f.requiere_cfdi && f.estatus === 'VENCIDA').reduce((a, b) => a + (b.monto_total - (b.monto_pagado || 0)), 0);
 
   const filteredFacturas = useMemo(() => {
     return facturas.filter(f => {
@@ -81,8 +104,13 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
       // Tab Filter
       if (activeTab === 'por_cobrar') {
+        if (f.requiere_cfdi) return false; // En facturación
         if (f.estatus !== 'PENDIENTE' && f.estatus !== 'VENCIDA' && f.estatus !== 'PAGADA_PARCIALMENTE') return false;
+      } else if (activeTab === 'facturacion') {
+        if (!f.requiere_cfdi) return false; // Solo cfdi
       } else {
+        // historial
+        if (f.requiere_cfdi && f.estatus_cfdi !== 'FACTURADO' && f.estatus_cfdi !== 'CANCELADO') return false; // Borradores no van al historial
         if (f.estatus === 'PENDIENTE' || f.estatus === 'VENCIDA' || f.estatus === 'PAGADA_PARCIALMENTE') return false;
       }
 
@@ -247,18 +275,26 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
       <div className="bg-surface rounded-3xl border border-slate-100 card-shadow overflow-hidden print-table-wrapper">
         {/* Tabs and Actions */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-slate-100 bg-slate-50/50">
-          <div className="flex px-6 pt-2 gap-2">
+          <div className="flex px-6 pt-2 gap-2 overflow-x-auto hide-scrollbar">
             <button
               onClick={() => setActiveTab('por_cobrar')}
-              className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${
+              className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'por_cobrar' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
               Cuentas por Cobrar (Prefacturas)
             </button>
             <button
+              onClick={() => setActiveTab('facturacion')}
+              className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === 'facturacion' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              Facturación (CFDI 4.0)
+            </button>
+            <button
               onClick={() => setActiveTab('historial')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'historial' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
@@ -516,14 +552,63 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                     <DollarSign className="w-4 h-4" /> Registrar Pago
                   </button>
                 )}
+                
+                {/* CFDI Actions */}
+                {editingId && !printData?.requiere_cfdi && (
+                  <button 
+                    type="button"
+                    onClick={async () => {
+                      if(confirm("¿Mover esta cuenta a la pestaña de Facturación CFDI?")) {
+                         // call action to move to CFDI
+                         // We will implement this handler in a bit
+                         await handleSolicitarCFDI(editingId);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg transition-colors"
+                  >
+                    <FileText className="w-4 h-4" /> Solicitar CFDI
+                  </button>
+                )}
+
+                {editingId && printData?.requiere_cfdi && printData?.estatus_cfdi === 'EN_BORRADOR' && (
+                  <button 
+                    type="button"
+                    onClick={() => setIsTimbradoModalOpen(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-md shadow-indigo-600/20 transition-colors"
+                  >
+                    <FileText className="w-4 h-4" /> Timbrar (SAT)
+                  </button>
+                )}
+
+                {editingId && printData?.requiere_cfdi && printData?.estatus_cfdi === 'FACTURADO' && (
+                  <div className="flex gap-2">
+                    <a 
+                      href={printData.url_pdf}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-rose-700 bg-rose-100 hover:bg-rose-200 rounded-lg transition-colors"
+                    >
+                      <Download className="w-4 h-4" /> PDF
+                    </a>
+                    <a 
+                      href={printData.url_xml}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-slate-700 bg-slate-200 hover:bg-slate-300 rounded-lg transition-colors"
+                    >
+                      <Download className="w-4 h-4" /> XML
+                    </a>
+                  </div>
+                )}
+
                 {editingId && (
                   <button 
                     type="button"
                     onClick={handlePrintInvoice}
                     className="p-2 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
-                    title="Descargar PDF"
+                    title="Imprimir Recibo Interno"
                   >
-                    <Download className="w-5 h-5" />
+                    <Printer className="w-5 h-5" />
                   </button>
                 )}
                 {!editingId && (
@@ -874,6 +959,152 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                   className="flex-1 px-4 py-2.5 text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold transition-colors shadow-lg shadow-emerald-600/30 disabled:opacity-70 flex items-center justify-center gap-2"
                 >
                   {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar Pago'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        </div>
+      )}
+
+      {/* Modal Timbrado CFDI 4.0 (Paso Intermedio del SAT) */}
+      {isTimbradoModalOpen && printData && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in fade-in print:hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 bg-indigo-50/50 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-indigo-900 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-indigo-600" />
+                  Opciones de Timbrado SAT (CFDI 4.0)
+                </h2>
+                <p className="text-sm text-indigo-700/70 mt-1">
+                  Revisa los datos fiscales obligatorios para timbrar la factura de <strong>{printData.cliente.nombre}</strong>.
+                </p>
+              </div>
+            </div>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setIsLoading(true);
+              
+              const res = await timbrarFacturaCFDI(editingId!, timbradoFormData);
+              
+              setIsLoading(false);
+              
+              if(res.success) {
+                showNotification('Factura timbrada exitosamente (CFDI 4.0)', 'success');
+                setIsTimbradoModalOpen(false);
+                setIsModalOpen(false);
+                setEditingId(null);
+              } else {
+                showNotification(res.error || 'Error al timbrar factura', 'error');
+              }
+            }} className="p-6 space-y-6">
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <div className="space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2">Datos del Comprobante</h3>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Uso de CFDI</label>
+                    <select 
+                      required
+                      value={timbradoFormData.uso_cfdi}
+                      onChange={e => setTimbradoFormData({...timbradoFormData, uso_cfdi: e.target.value})}
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                    >
+                      <option value="G01">G01 - Adquisición de mercancías</option>
+                      <option value="G02">G02 - Devoluciones, descuentos o bonificaciones</option>
+                      <option value="G03">G03 - Gastos en general</option>
+                      <option value="I04">I04 - Equipo de computo y accesorios</option>
+                      <option value="P01">P01 - Por definir</option>
+                      <option value="S01">S01 - Sin efectos fiscales</option>
+                      <option value="CP01">CP01 - Pagos</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Régimen Fiscal (Receptor)</label>
+                    <select 
+                      required
+                      value={timbradoFormData.regimen_fiscal}
+                      onChange={e => setTimbradoFormData({...timbradoFormData, regimen_fiscal: e.target.value})}
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                    >
+                      <option value="601">601 - General de Ley Personas Morales</option>
+                      <option value="603">603 - Personas Morales con Fines no Lucrativos</option>
+                      <option value="605">605 - Sueldos y Salarios e Ingresos Asimilados</option>
+                      <option value="612">612 - Personas Físicas con Actividades Empresariales</option>
+                      <option value="626">626 - Régimen Simplificado de Confianza (RESICO)</option>
+                    </select>
+                  </div>
+
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2">Opciones de Pago</h3>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Forma de Pago</label>
+                    <select 
+                      required
+                      value={timbradoFormData.forma_pago}
+                      onChange={e => setTimbradoFormData({...timbradoFormData, forma_pago: e.target.value})}
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                    >
+                      <option value="01">01 - Efectivo</option>
+                      <option value="02">02 - Cheque nominativo</option>
+                      <option value="03">03 - Transferencia electrónica de fondos</option>
+                      <option value="04">04 - Tarjeta de crédito</option>
+                      <option value="28">28 - Tarjeta de débito</option>
+                      <option value="99">99 - Por definir</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Método de Pago</label>
+                    <select 
+                      required
+                      value={timbradoFormData.metodo_pago}
+                      onChange={e => setTimbradoFormData({...timbradoFormData, metodo_pago: e.target.value})}
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                    >
+                      <option value="PUE">PUE - Pago en una sola exhibición</option>
+                      <option value="PPD">PPD - Pago en parcialidades o diferido</option>
+                    </select>
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="pt-4 border-t border-slate-100">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Clave SAT (Producto / Servicio)</label>
+                <input 
+                  type="text" 
+                  required
+                  value={timbradoFormData.clave_producto}
+                  onChange={e => setTimbradoFormData({...timbradoFormData, clave_producto: e.target.value})}
+                  className="w-full md:w-1/2 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-mono"
+                  placeholder="Ej: 80141627"
+                />
+                <p className="text-xs text-slate-500 mt-1">Por defecto: 80141627 (Servicios de publicidad y relaciones públicas)</p>
+              </div>
+
+              <div className="flex gap-3 pt-6 border-t border-slate-100">
+                <button 
+                  type="button" 
+                  onClick={() => setIsTimbradoModalOpen(false)}
+                  className="flex-1 px-4 py-2.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2.5 text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl font-bold transition-colors shadow-lg shadow-indigo-600/30 disabled:opacity-70 flex items-center justify-center gap-2"
+                >
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar y Timbrar'}
                 </button>
               </div>
             </form>
