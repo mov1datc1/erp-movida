@@ -567,8 +567,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             <div className="flex-1 p-6 flex flex-col h-[600px] overflow-y-auto">
             <div className="flex justify-between items-start mb-4">
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-primary" />
-                {editingId ? 'Detalles de Factura' : 'Crear Prefactura Manual'}
+                {activeTab === 'usa' && !editingId ? <Globe className="w-5 h-5 text-emerald-600" /> : <FileText className="w-5 h-5 text-primary" />}
+                {editingId ? 'Detalles de Factura' : activeTab === 'usa' ? 'Crear Factura USA (USD)' : 'Crear Prefactura Manual'}
               </h2>
               <div className="flex items-center gap-2">
                 {editingId && (printData?.estatus === 'PENDIENTE' || printData?.estatus === 'VENCIDA' || printData?.estatus === 'PAGADA_PARCIALMENTE') && (
@@ -850,7 +850,9 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Monto Total *</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Monto Total {activeTab === 'usa' || printData?.es_usa ? '(USD)' : ''} *
+                  </label>
                   <div className="relative">
                     <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input 
