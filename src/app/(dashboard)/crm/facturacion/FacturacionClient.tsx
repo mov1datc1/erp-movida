@@ -569,6 +569,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                     onClick={() => {
                       setPagoFormData({
                         monto: (printData.monto_total - (printData.monto_pagado || 0)).toString(),
+                        monto_mxn: '',
                         fecha: new Date().toISOString().split('T')[0],
                         metodo_pago: 'Transferencia',
                         referencia: ''
