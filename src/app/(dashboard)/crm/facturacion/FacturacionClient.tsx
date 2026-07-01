@@ -321,6 +321,14 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               Facturación (CFDI 4.0)
             </button>
             <button
+              onClick={() => setActiveTab('usa')}
+              className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === 'usa' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              Facturas USA
+            </button>
+            <button
               onClick={() => setActiveTab('historial')}
               className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'historial' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
