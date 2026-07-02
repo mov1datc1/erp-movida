@@ -164,6 +164,18 @@ export default function ClienteDetailClient({ cliente }: { cliente: any }) {
                 </div>
 
                 <div className="pt-4 border-t border-slate-100">
+                  <p className="text-slate-500 text-xs mb-1 font-medium">Dirección Fiscal</p>
+                  <p className="text-slate-900 text-sm">{cliente.razon_social || cliente.empresa || cliente.nombre}</p>
+                  <p className="text-slate-600 text-xs mt-1">
+                    {cliente.direccion ? `${cliente.direccion}, ` : ''}
+                    {cliente.colonia ? `${cliente.colonia}, ` : ''}
+                    {cliente.ciudad ? `${cliente.ciudad}, ` : ''}
+                    {cliente.codigo_postal ? `C.P. ${cliente.codigo_postal}` : ''}
+                    {!cliente.direccion && !cliente.colonia && !cliente.ciudad && !cliente.codigo_postal && 'Sin dirección registrada'}
+                  </p>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100">
                   <p className="text-slate-500 text-xs mb-2 font-medium">Fuente del registro</p>
                   <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-semibold border ${badge.color}`}>
                     {badge.label}

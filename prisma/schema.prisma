@@ -59,10 +59,13 @@ model Cliente {
   notas     String?       // Metadata adicional: campaña, ad set, etc.
   estatus   ClienteStatus @default(LEAD)
   
-  // Datos Fiscales
+  // Datos Fiscales / Dirección
   razon_social String?
   regimen_fiscal String?
   codigo_postal String?
+  direccion    String?
+  colonia      String?
+  ciudad       String?
   
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt

@@ -10,6 +10,11 @@ export async function createCliente(formData: FormData) {
     const email = formData.get('email') as string
     const telefono = formData.get('telefono') as string
     const rfc_taxid = formData.get('rfc_taxid') as string
+    const razon_social = formData.get('razon_social') as string
+    const direccion = formData.get('direccion') as string
+    const colonia = formData.get('colonia') as string
+    const ciudad = formData.get('ciudad') as string
+    const codigo_postal = formData.get('codigo_postal') as string
 
     if (!nombre) {
       return { success: false, error: 'El nombre es obligatorio' }
@@ -24,6 +29,11 @@ export async function createCliente(formData: FormData) {
         email,
         telefono,
         rfc_taxid,
+        razon_social,
+        direccion,
+        colonia,
+        ciudad,
+        codigo_postal,
         fuente,
         estatus: 'LEAD',
       }
@@ -168,6 +178,11 @@ export async function updateCliente(id: string, formData: FormData) {
     const email = formData.get('email') as string
     const telefono = formData.get('telefono') as string
     const rfc_taxid = formData.get('rfc_taxid') as string
+    const razon_social = formData.get('razon_social') as string
+    const direccion = formData.get('direccion') as string
+    const colonia = formData.get('colonia') as string
+    const ciudad = formData.get('ciudad') as string
+    const codigo_postal = formData.get('codigo_postal') as string
 
     if (!nombre) {
       return { success: false, error: 'El nombre es obligatorio' }
@@ -183,6 +198,11 @@ export async function updateCliente(id: string, formData: FormData) {
         email,
         telefono,
         rfc_taxid,
+        razon_social,
+        direccion,
+        colonia,
+        ciudad,
+        codigo_postal,
         ...(fuente ? { fuente } : {}),
       }
     })

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Edit2, Trash2, Loader2, User, Building2, Mail, Phone, FileText, X } from 'lucide-react';
+import { MoreVertical, Edit2, Trash2, Loader2, User, Building2, Mail, Phone, FileText, X, MapPin } from 'lucide-react';
 import { deleteCliente, updateCliente, updateClienteEstatus } from '@/app/actions/crm';
 
 interface Cliente {
@@ -248,6 +248,71 @@ export default function ClienteRowActions({ cliente }: { cliente: Cliente }) {
                     />
                   </div>
                 </div>
+
+                {/* Section: Datos Fiscales / Dirección */}
+                <div className="pt-4 mt-2 border-t border-slate-100">
+                  <h3 className="text-sm font-bold text-slate-800 mb-4">Datos Fiscales y Dirección</h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Razón Social</label>
+                      <div className="relative">
+                        <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input 
+                          type="text" 
+                          name="razon_social" 
+                          defaultValue={cliente.razon_social || ''}
+                          className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Dirección (Calle y Número)</label>
+                      <div className="relative">
+                        <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input 
+                          type="text" 
+                          name="direccion" 
+                          defaultValue={cliente.direccion || ''}
+                          className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Colonia</label>
+                        <input 
+                          type="text" 
+                          name="colonia" 
+                          defaultValue={cliente.colonia || ''}
+                          className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Ciudad</label>
+                        <input 
+                          type="text" 
+                          name="ciudad" 
+                          defaultValue={cliente.ciudad || ''}
+                          className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Código Postal (C.P.)</label>
+                      <input 
+                        type="text" 
+                        name="codigo_postal" 
+                        defaultValue={cliente.codigo_postal || ''}
+                        className="w-full md:w-1/2 px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
               <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 mt-6">

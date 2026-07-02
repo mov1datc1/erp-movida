@@ -1309,15 +1309,15 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                     </tr>
                     <tr className="border-b border-white">
                       <td className="p-1 font-bold">Colonia:</td>
-                      <td className="p-1" colSpan={2}>-</td>
+                      <td className="p-1" colSpan={2}>{printData.cliente.colonia || '-'}</td>
                     </tr>
                     <tr className="bg-[#cbd5e1] border-b border-white">
                       <td className="p-1 font-bold">Ciudad:</td>
-                      <td className="p-1" colSpan={2}>-</td>
+                      <td className="p-1" colSpan={2}>{printData.cliente.ciudad || '-'}</td>
                     </tr>
                     <tr>
                       <td className="p-1 font-bold">C.p:</td>
-                      <td className="p-1" colSpan={2}>-</td>
+                      <td className="p-1" colSpan={2}>{printData.cliente.codigo_postal || '-'}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1399,8 +1399,14 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                 <div className="flex justify-between items-start mt-8">
                   <div>
                     <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Facturado a:</h3>
-                    <p className="text-xl font-bold text-slate-800">{printData.cliente.nombre}</p>
-                    {printData.cliente.empresa && <p className="text-slate-600">{printData.cliente.empresa}</p>}
+                    <p className="text-xl font-bold text-slate-800">{printData.cliente.razon_social || printData.cliente.nombre}</p>
+                    {printData.cliente.empresa && <p className="text-slate-600 font-medium">{printData.cliente.empresa}</p>}
+                    <p className="text-slate-600 mt-1">
+                      {printData.cliente.direccion ? `${printData.cliente.direccion}, ` : ''}
+                      {printData.cliente.colonia ? `${printData.cliente.colonia}, ` : ''}
+                      {printData.cliente.ciudad ? `${printData.cliente.ciudad}, ` : ''}
+                      {printData.cliente.codigo_postal ? `C.P. ${printData.cliente.codigo_postal}` : ''}
+                    </p>
                   </div>
                   <div className="text-right">
                     <div className="mb-2">
