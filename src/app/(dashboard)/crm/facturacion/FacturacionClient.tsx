@@ -759,7 +759,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               setIsLoading(false);
               if (res.success) {
                 setIsModalOpen(false);
-                setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '' });
+                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '' });
                 setEditingId(null);
               } else {
                 showNotification(res.error || 'Error al guardar', 'error');
