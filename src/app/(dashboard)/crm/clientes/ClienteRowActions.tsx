@@ -11,6 +11,11 @@ interface Cliente {
   email: string | null;
   telefono: string | null;
   rfc_taxid: string | null;
+  razon_social?: string | null;
+  direccion?: string | null;
+  colonia?: string | null;
+  ciudad?: string | null;
+  codigo_postal?: string | null;
   estatus: 'LEAD' | 'ACTIVO' | 'INACTIVO';
 }
 
