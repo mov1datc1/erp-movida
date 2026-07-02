@@ -3,12 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { createClient } from "@/utils/supabase/server";
 import { isSuperAdmin, hasPermission } from "@/lib/rbac";
 import { redirect } from "next/navigation";
-import { startOfMonth, endOfMonth, subMonths, startOfWeek, endOfWeek, subWeeks, format } from "date-fns";
+import { startOfMonth, endOfMonth, subMonths, startOfWeek, endOfWeek, subWeeks, format, startOfDay, endOfDay, subDays, startOfYear, endOfYear, subYears, differenceInDays } from "date-fns";
 import { DashboardClient } from "./DashboardClient";
 
 export const dynamic = 'force-dynamic';
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: { range?: string } }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
@@ -37,18 +37,64 @@ export default async function DashboardPage() {
 
   // --- Dates Calculation ---
   const now = new Date();
+  const range = searchParams.range || 'este-mes';
   
-  // Months for Ventas/Tickets/Utilidad
-  const currentMonthStart = startOfMonth(now);
-  const currentMonthEnd = endOfMonth(now);
-  const previousMonthStart = startOfMonth(subMonths(now, 1));
-  const previousMonthEnd = endOfMonth(subMonths(now, 1));
-  
-  // Weeks for Producción (Tareas)
-  const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
-  const currentWeekEnd = endOfWeek(now, { weekStartsOn: 1 });
-  const previousWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
-  const previousWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+  let currentStart: Date;
+  let currentEnd: Date;
+  let prevStart: Date;
+  let prevEnd: Date;
+
+  switch (range) {
+    case 'hoy':
+      currentStart = startOfDay(now);
+      currentEnd = endOfDay(now);
+      prevStart = startOfDay(subDays(now, 1));
+      prevEnd = endOfDay(subDays(now, 1));
+      break;
+    case 'esta-semana':
+      currentStart = startOfWeek(now, { weekStartsOn: 1 });
+      currentEnd = endOfWeek(now, { weekStartsOn: 1 });
+      prevStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+      prevEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+      break;
+    case 'mes-pasado':
+      currentStart = startOfMonth(subMonths(now, 1));
+      currentEnd = endOfMonth(subMonths(now, 1));
+      prevStart = startOfMonth(subMonths(now, 2));
+      prevEnd = endOfMonth(subMonths(now, 2));
+      break;
+    case '3-meses':
+      currentStart = startOfMonth(subMonths(now, 2)); // e.g. if July, starts May 1
+      currentEnd = endOfMonth(now);
+      prevStart = startOfMonth(subMonths(now, 5));
+      prevEnd = endOfMonth(subMonths(now, 3));
+      break;
+    case '6-meses':
+      currentStart = startOfMonth(subMonths(now, 5));
+      currentEnd = endOfMonth(now);
+      prevStart = startOfMonth(subMonths(now, 11));
+      prevEnd = endOfMonth(subMonths(now, 6));
+      break;
+    case 'este-anio':
+      currentStart = startOfYear(now);
+      currentEnd = endOfYear(now);
+      prevStart = startOfYear(subYears(now, 1));
+      prevEnd = endOfYear(subYears(now, 1));
+      break;
+    case 'anio-pasado':
+      currentStart = startOfYear(subYears(now, 1));
+      currentEnd = endOfYear(subYears(now, 1));
+      prevStart = startOfYear(subYears(now, 2));
+      prevEnd = endOfYear(subYears(now, 2));
+      break;
+    case 'este-mes':
+    default:
+      currentStart = startOfMonth(now);
+      currentEnd = endOfMonth(now);
+      prevStart = startOfMonth(subMonths(now, 1));
+      prevEnd = endOfMonth(subMonths(now, 1));
+      break;
+  }
 
   // --- Data Fetching ---
   const [
@@ -59,35 +105,31 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     prisma.factura.findMany({
       where: {
-        fecha_emision: { gte: currentMonthStart, lte: currentMonthEnd }
+        fecha_emision: { gte: currentStart, lte: currentEnd }
       }
     }),
     prisma.factura.findMany({
       where: {
-        fecha_emision: { gte: previousMonthStart, lte: previousMonthEnd }
+        fecha_emision: { gte: prevStart, lte: prevEnd }
       }
     }),
     prisma.tarea.findMany({
       where: {
-        createdAt: { gte: currentWeekStart, lte: currentWeekEnd }
+        createdAt: { gte: currentStart, lte: currentEnd }
       }
     }),
     prisma.tarea.findMany({
       where: {
-        createdAt: { gte: previousWeekStart, lte: previousWeekEnd }
+        createdAt: { gte: prevStart, lte: prevEnd }
       }
     })
   ]);
 
   // --- Process Ventas ---
-  // The user wants: "suma las ventas pagagas y tambien no pagadas como cuentas por cobrar"
   const getVentasData = (facturas: any[]) => {
     const pagadas = facturas.filter(f => f.estatus === 'PAGADA' || f.estatus === 'PAGADA_PARCIALMENTE');
     const porCobrar = facturas.filter(f => f.estatus === 'PENDIENTE' || f.estatus === 'VENCIDA');
     
-    // Si la factura tiene monto_mxn_estimado, usamos eso para MXN? 
-    // Wait, the ERP allows invoices in USD or MXN. For simplicity, we just sum monto_total 
-    // assuming it's unified or they just want the sum. We will just sum monto_total.
     const montoPagado = pagadas.reduce((sum, f) => sum + (f.monto_pagado || f.monto_total), 0);
     const montoPorCobrar = porCobrar.reduce((sum, f) => sum + (f.monto_total - (f.monto_pagado || 0)), 0);
     
@@ -105,7 +147,6 @@ export default async function DashboardPage() {
   const ventasPrev = getVentasData(facturasPrev);
 
   // --- Process Producción (Tareas) ---
-  // Tareas completadas vs total tareas de la semana
   const getProduccionData = (tareas: any[]) => {
     const completadas = tareas.filter(t => t.estatus === 'COMPLETADA');
     return {
@@ -118,32 +159,46 @@ export default async function DashboardPage() {
   const prodCurrent = getProduccionData(tareasCurrent);
   const prodPrev = getProduccionData(tareasPrev);
 
-  // --- Process Evolution (Daily Ventas) ---
-  const daysInMonth = currentMonthEnd.getDate();
+  // --- Process Evolution (Daily/Monthly Ventas) ---
   const evolutionData = [];
+  const daysDiff = differenceInDays(currentEnd, currentStart);
   
-  for (let i = 1; i <= daysInMonth; i++) {
-    const dateCurrent = new Date(now.getFullYear(), now.getMonth(), i);
-    const datePrev = new Date(now.getFullYear(), now.getMonth() - 1, i);
-    
-    // Evitar procesar días futuros en el mes actual si queremos que se vea limpio
-    if (dateCurrent > now && i > now.getDate()) {
-      break; 
+  if (daysDiff > 60) {
+    // Para rangos mayores a 2 meses, mostramos meses en lugar de días
+    for (let i = 0; i < 12; i++) {
+      const iterMonthStart = startOfMonth(new Date(currentStart.getFullYear(), currentStart.getMonth() + i, 1));
+      if (iterMonthStart > currentEnd) break;
+      
+      const iterMonthEnd = endOfMonth(iterMonthStart);
+      
+      const monthFacturasCurr = facturasCurrent.filter(f => new Date(f.fecha_emision) >= iterMonthStart && new Date(f.fecha_emision) <= iterMonthEnd);
+      const currVentas = getVentasData(monthFacturasCurr);
+      
+      evolutionData.push({
+        dia: format(iterMonthStart, 'MMM'),
+        actual: currVentas.total,
+        actual_pagado: currVentas.pagado,
+        actual_porcobrar: currVentas.porCobrar,
+      });
     }
-
-    const dayFacturasCurr = facturasCurrent.filter(f => new Date(f.fecha_emision).getDate() === i);
-    const dayFacturasPrev = facturasPrev.filter(f => new Date(f.fecha_emision).getDate() === i);
-    
-    const currVentas = getVentasData(dayFacturasCurr);
-    const prevVentas = getVentasData(dayFacturasPrev);
-
-    evolutionData.push({
-      dia: i.toString().padStart(2, '0'),
-      actual: currVentas.total,
-      actual_pagado: currVentas.pagado,
-      actual_porcobrar: currVentas.porCobrar,
-      anterior: prevVentas.total
-    });
+  } else {
+    // Rango de días
+    for (let i = 0; i <= daysDiff; i++) {
+      const iterDate = new Date(currentStart);
+      iterDate.setDate(iterDate.getDate() + i);
+      
+      if (iterDate > now && iterDate.getDate() !== now.getDate()) continue;
+      
+      const dayFacturasCurr = facturasCurrent.filter(f => new Date(f.fecha_emision).getDate() === iterDate.getDate() && new Date(f.fecha_emision).getMonth() === iterDate.getMonth());
+      const currVentas = getVentasData(dayFacturasCurr);
+      
+      evolutionData.push({
+        dia: format(iterDate, 'dd MMM'),
+        actual: currVentas.total,
+        actual_pagado: currVentas.pagado,
+        actual_porcobrar: currVentas.porCobrar,
+      });
+    }
   }
 
   // --- Prepare Final Payload ---
@@ -170,9 +225,9 @@ export default async function DashboardPage() {
     },
     evolucion_diaria: evolutionData,
     fechas: {
-      mes_actual: format(currentMonthStart, 'MMM yyyy'),
-      mes_anterior: format(previousMonthStart, 'MMM yyyy'),
-      semana_actual: `${format(currentWeekStart, 'dd')} - ${format(currentWeekEnd, 'dd MMM')}`
+      mes_actual: `${format(currentStart, 'dd MMM yy')} - ${format(currentEnd, 'dd MMM yy')}`,
+      mes_anterior: `${format(prevStart, 'dd MMM yy')} - ${format(prevEnd, 'dd MMM yy')}`,
+      semana_actual: `${format(currentStart, 'dd')} - ${format(currentEnd, 'dd MMM')}`
     },
     // Meta hardcodeada temporalmente a $100k como pediste para la demo del MVP. 
     // Luego crearemos una UI en Configuración para editar metas trimestrales.

@@ -34,7 +34,13 @@ interface DashboardData {
   meta_mensual: number;
 }
 
+import { useRouter, useSearchParams } from 'next/navigation';
+
 export function DashboardClient({ data }: { data: DashboardData }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentRange = searchParams.get('range') || 'este-mes';
+
   const { periodo_actual: current, periodo_anterior: prev, evolucion_diaria: evolution, fechas, meta_mensual } = data;
 
   const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(val);
@@ -60,15 +66,44 @@ export function DashboardClient({ data }: { data: DashboardData }) {
     );
   };
 
+  const handleRangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newRange = e.target.value;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('range', newRange);
+    router.push(`/dashboard?${params.toString()}`);
+  };
+
   return (
     <div className="space-y-8 pb-12">
+      {/* HEADER WITH FILTER */}
+      <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+        <div className="flex items-center gap-2 text-slate-500 font-medium">
+          <Activity className="w-5 h-5" />
+          Filtro de Fecha:
+        </div>
+        <select 
+          value={currentRange}
+          onChange={handleRangeChange}
+          className="bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-red-500 focus:border-red-500 block p-2.5 font-bold outline-none"
+        >
+          <option value="hoy">Hoy</option>
+          <option value="esta-semana">Esta semana</option>
+          <option value="este-mes">Este mes</option>
+          <option value="mes-pasado">Mes pasado</option>
+          <option value="3-meses">Últimos 3 meses</option>
+          <option value="6-meses">Últimos 6 meses</option>
+          <option value="este-anio">Este año</option>
+          <option value="anio-pasado">Año pasado</option>
+        </select>
+      </div>
+
       {/* SECCIÓN 1: VALOR ACTUAL */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 rounded-full border-4 border-red-50 flex items-center justify-center">
             <Activity className="w-5 h-5 text-red-600" />
           </div>
-          <h2 className="text-2xl font-black text-slate-800">1. Valor actual</h2>
+          <h2 className="text-2xl font-black text-slate-800">1. Valor actual ({fechas.mes_actual})</h2>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
