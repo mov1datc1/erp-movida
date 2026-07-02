@@ -1,6 +1,18 @@
-import { getClienteCompleto } from './src/app/actions/crm';
-async function run() {
-  const res = await getClienteCompleto("0bcd2d13-32c1-4410-8d9c-e766ba13900b");
-  console.log(JSON.stringify(res, null, 2));
+import { prisma } from './src/lib/prisma'
+
+async function main() {
+  const facturas = await prisma.factura.findMany({ where: { es_usa: true, numero_usa: 1558 } })
+  for (const f of facturas) {
+    await prisma.factura.update({
+      where: { id: f.id },
+      data: { numero_usa: 1573, folio: 'USA-1573' }
+    })
+    console.log(`Updated invoice ${f.id} to 1573`)
+  }
 }
-run();
+
+main()
+  .catch(e => console.error(e))
+  .finally(async () => {
+    await prisma.$disconnect()
+  })

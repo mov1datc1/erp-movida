@@ -9,6 +9,7 @@ export type RolePermissions = Record<string, ModulePermissions>;
 
 export const ALL_MODULES = [
   { id: 'inicio', label: 'Inicio', defaultPerms: { ver: true, crear: false, editar: false, eliminar: false } },
+  { id: 'dashboard', label: 'Dashboard', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },
   { id: 'tareas', label: 'Tareas', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },
   { id: 'proyectos', label: 'Proyectos', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },
   { id: 'contable', label: 'Contable', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },

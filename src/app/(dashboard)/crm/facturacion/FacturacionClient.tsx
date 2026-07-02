@@ -398,6 +398,9 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
           .print\\:table-mode .print-invoice-wrapper { display: none !important; }
           .print\\:table-mode .print-cards { display: none !important; }
           .print\\:table-mode .print-header { display: none !important; }
+          
+          @page { margin: 0; }
+          body { margin-top: 1cm; margin-bottom: 1cm; }
         }
       `}} />
 

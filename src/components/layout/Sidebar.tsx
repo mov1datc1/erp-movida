@@ -13,7 +13,8 @@ import {
   Settings,
   LogOut,
   Target,
-  PackageSearch
+  PackageSearch,
+  TrendingUp
 } from "lucide-react";
 
 export default async function Sidebar() {
@@ -34,6 +35,7 @@ export default async function Sidebar() {
   // Mapeamos los IDs de módulos a sus rutas e íconos correspondientes
   const moduleConfig = {
     'inicio': { name: "Inicio", icon: <Home className="w-5 h-5" />, path: "/" },
+    'dashboard': { name: "Dashboard", icon: <TrendingUp className="w-5 h-5" />, path: "/dashboard" },
     'tareas': { name: "Tareas", icon: <CheckSquare className="w-5 h-5" />, path: "/tareas" },
     'proyectos': { name: "Proyectos", icon: <Briefcase className="w-5 h-5" />, path: "/proyectos" },
     'contable': { name: "Contable", icon: <DollarSign className="w-5 h-5" />, path: "/contable" },
