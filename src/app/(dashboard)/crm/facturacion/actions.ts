@@ -262,7 +262,7 @@ export async function timbrarFacturaCFDI(facturaId: string, timbradoData: {
   }
 }
 
-export async function crearFacturaUSA(data: { cliente_id: string, monto_total: number, descripcion?: string, linea_producto_id?: string, categoria?: string }) {
+export async function crearFacturaUSA(data: { cliente_id: string, monto_total: number, monto_mxn_estimado?: number, descripcion?: string, linea_producto_id?: string, categoria?: string }) {
   try {
     // Buscar la última factura USA para obtener el número actual
     const lastUsa = await prisma.factura.findFirst({
@@ -281,6 +281,7 @@ export async function crearFacturaUSA(data: { cliente_id: string, monto_total: n
         folio,
         cliente_id: data.cliente_id,
         monto_total: data.monto_total,
+        monto_mxn_estimado: data.monto_mxn_estimado,
         descripcion: data.descripcion,
         estatus: 'PENDIENTE',
         fecha_emision: new Date(),

@@ -296,6 +296,7 @@ model Factura {
   // Exportación / Facturas USA
   es_usa            Boolean       @default(false)
   numero_usa        Int?
+  monto_mxn_estimado Float?
   folio_fiscal      String?       // Folio interno (ej. FAC-MOV-510)
   facturapi_id      String?       // ID de la factura en Facturapi
   uuid_sat          String?       // UUID oficial del SAT

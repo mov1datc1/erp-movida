@@ -21,11 +21,12 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
   
   const [formData, setFormData] = useState({ 
     cliente_id: '', 
-    monto_total: '',
-    fecha_vencimiento: '',
-    descripcion: '',
-    linea_producto_id: '',
-    categoria: ''
+    monto_total: '', 
+    monto_mxn_estimado: '',
+    fecha_vencimiento: '', 
+    descripcion: '', 
+    linea_producto_id: '', 
+    categoria: '' 
   });
   
   // For printing
@@ -93,8 +94,22 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     'CANCELADA': { label: 'Cancelada', color: 'bg-slate-200 text-slate-600', icon: FileText }
   };
 
-  const totalPorCobrar = facturas.filter(f => !f.requiere_cfdi && (f.estatus === 'PENDIENTE' || f.estatus === 'PAGADA_PARCIALMENTE')).reduce((a, b) => a + (b.monto_total - (b.monto_pagado || 0)), 0);
-  const totalVencido = facturas.filter(f => !f.requiere_cfdi && f.estatus === 'VENCIDA').reduce((a, b) => a + (b.monto_total - (b.monto_pagado || 0)), 0);
+  const totalPorCobrar = facturas.filter(f => !f.requiere_cfdi && (f.estatus === 'PENDIENTE' || f.estatus === 'PAGADA_PARCIALMENTE')).reduce((a, b) => {
+    const pendiente = b.monto_total - (b.monto_pagado || 0);
+    if (b.es_usa && b.monto_mxn_estimado) {
+      // Si es USA y tiene un estimado MXN, usamos el porcentaje pendiente del monto total en MXN
+      return a + (b.monto_mxn_estimado * (pendiente / b.monto_total));
+    }
+    return a + pendiente;
+  }, 0);
+  
+  const totalVencido = facturas.filter(f => !f.requiere_cfdi && (f.estatus === 'PENDIENTE' || f.estatus === 'PAGADA_PARCIALMENTE') && f.fecha_vencimiento && new Date(f.fecha_vencimiento) < new Date(new Date().setHours(0,0,0,0))).reduce((a, b) => {
+    const pendiente = b.monto_total - (b.monto_pagado || 0);
+    if (b.es_usa && b.monto_mxn_estimado) {
+      return a + (b.monto_mxn_estimado * (pendiente / b.monto_total));
+    }
+    return a + pendiente;
+  }, 0);
 
   const filteredFacturas = useMemo(() => {
     return facturas.filter(f => {
@@ -145,7 +160,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
   const openNewModal = () => {
     setEditingId(null);
-    setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '' });
+    setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '' });
     setShowFavoritos(false);
     setFavSearchTerm('');
     setIsModalOpen(true);
@@ -156,6 +171,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     setFormData({
       cliente_id: factura.cliente_id,
       monto_total: factura.monto_total.toString(),
+      monto_mxn_estimado: factura.monto_mxn_estimado ? factura.monto_mxn_estimado.toString() : '',
       fecha_vencimiento: factura.fecha_vencimiento ? new Date(factura.fecha_vencimiento).toISOString().split('T')[0] : '',
       descripcion: factura.descripcion || '',
       linea_producto_id: factura.linea_producto_id || '',
@@ -278,7 +294,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             <button 
               onClick={() => {
                 setEditingId(null);
-                setFormData({ cliente_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '' });
+                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '' });
                 setIsModalOpen(true);
               }}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-emerald-600/20"
@@ -581,7 +597,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                             descripcion: fav.descripcion || '',
                             linea_producto_id: '',
                             categoria: '',
-                            fecha_vencimiento: formData.fecha_vencimiento
+                            fecha_vencimiento: formData.fecha_vencimiento,
+                            monto_mxn_estimado: ''
                           });
                         }}
                       >
@@ -723,7 +740,9 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                   res = await crearFacturaUSA({
                     cliente_id: formData.cliente_id,
                     monto_total: parseFloat(formData.monto_total),
+                    monto_mxn_estimado: formData.monto_mxn_estimado ? parseFloat(formData.monto_mxn_estimado) : undefined,
                     descripcion: formData.descripcion,
+                    linea_producto_id: formData.linea_producto_id,
                     categoria: formData.categoria || 'Ventas Internacionales'
                   });
                 } else {
@@ -911,6 +930,26 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                     />
                   </div>
                 </div>
+
+                {activeTab === 'usa' && !editingId && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Monto Estimado en MXN *</label>
+                    <div className="relative">
+                      <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input 
+                        type="number" 
+                        required
+                        step="0.01"
+                        min="0"
+                        className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-medium bg-white"
+                        placeholder="0.00"
+                        value={formData.monto_mxn_estimado}
+                        onChange={e => setFormData({...formData, monto_mxn_estimado: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                )}
+                
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Vencimiento</label>
                   <div className="relative">
