@@ -270,7 +270,7 @@ export async function crearFacturaUSA(data: { cliente_id: string, monto_total: n
       orderBy: { numero_usa: 'desc' }
     });
 
-    const nextNumero = lastUsa && lastUsa.numero_usa ? lastUsa.numero_usa + 15 : 1558;
+    const nextNumero = lastUsa && lastUsa.numero_usa ? lastUsa.numero_usa + 15 : 1573;
     
     // Generar un UUID único para el folio fiscal de la exportación
     const folioFiscal = crypto.randomUUID().toUpperCase();
