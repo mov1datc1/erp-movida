@@ -8,7 +8,7 @@ import { DashboardClient } from "./DashboardClient";
 
 export const dynamic = 'force-dynamic';
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ range?: string, from?: string, to?: string }> }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
