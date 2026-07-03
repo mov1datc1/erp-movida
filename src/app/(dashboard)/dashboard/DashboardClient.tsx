@@ -35,11 +35,25 @@ interface DashboardData {
 }
 
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useRef, useEffect } from 'react';
+import { ChevronDown, Calendar } from 'lucide-react';
 
 export function DashboardClient({ data }: { data: DashboardData }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentRange = searchParams.get('range') || 'este-mes';
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+        setIsFilterOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const { periodo_actual: current, periodo_anterior: prev, evolucion_diaria: evolution, fechas, meta_mensual } = data;
 
@@ -66,35 +80,64 @@ export function DashboardClient({ data }: { data: DashboardData }) {
     );
   };
 
-  const handleRangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newRange = e.target.value;
+  const handleRangeChange = (newRange: string) => {
+    setIsFilterOpen(false);
     const params = new URLSearchParams(searchParams.toString());
     params.set('range', newRange);
     router.push(`/dashboard?${params.toString()}`);
   };
+
+  const filterOptions = [
+    { id: 'hoy', label: 'Hoy' },
+    { id: 'esta-semana', label: 'Esta semana' },
+    { id: 'este-mes', label: 'Este mes' },
+    { id: 'mes-pasado', label: 'Mes pasado' },
+    { id: '3-meses', label: 'Últimos 3 meses' },
+    { id: '6-meses', label: 'Últimos 6 meses' },
+    { id: 'este-anio', label: 'Este año' },
+    { id: 'anio-pasado', label: 'Año pasado' },
+  ];
+
+  const currentLabel = filterOptions.find(o => o.id === currentRange)?.label || 'Este mes';
 
   return (
     <div className="space-y-8 pb-12">
       {/* HEADER WITH FILTER */}
       <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 text-slate-500 font-medium">
-          <Activity className="w-5 h-5" />
+          <Calendar className="w-5 h-5" />
           Filtro de Fecha:
         </div>
-        <select 
-          value={currentRange}
-          onChange={handleRangeChange}
-          className="bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-red-500 focus:border-red-500 block p-2.5 font-bold outline-none"
-        >
-          <option value="hoy">Hoy</option>
-          <option value="esta-semana">Esta semana</option>
-          <option value="este-mes">Este mes</option>
-          <option value="mes-pasado">Mes pasado</option>
-          <option value="3-meses">Últimos 3 meses</option>
-          <option value="6-meses">Últimos 6 meses</option>
-          <option value="este-anio">Este año</option>
-          <option value="anio-pasado">Año pasado</option>
-        </select>
+        
+        <div className="relative" ref={filterRef}>
+          <button 
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-2 font-bold outline-none transition-colors"
+          >
+            {currentLabel}
+            <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {isFilterOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <div className="p-1">
+                {filterOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => handleRangeChange(option.id)}
+                    className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
+                      currentRange === option.id 
+                        ? 'bg-red-50 text-red-700 font-bold' 
+                        : 'text-slate-600 hover:bg-slate-50 font-medium'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* SECCIÓN 1: VALOR ACTUAL */}

@@ -8,7 +8,7 @@ import { DashboardClient } from "./DashboardClient";
 
 export const dynamic = 'force-dynamic';
 
-export default async function DashboardPage({ searchParams }: { searchParams: { range?: string } }) {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
@@ -35,9 +35,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
     );
   }
 
+  const params = await searchParams;
+
   // --- Dates Calculation ---
   const now = new Date();
-  const range = searchParams.range || 'este-mes';
+  const range = params.range || 'este-mes';
   
   let currentStart: Date;
   let currentEnd: Date;
