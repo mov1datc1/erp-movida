@@ -36,13 +36,18 @@ interface DashboardData {
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Calendar } from 'lucide-react';
+import { ChevronDown, Calendar, Search } from 'lucide-react';
 
 export function DashboardClient({ data }: { data: DashboardData }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentRange = searchParams.get('range') || 'este-mes';
+  const customFrom = searchParams.get('from') || '';
+  const customTo = searchParams.get('to') || '';
+
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [localFrom, setLocalFrom] = useState(customFrom);
+  const [localTo, setLocalTo] = useState(customTo);
   const filterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -81,10 +86,23 @@ export function DashboardClient({ data }: { data: DashboardData }) {
   };
 
   const handleRangeChange = (newRange: string) => {
+    if (newRange === 'personalizado') {
+      // Just change UI to show date pickers, don't close yet
+      router.push(`/dashboard?range=personalizado&from=${localFrom}&to=${localTo}`);
+      return;
+    }
     setIsFilterOpen(false);
     const params = new URLSearchParams(searchParams.toString());
     params.set('range', newRange);
+    params.delete('from');
+    params.delete('to');
     router.push(`/dashboard?${params.toString()}`);
+  };
+
+  const applyCustomDates = () => {
+    if (!localFrom || !localTo) return;
+    setIsFilterOpen(false);
+    router.push(`/dashboard?range=personalizado&from=${localFrom}&to=${localTo}`);
   };
 
   const filterOptions = [
@@ -96,6 +114,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
     { id: '6-meses', label: 'Últimos 6 meses' },
     { id: 'este-anio', label: 'Este año' },
     { id: 'anio-pasado', label: 'Año pasado' },
+    { id: 'personalizado', label: 'Personalizado' },
   ];
 
   const currentLabel = filterOptions.find(o => o.id === currentRange)?.label || 'Este mes';
@@ -119,7 +138,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
           </button>
           
           {isFilterOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+            <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-100 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
               <div className="p-1">
                 {filterOptions.map((option) => (
                   <button
@@ -135,6 +154,35 @@ export function DashboardClient({ data }: { data: DashboardData }) {
                   </button>
                 ))}
               </div>
+              
+              {currentRange === 'personalizado' && (
+                <div className="p-3 bg-slate-50 border-t border-slate-100 space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Desde</label>
+                    <input 
+                      type="date" 
+                      value={localFrom}
+                      onChange={e => setLocalFrom(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:border-red-500" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Hasta</label>
+                    <input 
+                      type="date" 
+                      value={localTo}
+                      onChange={e => setLocalTo(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:border-red-500" 
+                    />
+                  </div>
+                  <button 
+                    onClick={applyCustomDates}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Search className="w-4 h-4" /> Aplicar Rango
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -66,7 +66,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       prevEnd = endOfMonth(subMonths(now, 2));
       break;
     case '3-meses':
-      currentStart = startOfMonth(subMonths(now, 2)); // e.g. if July, starts May 1
+      currentStart = startOfMonth(subMonths(now, 2));
       currentEnd = endOfMonth(now);
       prevStart = startOfMonth(subMonths(now, 5));
       prevEnd = endOfMonth(subMonths(now, 3));
@@ -88,6 +88,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       currentEnd = endOfYear(subYears(now, 1));
       prevStart = startOfYear(subYears(now, 2));
       prevEnd = endOfYear(subYears(now, 2));
+      break;
+    case 'personalizado':
+      currentStart = params.from ? startOfDay(new Date(params.from)) : startOfMonth(now);
+      currentEnd = params.to ? endOfDay(new Date(params.to)) : endOfMonth(now);
+      const diff = differenceInDays(currentEnd, currentStart);
+      prevStart = startOfDay(subDays(currentStart, diff + 1));
+      prevEnd = endOfDay(subDays(currentEnd, diff + 1));
       break;
     case 'este-mes':
     default:
