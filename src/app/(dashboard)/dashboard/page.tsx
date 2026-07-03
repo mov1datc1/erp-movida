@@ -130,8 +130,21 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
     const pagadas = facturas.filter(f => f.estatus === 'PAGADA' || f.estatus === 'PAGADA_PARCIALMENTE');
     const porCobrar = facturas.filter(f => f.estatus === 'PENDIENTE' || f.estatus === 'VENCIDA');
     
-    const montoPagado = pagadas.reduce((sum, f) => sum + (f.monto_pagado || f.monto_total), 0);
-    const montoPorCobrar = porCobrar.reduce((sum, f) => sum + (f.monto_total - (f.monto_pagado || 0)), 0);
+    const getMontoMXN = (f: any, tipo: 'total' | 'pagado') => {
+      // Si es USA, usamos monto_mxn_estimado. Si no, usamos monto_total.
+      const baseTotal = f.es_usa ? (f.monto_mxn_estimado || (f.monto_total * 18)) : f.monto_total;
+      
+      if (tipo === 'total') return baseTotal;
+      
+      if (f.estatus === 'PAGADA') return baseTotal;
+      if (f.monto_pagado > 0 && f.monto_total > 0) {
+        return (f.monto_pagado / f.monto_total) * baseTotal;
+      }
+      return 0;
+    };
+
+    const montoPagado = pagadas.reduce((sum, f) => sum + getMontoMXN(f, 'pagado'), 0);
+    const montoPorCobrar = porCobrar.reduce((sum, f) => sum + (getMontoMXN(f, 'total') - getMontoMXN(f, 'pagado')), 0);
     
     return {
       total: montoPagado + montoPorCobrar,

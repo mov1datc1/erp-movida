@@ -43,7 +43,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
 
   const { periodo_actual: current, periodo_anterior: prev, evolucion_diaria: evolution, fechas, meta_mensual } = data;
 
-  const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(val);
+  const formatCurrency = (val: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(val);
   const formatNumber = (val: number) => new Intl.NumberFormat('en-US').format(val);
 
   const calcVariation = (curr: number, prev: number) => {
