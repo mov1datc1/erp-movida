@@ -25,6 +25,8 @@ model Profile {
 
   app_role_id String?
   app_role    AppRole? @relation(fields: [app_role_id], references: [id], onDelete: SetNull)
+
+  recordatorios Recordatorio[]
 }
 
 model AppRole {
@@ -182,6 +184,8 @@ model Tarea {
   // Opcional, mantenemos compatibilidad con el sistema de Profile anterior por si acaso
   asignado_a_id String?
   asignado_a    Profile? @relation("TareasAsignadas", fields: [asignado_a_id], references: [id])
+
+  recordatorios TareaRecordatorio[]
 }
 
 model ComentarioTarea {
@@ -199,6 +203,40 @@ enum TareaStatus {
   ON_HOLD
   COMPLETADA
   CANCELADA
+}
+
+// -------------------------------------
+// Módulo de Recordatorios
+// -------------------------------------
+model Recordatorio {
+  id                 String   @id @default(uuid())
+  fecha_creacion     DateTime @default(now())
+  descripcion        String   @db.Text
+  fecha_recordatorio DateTime
+  estatus            RecordatorioStatus @default(PENDIENTE)
+  
+  tareas_asociadas   TareaRecordatorio[]
+  
+  usuario_id         String?
+  usuario            Profile? @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model TareaRecordatorio {
+  recordatorio_id String
+  recordatorio    Recordatorio @relation(fields: [recordatorio_id], references: [id], onDelete: Cascade)
+  tarea_id        String
+  tarea           Tarea        @relation(fields: [tarea_id], references: [id], onDelete: Cascade)
+
+  @@id([recordatorio_id, tarea_id])
+}
+
+enum RecordatorioStatus {
+  PENDIENTE
+  ENVIADO
+  COMPLETADO
 }
 
 // -------------------------------------
