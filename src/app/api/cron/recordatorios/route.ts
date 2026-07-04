@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { Resend } from "resend";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
