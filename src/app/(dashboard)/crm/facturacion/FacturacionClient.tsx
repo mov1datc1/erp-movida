@@ -1422,7 +1422,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               {/* Header */}
               <div className="flex justify-between items-start mb-6">
                  <div>
-                   <img src="/images/logo_movida.png" className="w-48 h-auto object-contain mb-4" alt="Movida TCI" onError={(e) => e.currentTarget.style.display = 'none'} />
+                   <img src="/logo.png" className="h-24 w-auto object-contain mb-4" alt="Movida TCI" onError={(e) => e.currentTarget.style.display = 'none'} />
                    <p><strong className="text-sm">Movida TCI</strong></p>
                    <p>Illinois 27, Ofic 602.</p>
                    <p>Napoles, Benito Juarez</p>
