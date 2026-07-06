@@ -37,7 +37,7 @@ export async function createPrefactura(data: { cliente_id: string, monto_total: 
   }
 }
 
-export async function updatePrefactura(id: string, data: { cliente_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string, linea_producto_id?: string, categoria?: string }) {
+export async function updatePrefactura(id: string, data: { cliente_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string, linea_producto_id?: string, categoria?: string, detalle_horas?: string, numero_orden?: string }) {
   try {
     const fechaVen = data.fecha_vencimiento ? new Date(`${data.fecha_vencimiento}T12:00:00Z`) : null;
     
@@ -49,6 +49,8 @@ export async function updatePrefactura(id: string, data: { cliente_id: string, m
         descripcion: data.descripcion,
         linea_producto_id: data.linea_producto_id || null,
         categoria: data.categoria,
+        detalle_horas: data.detalle_horas,
+        numero_orden: data.numero_orden,
         ...(fechaVen && { fecha_vencimiento: fechaVen })
       }
     });
@@ -262,7 +264,7 @@ export async function timbrarFacturaCFDI(facturaId: string, timbradoData: {
   }
 }
 
-export async function crearFacturaUSA(data: { cliente_id: string, monto_total: number, monto_mxn_estimado?: number, descripcion?: string, linea_producto_id?: string, categoria?: string }) {
+export async function crearFacturaUSA(data: { cliente_id: string, monto_total: number, monto_mxn_estimado?: number, descripcion?: string, linea_producto_id?: string, categoria?: string, detalle_horas?: string, numero_orden?: string }) {
   try {
     // Buscar la última factura USA para obtener el número actual
     const lastUsa = await prisma.factura.findFirst({
@@ -289,7 +291,9 @@ export async function crearFacturaUSA(data: { cliente_id: string, monto_total: n
         numero_usa: nextNumero,
         folio_fiscal: folioFiscal,
         linea_producto_id: data.linea_producto_id,
-        categoria: data.categoria || 'Ventas Internacionales'
+        categoria: data.categoria || 'Ventas Internacionales',
+        detalle_horas: data.detalle_horas,
+        numero_orden: data.numero_orden
       }
     });
 

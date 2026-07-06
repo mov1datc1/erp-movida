@@ -143,7 +143,9 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     fecha_vencimiento: '', 
     descripcion: '', 
     linea_producto_id: '', 
-    categoria: '' 
+    categoria: '',
+    detalle_horas: '',
+    numero_orden: ''
   });
   
   // For printing
@@ -277,7 +279,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
   const openNewModal = () => {
     setEditingId(null);
-    setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '' });
+    setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '' });
     setShowFavoritos(false);
     setFavSearchTerm('');
     setIsModalOpen(true);
@@ -292,7 +294,9 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
       fecha_vencimiento: factura.fecha_vencimiento ? new Date(factura.fecha_vencimiento).toISOString().split('T')[0] : '',
       descripcion: factura.descripcion || '',
       linea_producto_id: factura.linea_producto_id || '',
-      categoria: factura.categoria || ''
+      categoria: factura.categoria || '',
+      detalle_horas: factura.detalle_horas || '',
+      numero_orden: factura.numero_orden || ''
     });
     setPrintData(factura);
     setShowFavoritos(false);
@@ -406,7 +410,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print-header">
         <div>
-          <h1 className="text-3xl font-bold text-primary tracking-tight">Cuentas por Cobrar & Facturación</h1>
+          <h1 className="text-3xl font-bold text-primary tracking-tight">Facturación</h1>
           <p className="text-text-muted mt-1">Control de prefacturas y pagos de clientes.</p>
         </div>
         <div className="flex gap-2 print:hidden">
@@ -438,7 +442,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             <div className="p-2 bg-white/20 w-fit rounded-xl backdrop-blur-sm mb-4">
               <Clock className="w-6 h-6 text-white" />
             </div>
-            <p className="text-orange-100 font-medium text-sm">Total Cuentas por Cobrar (Prefacturas)</p>
+            <p className="text-orange-100 font-medium text-sm">Total Prefacturas</p>
             <h3 className="text-4xl font-bold mt-1 tracking-tight">{formatCurrency(totalPorCobrar)}</h3>
             <p className="text-xs font-medium text-orange-100 mt-2">Dinero pendiente de recaudo</p>
           </div>
@@ -465,7 +469,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                 activeTab === 'por_cobrar' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
-              Cuentas por Cobrar (Prefacturas)
+              Prefacturas
             </button>
             <button
               onClick={() => setActiveTab('facturacion')}
@@ -853,7 +857,9 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                   monto_total: parseFloat(formData.monto_total),
                   fecha_vencimiento: formData.fecha_vencimiento,
                   descripcion: formData.descripcion,
-                  categoria: formData.categoria
+                  categoria: formData.categoria,
+                  detalle_horas: formData.detalle_horas,
+                  numero_orden: formData.numero_orden
                 });
               } else {
                 if (activeTab === 'usa') {
@@ -863,7 +869,9 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                     monto_mxn_estimado: formData.monto_mxn_estimado ? parseFloat(formData.monto_mxn_estimado) : undefined,
                     descripcion: formData.descripcion,
                     linea_producto_id: formData.linea_producto_id,
-                    categoria: formData.categoria || 'Ventas Internacionales'
+                    categoria: formData.categoria || 'Ventas Internacionales',
+                    detalle_horas: formData.detalle_horas,
+                    numero_orden: formData.numero_orden
                   });
                 } else {
                   res = await createPrefactura({
@@ -1051,23 +1059,45 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                   </div>
                 </div>
 
-                {activeTab === 'usa' && !editingId && (
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Monto Estimado en MXN *</label>
-                    <div className="relative">
-                      <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                { (activeTab === 'usa' || printData?.es_usa) && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Monto Estimado en MXN *</label>
+                      <div className="relative">
+                        <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input 
+                          type="number" 
+                          required
+                          step="0.01"
+                          min="0"
+                          className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-medium bg-white"
+                          placeholder="0.00"
+                          value={formData.monto_mxn_estimado}
+                          onChange={e => setFormData({...formData, monto_mxn_estimado: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Detalle de Horas (Ej: 176 H x 70 USD)</label>
                       <input 
-                        type="number" 
-                        required
-                        step="0.01"
-                        min="0"
-                        className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-medium bg-white"
-                        placeholder="0.00"
-                        value={formData.monto_mxn_estimado}
-                        onChange={e => setFormData({...formData, monto_mxn_estimado: e.target.value})}
+                        type="text" 
+                        value={formData.detalle_horas}
+                        onChange={e => setFormData({...formData, detalle_horas: e.target.value})}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-sm bg-white"
+                        placeholder="176 H x 70 USD = $12,320.00"
                       />
                     </div>
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Número de Orden (PO / Order #)</label>
+                      <input 
+                        type="text" 
+                        value={formData.numero_orden}
+                        onChange={e => setFormData({...formData, numero_orden: e.target.value})}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-sm bg-white"
+                        placeholder="GA Telesis Order #: 49824"
+                      />
+                    </div>
+                  </>
                 )}
                 
                 <div>
@@ -1390,7 +1420,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               {/* Header */}
               <div className="flex justify-between items-start mb-6">
                  <div>
-                   <img src="/images/logo_movida.png" className="h-20 mb-2" alt="Movida TCI" onError={(e) => e.currentTarget.style.display = 'none'} />
+                   <img src="/images/logo_movida.png" className="w-48 h-auto object-contain mb-4" alt="Movida TCI" onError={(e) => e.currentTarget.style.display = 'none'} />
                    <p><strong className="text-sm">Movida TCI</strong></p>
                    <p>Illinois 27, Ofic 602.</p>
                    <p>Napoles, Benito Juarez</p>
@@ -1463,7 +1493,11 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                     </tr>
                     <tr className="border-b border-slate-300">
                       <td className="p-1 border-r border-slate-300"></td>
-                      <td className="p-1 text-slate-700 border-r border-slate-300">Clave 82101604</td>
+                      <td className="p-1 text-slate-700 border-r border-slate-300">
+                        {printData.detalle_horas && <p className="mb-0.5">Description: {printData.detalle_horas}</p>}
+                        {printData.numero_orden && <p className="text-center font-bold">{printData.numero_orden}</p>}
+                        {!printData.detalle_horas && !printData.numero_orden && <span className="opacity-0">-</span>}
+                      </td>
                       <td className="p-1 border-r border-slate-300"></td>
                       <td className="p-1"></td>
                     </tr>
