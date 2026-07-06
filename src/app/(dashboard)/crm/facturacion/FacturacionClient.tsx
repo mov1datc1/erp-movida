@@ -418,7 +418,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             <button 
               onClick={() => {
                 setEditingId(null);
-                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '' });
+                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '' });
                 setIsModalOpen(true);
               }}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-emerald-600/20"
@@ -722,7 +722,9 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                             linea_producto_id: '',
                             categoria: '',
                             fecha_vencimiento: formData.fecha_vencimiento,
-                            monto_mxn_estimado: ''
+                            monto_mxn_estimado: '',
+                            detalle_horas: '',
+                            numero_orden: ''
                           });
                         }}
                       >
@@ -887,7 +889,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               setIsLoading(false);
               if (res.success) {
                 setIsModalOpen(false);
-                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '' });
+                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '' });
                 setEditingId(null);
               } else {
                 showNotification(res.error || 'Error al guardar', 'error');
