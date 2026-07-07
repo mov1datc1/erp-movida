@@ -413,6 +413,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
           
           @page { margin: 0; }
           body { margin-top: 1cm; margin-bottom: 1cm; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
         }
       `}} />
 
@@ -1638,8 +1639,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                 <div className="pl-[60px] pr-8 py-8 w-full z-10 flex flex-col h-full">
                   {/* Header */}
                   <div className="flex justify-between items-start mb-12">
-                     <div className="bg-[#004aad] p-6 text-white text-center w-48 h-64 flex flex-col items-center justify-center shadow-lg -mt-8">
-                       <img src="/logo.png" className="w-full h-auto object-contain brightness-0 invert" alt="Movida TCI" onError={(e) => e.currentTarget.style.display = 'none'} />
+                     <div className="bg-white p-6 text-center w-48 h-64 flex flex-col items-center justify-center shadow-[0_8px_30px_rgb(0,0,0,0.12)] -mt-8">
+                       <img src="/logo.png" className="w-full h-auto object-contain" alt="Movida TCI" onError={(e) => e.currentTarget.style.display = 'none'} />
                      </div>
                      <div className="text-right pt-16 pr-4">
                        <h1 className="text-[#004aad] text-5xl font-black leading-[1.1] tracking-wide">SOLICITUD<br/>DE PAGO</h1>

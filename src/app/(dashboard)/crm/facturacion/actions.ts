@@ -310,13 +310,30 @@ export async function crearFacturaUSA(data: { cliente_id: string, monto_total: n
 
 export async function crearFacturaMX(data: { cliente_id: string, monto_total: number, descripcion?: string, linea_producto_id?: string, categoria?: string, mes_servicio?: string, tipo_servicio?: string, plataformas?: string }) {
   try {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+    const prefix = `${currentYear}${currentMonth}`; // ej: 202607
+
     // Buscar la última factura MX para obtener el número actual
     const lastMx = await prisma.factura.findFirst({
       where: { es_mx: true },
       orderBy: { numero_mx: 'desc' }
     });
 
-    const nextNumero = lastMx && lastMx.numero_mx ? lastMx.numero_mx + 1 : 20260632;
+    let nextNumeroStr = `${prefix}05`; // Inicia en 05
+    
+    if (lastMx && lastMx.numero_mx) {
+      const lastNumeroStr = lastMx.numero_mx.toString();
+      // Si la última factura es del mismo año y mes
+      if (lastNumeroStr.startsWith(prefix)) {
+        const lastCounter = parseInt(lastNumeroStr.slice(6));
+        const nextCounter = (lastCounter + 5).toString().padStart(2, '0');
+        nextNumeroStr = `${prefix}${nextCounter}`;
+      }
+    }
+
+    const nextNumero = parseInt(nextNumeroStr);
     
     // Generar un UUID único para el folio fiscal de MX
     const folioFiscal = crypto.randomUUID().toUpperCase();
