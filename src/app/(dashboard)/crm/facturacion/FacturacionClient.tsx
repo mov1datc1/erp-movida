@@ -408,7 +408,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
         }
       `}} />
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print-header">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print-header print:hidden">
         <div>
           <h1 className="text-3xl font-bold text-primary tracking-tight">Facturación</h1>
           <p className="text-text-muted mt-1">Control de prefacturas y pagos de clientes.</p>
