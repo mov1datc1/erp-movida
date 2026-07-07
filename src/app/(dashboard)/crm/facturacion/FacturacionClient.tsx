@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare, Star, Trash2, ChevronDown, Check, Globe } from "lucide-react";
-import { createPrefactura, updatePrefactura, markFacturaAsPagada, saveFavoritoCXC, deleteFavoritoCXC, solicitarFacturacionCFDI, timbrarFacturaCFDI, crearFacturaUSA, eliminarFactura } from './actions';
+import { createPrefactura, updatePrefactura, markFacturaAsPagada, saveFavoritoCXC, deleteFavoritoCXC, solicitarFacturacionCFDI, timbrarFacturaCFDI, crearFacturaUSA, crearFacturaMX, eliminarFactura } from './actions';
 import { registrarPagoParcialCxC } from '@/app/actions/pagos';
 import QRCode from 'react-qr-code';
 
@@ -124,7 +124,7 @@ function numeroALetras(num: number, currency: string = 'USD'): string {
   return `${Millones(data.enteros).trim()} ${data.centavos.toString().padStart(2, '0')}/100 ${currency}`;
 }
 export function FacturacionClient({ facturas, clientes, catalog = [], favoritos = [] }: { facturas: any[], clientes: any[], catalog?: any[], favoritos?: any[] }) {
-  const [activeTab, setActiveTab] = useState<'por_cobrar' | 'historial' | 'facturacion' | 'usa'>('por_cobrar');
+  const [activeTab, setActiveTab] = useState<'por_cobrar' | 'historial' | 'facturacion' | 'usa' | 'mx'>('por_cobrar');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
@@ -145,7 +145,10 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     linea_producto_id: '', 
     categoria: '',
     detalle_horas: '',
-    numero_orden: ''
+    numero_orden: '',
+    mes_servicio: '',
+    tipo_servicio: '',
+    plataformas: ''
   });
   
   // For printing
@@ -240,16 +243,18 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
       // Tab Filter
       if (activeTab === 'por_cobrar') {
-        if (f.requiere_cfdi || f.es_usa) return false; // En facturación o USA
+        if (f.requiere_cfdi || f.es_usa || f.es_mx) return false; // En facturación o USA o MX
         if (f.estatus !== 'PENDIENTE' && f.estatus !== 'VENCIDA' && f.estatus !== 'PAGADA_PARCIALMENTE') return false;
       } else if (activeTab === 'facturacion') {
-        if (!f.requiere_cfdi || f.es_usa) return false; // Solo cfdi
+        if (!f.requiere_cfdi || f.es_usa || f.es_mx) return false; // Solo cfdi
       } else if (activeTab === 'usa') {
         if (!f.es_usa) return false; // Solo USA
+      } else if (activeTab === 'mx') {
+        if (!f.es_mx) return false; // Solo MX
       } else {
         // historial
         if (f.requiere_cfdi && f.estatus_cfdi !== 'FACTURADO' && f.estatus_cfdi !== 'CANCELADO') return false; // Borradores no van al historial
-        if (!f.es_usa && (f.estatus === 'PENDIENTE' || f.estatus === 'VENCIDA' || f.estatus === 'PAGADA_PARCIALMENTE')) return false;
+        if (!f.es_usa && !f.es_mx && (f.estatus === 'PENDIENTE' || f.estatus === 'VENCIDA' || f.estatus === 'PAGADA_PARCIALMENTE')) return false;
       }
 
       // Date Filter
@@ -279,7 +284,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
   const openNewModal = () => {
     setEditingId(null);
-    setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '' });
+    setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '' });
     setShowFavoritos(false);
     setFavSearchTerm('');
     setIsModalOpen(true);
@@ -296,7 +301,10 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
       linea_producto_id: factura.linea_producto_id || '',
       categoria: factura.categoria || '',
       detalle_horas: factura.detalle_horas || '',
-      numero_orden: factura.numero_orden || ''
+      numero_orden: factura.numero_orden || '',
+      mes_servicio: factura.mes_servicio || '',
+      tipo_servicio: factura.tipo_servicio || '',
+      plataformas: factura.plataformas || ''
     });
     setPrintData(factura);
     setShowFavoritos(false);
@@ -418,12 +426,24 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             <button 
               onClick={() => {
                 setEditingId(null);
-                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '' });
+                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '' });
                 setIsModalOpen(true);
               }}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-emerald-600/20"
             >
               <Globe className="w-5 h-5" /> Nueva Factura USA
+            </button>
+          )}
+          {activeTab === 'mx' && (
+            <button 
+              onClick={() => {
+                setEditingId(null);
+                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '' });
+                setIsModalOpen(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-blue-600/20"
+            >
+              <FileText className="w-5 h-5" /> Nueva Solicitud MX
             </button>
           )}
           <button 
@@ -486,6 +506,14 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               }`}
             >
               Facturas USA
+            </button>
+            <button
+              onClick={() => setActiveTab('mx')}
+              className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === 'mx' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              Facturas MX
             </button>
             <button
               onClick={() => setActiveTab('historial')}
@@ -724,7 +752,10 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                             fecha_vencimiento: formData.fecha_vencimiento,
                             monto_mxn_estimado: '',
                             detalle_horas: '',
-                            numero_orden: ''
+                            numero_orden: '',
+                            mes_servicio: '',
+                            tipo_servicio: '',
+                            plataformas: ''
                           });
                         }}
                       >
@@ -875,6 +906,17 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                     detalle_horas: formData.detalle_horas,
                     numero_orden: formData.numero_orden
                   });
+                } else if (activeTab === 'mx') {
+                  res = await crearFacturaMX({
+                    cliente_id: formData.cliente_id,
+                    monto_total: parseFloat(formData.monto_total),
+                    descripcion: formData.descripcion,
+                    linea_producto_id: formData.linea_producto_id,
+                    categoria: formData.categoria || 'Ventas Nacionales',
+                    mes_servicio: formData.mes_servicio,
+                    tipo_servicio: formData.tipo_servicio,
+                    plataformas: formData.plataformas
+                  });
                 } else {
                   res = await createPrefactura({
                     cliente_id: formData.cliente_id,
@@ -889,7 +931,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               setIsLoading(false);
               if (res.success) {
                 setIsModalOpen(false);
-                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '' });
+                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '' });
                 setEditingId(null);
               } else {
                 showNotification(res.error || 'Error al guardar', 'error');
@@ -1097,6 +1139,41 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                         onChange={e => setFormData({...formData, numero_orden: e.target.value})}
                         className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-sm bg-white"
                         placeholder="GA Telesis Order #: 49824"
+                      />
+                    </div>
+                  </>
+                )}
+
+                { (activeTab === 'mx' || printData?.es_mx) && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Mes de Servicio</label>
+                      <input 
+                        type="text" 
+                        value={formData.mes_servicio}
+                        onChange={e => setFormData({...formData, mes_servicio: e.target.value})}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-medium text-sm bg-white"
+                        placeholder="Ej: JUNIO"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de Servicio</label>
+                      <input 
+                        type="text" 
+                        value={formData.tipo_servicio}
+                        onChange={e => setFormData({...formData, tipo_servicio: e.target.value})}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-medium text-sm bg-white"
+                        placeholder="Ej: PUBLICIDAD ADS"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Plataformas (Opcional)</label>
+                      <input 
+                        type="text" 
+                        value={formData.plataformas}
+                        onChange={e => setFormData({...formData, plataformas: e.target.value})}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-medium text-sm bg-white"
+                        placeholder="Ej: GOOGLE ADS Y META ADS"
                       />
                     </div>
                   </>
@@ -1547,6 +1624,105 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                  </div>
               </div>
               
+            </div>
+          ) : printData.es_mx ? (
+            <div className="mx-invoice text-[12px] leading-tight font-sans text-black relative flex bg-white min-h-[1056px]">
+                {/* Left blue decorative sidebar */}
+                <div className="absolute left-0 top-0 bottom-0 w-[40px] bg-[#4b7cbb] z-0 overflow-hidden flex flex-col">
+                  {/* Decorative geometric shapes */}
+                  <div className="h-32 bg-[#3161a0] w-full transform -skew-y-12 origin-top-left mt-10"></div>
+                  <div className="h-48 bg-[#6494cd] w-full transform skew-y-12 origin-bottom-right mt-20 opacity-50"></div>
+                  <div className="h-64 bg-[#234c85] w-full transform -skew-y-12 origin-top-left mt-auto mb-20 opacity-80"></div>
+                </div>
+                
+                <div className="pl-[60px] pr-8 py-8 w-full z-10 flex flex-col h-full">
+                  {/* Header */}
+                  <div className="flex justify-between items-start mb-12">
+                     <div className="bg-[#004aad] p-6 text-white text-center w-48 h-64 flex flex-col items-center justify-center shadow-lg -mt-8">
+                       <img src="/logo.png" className="w-full h-auto object-contain brightness-0 invert" alt="Movida TCI" onError={(e) => e.currentTarget.style.display = 'none'} />
+                     </div>
+                     <div className="text-right pt-16 pr-4">
+                       <h1 className="text-[#004aad] text-5xl font-black leading-[1.1] tracking-wide">SOLICITUD<br/>DE PAGO</h1>
+                     </div>
+                  </div>
+                  
+                  {/* Info details */}
+                  <div className="flex justify-between mb-8 pr-4">
+                     <div className="w-1/2">
+                       <p className="text-[#004aad] font-bold text-lg mb-1">CLIENTE:</p>
+                       <p className="font-bold text-lg">{printData.cliente.razon_social || printData.cliente.empresa || printData.cliente.nombre}</p>
+                       <p className="text-[#004aad] font-bold text-xl mt-4 tracking-wide">Nº: {printData.numero_mx}</p>
+                     </div>
+                     <div className="w-1/2 text-right text-sm">
+                       <p className="text-[#004aad] font-bold text-lg mb-3">DETALLES DE SERVICIO:</p>
+                       <p className="mb-1.5"><strong className="text-[#004aad]">FECHA: </strong> 
+                         {(() => {
+                           const d = new Date(printData.fecha_emision);
+                           const months = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+                           return `${d.getDate()}/${months[d.getMonth()]} /${d.getFullYear()}`;
+                         })()}
+                       </p>
+                       {printData.mes_servicio && <p className="mb-1.5"><strong className="text-[#004aad]">MES DE SERVICIO: </strong> {printData.mes_servicio.toUpperCase()}</p>}
+                       {printData.tipo_servicio && <p className="mb-1.5"><strong className="text-[#004aad]">TIPO DE SERVICIO: </strong> {printData.tipo_servicio.toUpperCase()}</p>}
+                       {printData.plataformas && <p><strong className="text-[#004aad]">PLATAFORMAS: </strong> {printData.plataformas.toUpperCase()}</p>}
+                     </div>
+                  </div>
+                  
+                  {/* Table */}
+                  <table className="w-full text-center mb-8">
+                     <thead className="bg-[#0052b4] text-white">
+                        <tr>
+                          <th className="py-2.5 px-4 text-left font-bold text-sm tracking-widest">DESCRIPCIÓN</th>
+                          <th className="py-2.5 px-4 font-bold text-sm tracking-widest">CANTIDAD</th>
+                          <th className="py-2.5 px-4 text-right font-bold text-sm tracking-widest">MONTO</th>
+                        </tr>
+                     </thead>
+                     <tbody className="bg-[#eef2f6]">
+                        <tr>
+                          <td className="py-5 px-4 text-left font-bold text-[13px] leading-relaxed max-w-[280px] whitespace-pre-wrap">
+                            {printData.descripcion}
+                          </td>
+                          <td className="py-5 px-4 font-bold text-base">1</td>
+                          <td className="py-5 px-4 text-right font-bold text-base">MXN${formatCurrency(printData.monto_total).replace('$', '')}</td>
+                        </tr>
+                        <tr className="h-40"><td colSpan={3}></td></tr>
+                     </tbody>
+                  </table>
+                  
+                  <div className="border-t border-slate-200 w-full mb-6"></div>
+                  
+                  {/* Footer & Totals */}
+                  <div className="flex justify-between items-start flex-grow">
+                     <div className="w-[55%] pr-8">
+                        <p className="font-bold text-base mb-1">CONDICIONES:</p>
+                        <p className="text-[13px] text-slate-700">Pago por cada mes una exhibición del 100%</p>
+                        
+                        <p className="font-bold text-[13px] mt-10 mb-3 uppercase">ESTO ES UN RECORDATORIO DE PAGO, SE DESEA QUE SEA REALIZADO EN LOS PRIMEROS 5 DÍAS HÁBILES DE CADA MES.</p>
+                        <p className="text-[13px] text-slate-600 mb-0.5">¿Alguna pregunta?</p>
+                        <p className="text-[13px] text-slate-600">Envíanos un correo a:  info@movidatci.com</p>
+                     </div>
+                     <div className="w-[45%] flex flex-col justify-between h-full">
+                        <table className="w-full text-right text-[13px] text-slate-600">
+                           <tbody>
+                             <tr><td className="py-1.5 pr-8">Subtotal</td><td className="py-1.5 w-28">${formatCurrency(printData.monto_total).replace('$', '')}</td></tr>
+                             <tr><td className="py-1.5 pr-8">IVA::</td><td className="py-1.5 w-28">$0</td></tr>
+                             <tr><td className="py-4 pr-8 font-bold text-base text-black">TOTAL MXN:</td><td className="py-4 font-bold text-base text-black w-28">${formatCurrency(printData.monto_total).replace('$', '')}</td></tr>
+                           </tbody>
+                        </table>
+                        <div className="text-right mt-auto pb-4">
+                           <h2 className="text-[#004aad] text-6xl font-black tracking-tighter" style={{ fontFamily: 'Impact, sans-serif' }}>¡GRACIAS!</h2>
+                        </div>
+                     </div>
+                  </div>
+                  
+                  {/* Bottom Border & Address */}
+                  <div className="mt-8">
+                    <div className="border-t-[3px] border-[#004aad] w-full mx-auto pb-3"></div>
+                    <p className="text-center text-[13px] font-medium text-slate-700">
+                      Illinois 27 Colonia Nápoles  03840 CDMX
+                    </p>
+                  </div>
+                </div>
             </div>
           ) : (
             <div className="space-y-6">

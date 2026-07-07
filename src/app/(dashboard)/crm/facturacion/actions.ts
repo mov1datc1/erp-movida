@@ -37,7 +37,7 @@ export async function createPrefactura(data: { cliente_id: string, monto_total: 
   }
 }
 
-export async function updatePrefactura(id: string, data: { cliente_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string, linea_producto_id?: string, categoria?: string, detalle_horas?: string, numero_orden?: string }) {
+export async function updatePrefactura(id: string, data: { cliente_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string, linea_producto_id?: string, categoria?: string, detalle_horas?: string, numero_orden?: string, mes_servicio?: string, tipo_servicio?: string, plataformas?: string }) {
   try {
     const fechaVen = data.fecha_vencimiento ? new Date(`${data.fecha_vencimiento}T12:00:00Z`) : null;
     
@@ -51,6 +51,9 @@ export async function updatePrefactura(id: string, data: { cliente_id: string, m
         categoria: data.categoria,
         detalle_horas: data.detalle_horas,
         numero_orden: data.numero_orden,
+        mes_servicio: data.mes_servicio,
+        tipo_servicio: data.tipo_servicio,
+        plataformas: data.plataformas,
         ...(fechaVen && { fecha_vencimiento: fechaVen })
       }
     });
@@ -302,5 +305,46 @@ export async function crearFacturaUSA(data: { cliente_id: string, monto_total: n
   } catch (error) {
     console.error('Error creating USA Invoice:', error);
     return { success: false, error: 'No se pudo crear la Factura USA' };
+  }
+}
+
+export async function crearFacturaMX(data: { cliente_id: string, monto_total: number, descripcion?: string, linea_producto_id?: string, categoria?: string, mes_servicio?: string, tipo_servicio?: string, plataformas?: string }) {
+  try {
+    // Buscar la última factura MX para obtener el número actual
+    const lastMx = await prisma.factura.findFirst({
+      where: { es_mx: true },
+      orderBy: { numero_mx: 'desc' }
+    });
+
+    const nextNumero = lastMx && lastMx.numero_mx ? lastMx.numero_mx + 1 : 20260632;
+    
+    // Generar un UUID único para el folio fiscal de MX
+    const folioFiscal = crypto.randomUUID().toUpperCase();
+    const folio = `MX-${nextNumero}`;
+
+    const factura = await prisma.factura.create({
+      data: {
+        folio,
+        cliente_id: data.cliente_id,
+        monto_total: data.monto_total,
+        descripcion: data.descripcion,
+        estatus: 'PENDIENTE',
+        fecha_emision: new Date(),
+        es_mx: true,
+        numero_mx: nextNumero,
+        folio_fiscal: folioFiscal,
+        linea_producto_id: data.linea_producto_id,
+        categoria: data.categoria || 'Ventas Nacionales',
+        mes_servicio: data.mes_servicio,
+        tipo_servicio: data.tipo_servicio,
+        plataformas: data.plataformas
+      }
+    });
+
+    revalidatePath('/crm/facturacion');
+    return { success: true, factura };
+  } catch (error) {
+    console.error('Error creating MX Invoice:', error);
+    return { success: false, error: 'No se pudo crear la Factura MX' };
   }
 }

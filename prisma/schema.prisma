@@ -341,6 +341,13 @@ model Factura {
   detalle_horas     String?       @db.Text
   numero_orden      String?
   folio_fiscal      String?       // Folio interno (ej. FAC-MOV-510)
+  
+  // Facturas MX (Solicitud de Pago)
+  es_mx             Boolean       @default(false)
+  numero_mx         Int?
+  mes_servicio      String?
+  tipo_servicio     String?
+  plataformas       String?
   facturapi_id      String?       // ID de la factura en Facturapi
   uuid_sat          String?       // UUID oficial del SAT
   url_pdf           String?
