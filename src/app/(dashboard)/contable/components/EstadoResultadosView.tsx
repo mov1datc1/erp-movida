@@ -29,7 +29,7 @@ export function EstadoResultadosView({ movimientos, anio, mes }: EstadoResultado
     const otrosIngresos = ingresos.filter(m => !['Ventas y Servicios', 'Ventas', 'Servicios', 'Comisiones'].includes(m.categoria_ingreso || ''));
 
     // Costo Directo
-    const costoDirecto = egresos.filter(m => ['Costo de Ventas', 'Compras'].includes(m.categoria_egreso || ''));
+    const costoDirecto = egresos.filter(m => ['Costo de Ventas', 'Costo de Ventas - Subcontratación', 'Costo de Ventas - Nómina', 'Compras'].includes(m.categoria_egreso || ''));
     
     // Gastos Operativos (Se incluye Operaciones por confirmación del usuario)
     const gastosOperativos = egresos.filter(m => ['Nomina', 'Servicios', 'Software', 'Marketing', 'Operaciones', 'Gastos Operativos'].includes(m.categoria_egreso || ''));

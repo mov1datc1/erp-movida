@@ -54,9 +54,32 @@ async function main() {
     return;
   }
 
-  // Load existing clients and providers
   const allClientes = await prisma.cliente.findMany();
   const allProveedores = await prisma.proveedor.findMany();
+
+  // Machine Learning: Learn categories from previous imports
+  console.log('Aprendiendo categorizaciones previas...');
+  const categoryMapIngreso = new Map<string, string>();
+  const categoryMapEgreso = new Map<string, string>();
+  
+  const allMovs = await prisma.movimientoFinanciero.findMany({
+    orderBy: { fecha: 'asc' }
+  });
+  
+  for (const mov of allMovs) {
+    if (mov.descripcion.includes('- Importado de CSV')) {
+      const parts = mov.descripcion.split(' - ');
+      if (parts.length >= 3) {
+        const extractedName = normalizeName(parts[parts.length - 2]);
+        if (mov.sentido === 'INGRESO' && mov.categoria_ingreso && mov.categoria_ingreso !== 'Histórico') {
+          categoryMapIngreso.set(extractedName, mov.categoria_ingreso);
+        }
+        if (mov.sentido === 'EGRESO' && mov.categoria_egreso && mov.categoria_egreso !== 'Histórico') {
+          categoryMapEgreso.set(extractedName, mov.categoria_egreso);
+        }
+      }
+    }
+  }
 
   let insertCount = 0;
 
@@ -141,7 +164,7 @@ async function main() {
       const montoUsdUnico = amountUSD > 0 ? amountUSD : null;
       const fechaPago = fechaDoc || new Date();
 
-      const descPago = `Cobro de Factura/CxC: ${folioFactura} - Importado de CSV`;
+      const descPago = `Cobro de Factura/CxC: ${folioFactura} - ${nombre} - Importado de CSV`;
 
       const mov = await prisma.movimientoFinanciero.create({
         data: {
@@ -152,7 +175,7 @@ async function main() {
           sentido: SentidoMovimiento.INGRESO,
           tipo_flujo: TipoFlujo.OPERATIVO,
           origen: 'Cuenta Principal',
-          categoria_ingreso: 'Histórico',
+          categoria_ingreso: categoryMapIngreso.get(normName) || 'Histórico',
         }
       });
 
@@ -204,7 +227,7 @@ async function main() {
       const montoUsdUnico = amountUSD > 0 ? amountUSD : null;
       const fechaPago = fechaDoc || new Date();
 
-      const descPago = `Pago a Proveedor/CxP: ${folioFactura} - Importado de CSV`;
+      const descPago = `Pago a Proveedor/CxP: ${folioFactura} - ${nombre} - Importado de CSV`;
 
       const mov = await prisma.movimientoFinanciero.create({
         data: {
@@ -215,7 +238,7 @@ async function main() {
           sentido: SentidoMovimiento.EGRESO,
           tipo_flujo: TipoFlujo.OPERATIVO,
           origen: 'Cuenta Principal',
-          categoria_egreso: 'Histórico',
+          categoria_egreso: categoryMapEgreso.get(normName) || 'Histórico',
         }
       });
 

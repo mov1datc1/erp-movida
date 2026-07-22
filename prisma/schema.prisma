@@ -258,6 +258,8 @@ model Proyecto {
   hitos        HitoProyecto[]
   cotizaciones Cotizacion[]
   tareas       Tarea[]
+  cuentas_por_pagar CuentaPorPagar[]
+  movimientos       MovimientoFinanciero[]
 }
 
 enum ProyectoStatus {
@@ -427,6 +429,9 @@ model CuentaPorPagar {
   monto_pagado      Float         @default(0)
   pagos_parciales   PagoParcial[]
 
+  proyecto_id       String?
+  proyecto          Proyecto?     @relation(fields: [proyecto_id], references: [id], onDelete: SetNull)
+
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 }
@@ -476,6 +481,9 @@ model MovimientoFinanciero {
 
   linea_producto_id String?
   linea_producto    LineaProducto? @relation(fields: [linea_producto_id], references: [id], onDelete: SetNull)
+
+  proyecto_id       String?
+  proyecto          Proyecto?      @relation(fields: [proyecto_id], references: [id], onDelete: SetNull)
 
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt

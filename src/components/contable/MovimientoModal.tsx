@@ -264,7 +264,9 @@ export function MovimientoModal({ isOpen, onClose, initialType, initialData }: M
                   ) : (
                     <>
                       <option value="Histórico">Histórico</option>
-                      <option value="Nomina">Nómina</option>
+                      <option value="Costo de Ventas - Subcontratación">Costo de Ventas - Subcontratación (COGS)</option>
+                      <option value="Costo de Ventas - Nómina">Costo de Ventas - Nómina (COGS)</option>
+                      <option value="Nomina">Nómina (OPEX)</option>
                       <option value="Servicios">Servicios (Luz, Internet)</option>
                       <option value="Software">Licencias de Software</option>
                       <option value="Impuestos">Impuestos</option>
