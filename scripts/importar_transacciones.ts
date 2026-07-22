@@ -1,0 +1,294 @@
+import { SentidoMovimiento, TipoFlujo, FacturaStatus } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
+import { prisma } from '../src/lib/prisma';
+
+// Helper to parse DD/MM/YY to Date
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr || dateStr.trim() === '') return null;
+  const parts = dateStr.trim().split('/');
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // 0-indexed
+    let year = parseInt(parts[2], 10);
+    if (year < 100) year += 2000;
+    return new Date(year, month, day);
+  }
+  return null;
+}
+
+// Helper to parse amounts like "$2.500,00" or "-$13,64" or "" to float
+function parseAmount(amountStr: string): number {
+  if (!amountStr || amountStr.trim() === '') return 0;
+  // Remove '$', spaces, and '.' used as thousands separator
+  let clean = amountStr.replace(/\$/g, '').replace(/\s/g, '').replace(/\./g, '');
+  // Replace ',' with '.' for decimal
+  clean = clean.replace(/,/g, '.');
+  const num = parseFloat(clean);
+  return isNaN(num) ? 0 : num;
+}
+
+// Normalize name for matching
+function normalizeName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+async function main() {
+  console.log('Iniciando importación ETL de CSV...');
+
+  // Cleanup from previous runs
+  console.log('Limpiando importaciones previas...');
+  await prisma.movimientoFinanciero.deleteMany({ where: { descripcion: { contains: 'Pago' }, categoria_ingreso: 'Histórico' } }).catch(() => {});
+  await prisma.movimientoFinanciero.deleteMany({ where: { descripcion: { contains: 'Pago' }, categoria_egreso: 'Histórico' } }).catch(() => {});
+  await prisma.factura.deleteMany({ where: { descripcion: { contains: 'Importado de CSV' } } });
+  await prisma.cuentaPorPagar.deleteMany({ where: { descripcion: { contains: 'Importado de CSV' } } });
+  
+  const dataDir = path.resolve(process.cwd(), '../datos_historicos');
+  if (!fs.existsSync(dataDir)) {
+    console.error(`No se encontró el directorio: ${dataDir}`);
+    process.exit(1);
+  }
+
+  const files = fs.readdirSync(dataDir).filter(f => f.toLowerCase().endsWith('.csv'));
+  if (files.length === 0) {
+    console.log(`No hay archivos CSV en ${dataDir}`);
+    return;
+  }
+
+  // Load existing clients and providers
+  const allClientes = await prisma.cliente.findMany();
+  const allProveedores = await prisma.proveedor.findMany();
+
+  let insertCount = 0;
+
+  for (const file of files) {
+    const csvPath = path.join(dataDir, file);
+    console.log(`Procesando archivo: ${file}...`);
+    const content = fs.readFileSync(csvPath, 'utf8');
+    const lines = content.split('\n');
+
+    for (const line of lines) {
+    if (!line.startsWith('I;') && !line.startsWith('E;')) continue;
+    
+    const cols = line.split(';');
+    
+    const tipo = cols[0]; // I or E
+    const fechaDoc = parseDate(cols[1]);
+    const nombre = cols[2].trim();
+    const facturaNum = cols[3].trim();
+    const remision = cols[4].trim();
+    const idNum = cols[5].trim();
+    
+    const usdStr = cols[6];
+    const mxnStr = cols[7];
+    
+    let amountUSD = parseAmount(usdStr);
+    let amountMXN = parseAmount(mxnStr);
+    
+    // Si la tasa de cambio es 17.3
+    const TASA_CAMBIO = 17.3;
+    let montoTotalMxn = amountMXN;
+    if (montoTotalMxn === 0 && amountUSD !== 0) {
+      montoTotalMxn = amountUSD * TASA_CAMBIO;
+    } else if (montoTotalMxn !== 0 && amountUSD === 0) {
+      amountUSD = montoTotalMxn / TASA_CAMBIO;
+    }
+
+    if (montoTotalMxn === 0) continue; // Skip empty rows
+
+    const baseFolio = facturaNum || remision || idNum || `FOLIO-${Date.now()}`;
+    const folioFactura = `${baseFolio}-${insertCount}`.substring(0, 50);
+
+    const normName = normalizeName(nombre);
+
+    if (tipo === 'I') {
+      // INGRESO -> Cliente & Factura
+      let cliente = allClientes.find(c => normalizeName(c.nombre) === normName);
+      if (!cliente) {
+        console.log(`Creando cliente nuevo: ${nombre}`);
+        cliente = await prisma.cliente.create({
+          data: { nombre, fuente: 'Importación Histórica' }
+        });
+        allClientes.push(cliente); // cache
+      }
+
+      // Create Factura
+      const factura = await prisma.factura.create({
+        data: {
+          folio: folioFactura.substring(0, 50),
+          fecha_emision: fechaDoc || new Date(),
+          monto_total: montoTotalMxn,
+          descripcion: `Importado de CSV - Remisión: ${remision}, ID: ${idNum}`,
+          estatus: FacturaStatus.PENDIENTE, 
+          cliente_id: cliente.id,
+        }
+      });
+
+      // Handle Payments
+      const pagos = [
+        { fecha: parseDate(cols[8]), forma: cols[9], monto: parseAmount(cols[10]) },
+        { fecha: parseDate(cols[11]), forma: cols[12], monto: parseAmount(cols[13]) },
+        { fecha: parseDate(cols[14]), forma: cols[15], monto: parseAmount(cols[16]) },
+      ];
+
+      let montoPagadoTotal = 0;
+      for (const pago of pagos) {
+        if (pago.monto > 0) {
+          let pagoMxn = pago.monto;
+          let pagoUsd = 0;
+          if (amountMXN === 0 && amountUSD > 0) {
+             pagoUsd = pago.monto;
+             pagoMxn = pago.monto * TASA_CAMBIO;
+          }
+
+          const mov = await prisma.movimientoFinanciero.create({
+             data: {
+               fecha: pago.fecha || fechaDoc || new Date(),
+               descripcion: `Pago de Factura ${folioFactura} - ${nombre}`,
+               monto: pagoMxn,
+               monto_usd: pagoUsd > 0 ? pagoUsd : null,
+               tipo_flujo: TipoFlujo.OPERATIVO,
+               sentido: SentidoMovimiento.INGRESO,
+               origen: 'Cuenta Principal', 
+               categoria_ingreso: 'Histórico',
+             }
+          });
+
+          await prisma.pagoParcial.create({
+            data: {
+              monto: pagoMxn,
+              fecha: pago.fecha || fechaDoc || new Date(),
+              metodo_pago: pago.forma,
+              factura_id: factura.id,
+              movimiento_id: mov.id
+            }
+          });
+          montoPagadoTotal += pagoMxn;
+        }
+      }
+
+      let finalStatus = FacturaStatus.PENDIENTE;
+      if (montoPagadoTotal > 0) {
+         if (montoPagadoTotal >= montoTotalMxn * 0.99) { 
+            finalStatus = FacturaStatus.PAGADA;
+         } else {
+            finalStatus = FacturaStatus.PAGADA_PARCIALMENTE;
+         }
+      }
+      
+      const saldoCsv = parseAmount(cols[17]);
+      if (saldoCsv === 0 && finalStatus === FacturaStatus.PENDIENTE) {
+         finalStatus = FacturaStatus.PAGADA; 
+      }
+
+      await prisma.factura.update({
+        where: { id: factura.id },
+        data: { 
+          monto_pagado: montoPagadoTotal,
+          estatus: finalStatus
+        }
+      });
+
+      insertCount++;
+
+    } else if (tipo === 'E') {
+      // EGRESO -> Proveedor & CuentaPorPagar
+      let proveedor = allProveedores.find(p => normalizeName(p.nombre) === normName);
+      if (!proveedor) {
+        console.log(`Creando proveedor nuevo: ${nombre}`);
+        proveedor = await prisma.proveedor.create({
+          data: { nombre }
+        });
+        allProveedores.push(proveedor); // cache
+      }
+
+      const cuentaPagar = await prisma.cuentaPorPagar.create({
+        data: {
+          folio: folioFactura.substring(0, 50),
+          fecha_emision: fechaDoc || new Date(),
+          monto_total: montoTotalMxn,
+          descripcion: `Importado de CSV - Remisión: ${remision}, ID: ${idNum}`,
+          estatus: FacturaStatus.PENDIENTE,
+          proveedor_id: proveedor.id,
+        }
+      });
+
+      // Handle Payments
+      const pagos = [
+        { fecha: parseDate(cols[8]), forma: cols[9], monto: parseAmount(cols[10]) },
+        { fecha: parseDate(cols[11]), forma: cols[12], monto: parseAmount(cols[13]) },
+        { fecha: parseDate(cols[14]), forma: cols[15], monto: parseAmount(cols[16]) },
+      ];
+
+      let montoPagadoTotal = 0;
+      for (const pago of pagos) {
+        if (pago.monto > 0) {
+          let pagoMxn = pago.monto;
+          let pagoUsd = 0;
+          if (amountMXN === 0 && amountUSD > 0) {
+             pagoUsd = pago.monto;
+             pagoMxn = pago.monto * TASA_CAMBIO;
+          }
+
+          const mov = await prisma.movimientoFinanciero.create({
+             data: {
+               fecha: pago.fecha || fechaDoc || new Date(),
+               descripcion: `Pago a Proveedor ${nombre} - ${folioFactura}`,
+               monto: pagoMxn,
+               monto_usd: pagoUsd > 0 ? pagoUsd : null,
+               tipo_flujo: TipoFlujo.OPERATIVO,
+               sentido: SentidoMovimiento.EGRESO,
+               origen: 'Cuenta Principal',
+               categoria_egreso: 'Histórico',
+             }
+          });
+
+          await prisma.pagoParcial.create({
+            data: {
+              monto: pagoMxn,
+              fecha: pago.fecha || fechaDoc || new Date(),
+              metodo_pago: pago.forma,
+              cuenta_por_pagar_id: cuentaPagar.id,
+              movimiento_id: mov.id
+            }
+          });
+          montoPagadoTotal += pagoMxn;
+        }
+      }
+
+      let finalStatus = FacturaStatus.PENDIENTE;
+      if (montoPagadoTotal > 0) {
+         if (montoPagadoTotal >= montoTotalMxn * 0.99) { 
+            finalStatus = FacturaStatus.PAGADA;
+         } else {
+            finalStatus = FacturaStatus.PAGADA_PARCIALMENTE;
+         }
+      }
+
+      const saldoCsv = parseAmount(cols[17]);
+      if (saldoCsv === 0 && finalStatus === FacturaStatus.PENDIENTE) {
+         finalStatus = FacturaStatus.PAGADA;
+      }
+
+      await prisma.cuentaPorPagar.update({
+        where: { id: cuentaPagar.id },
+        data: { 
+          monto_pagado: montoPagadoTotal,
+          estatus: finalStatus
+        }
+      });
+
+      insertCount++;
+    }
+  } // Fin del loop de líneas
+  } // Fin del loop de archivos
+
+  console.log(`¡Importación completada! Se inyectaron ${insertCount} registros principales (Facturas/Cuentas por Pagar).`);
+}
+
+main().catch(e => {
+  console.error('Error durante la importación:', e);
+  process.exit(1);
+}).finally(() => {
+  prisma.$disconnect();
+});
