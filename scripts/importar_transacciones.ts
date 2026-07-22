@@ -124,68 +124,43 @@ async function main() {
         }
       });
 
-      // Handle Payments
-      const pagos = [
-        { fecha: parseDate(cols[8]), forma: cols[9], monto: parseAmount(cols[10]) },
-        { fecha: parseDate(cols[11]), forma: cols[12], monto: parseAmount(cols[13]) },
-        { fecha: parseDate(cols[14]), forma: cols[15], monto: parseAmount(cols[16]) },
-      ];
+      // CREAR EL PAGO PARCIAL Y MOVIMIENTO (Un solo pago por el total)
+      // Se solicitó ignorar los pagos 1, 2 y 3 y tomar exclusivamente CANTIDAD USD/MXN como el movimiento.
+      const montoTotalMxnUnico = montoTotalMxn;
+      const montoUsdUnico = amountUSD > 0 ? amountUSD : null;
+      const fechaPago = fechaDoc || new Date();
 
-      let montoPagadoTotal = 0;
-      for (const pago of pagos) {
-        if (pago.monto > 0) {
-          let pagoMxn = pago.monto;
-          let pagoUsd = 0;
-          if (amountMXN === 0 && amountUSD > 0) {
-             pagoUsd = pago.monto;
-             pagoMxn = pago.monto * TASA_CAMBIO;
-          }
+      const descPago = `Cobro de Factura/CxC: ${folioFactura} - Importado de CSV`;
 
-          const mov = await prisma.movimientoFinanciero.create({
-             data: {
-               fecha: pago.fecha || fechaDoc || new Date(),
-               descripcion: `Pago de Factura ${folioFactura} - ${nombre}`,
-               monto: pagoMxn,
-               monto_usd: pagoUsd > 0 ? pagoUsd : null,
-               tipo_flujo: TipoFlujo.OPERATIVO,
-               sentido: SentidoMovimiento.INGRESO,
-               origen: 'Cuenta Principal', 
-               categoria_ingreso: 'Histórico',
-             }
-          });
-
-          await prisma.pagoParcial.create({
-            data: {
-              monto: pagoMxn,
-              fecha: pago.fecha || fechaDoc || new Date(),
-              metodo_pago: pago.forma,
-              factura_id: factura.id,
-              movimiento_id: mov.id
-            }
-          });
-          montoPagadoTotal += pagoMxn;
+      const mov = await prisma.movimientoFinanciero.create({
+        data: {
+          fecha: fechaPago,
+          descripcion: descPago,
+          monto: montoTotalMxnUnico,
+          monto_usd: montoUsdUnico,
+          sentido: SentidoMovimiento.INGRESO,
+          tipo_flujo: TipoFlujo.OPERATIVO,
+          origen: 'Cuenta Principal',
+          categoria_ingreso: 'Histórico',
         }
-      }
+      });
 
-      let finalStatus = FacturaStatus.PENDIENTE;
-      if (montoPagadoTotal > 0) {
-         if (montoPagadoTotal >= montoTotalMxn * 0.99) { 
-            finalStatus = FacturaStatus.PAGADA;
-         } else {
-            finalStatus = FacturaStatus.PAGADA_PARCIALMENTE;
-         }
-      }
-      
-      const saldoCsv = parseAmount(cols[17]);
-      if (saldoCsv === 0 && finalStatus === FacturaStatus.PENDIENTE) {
-         finalStatus = FacturaStatus.PAGADA; 
-      }
+      await prisma.pagoParcial.create({
+        data: {
+          monto: montoTotalMxnUnico,
+          fecha: fechaPago,
+          metodo_pago: 'Transferencia',
+          referencia: 'Histórico CSV',
+          factura_id: factura.id,
+          movimiento_id: mov.id
+        }
+      });
 
       await prisma.factura.update({
         where: { id: factura.id },
         data: { 
-          monto_pagado: montoPagadoTotal,
-          estatus: finalStatus
+          monto_pagado: montoTotalMxnUnico,
+          estatus: FacturaStatus.PAGADA
         }
       });
 
@@ -213,68 +188,42 @@ async function main() {
         }
       });
 
-      // Handle Payments
-      const pagos = [
-        { fecha: parseDate(cols[8]), forma: cols[9], monto: parseAmount(cols[10]) },
-        { fecha: parseDate(cols[11]), forma: cols[12], monto: parseAmount(cols[13]) },
-        { fecha: parseDate(cols[14]), forma: cols[15], monto: parseAmount(cols[16]) },
-      ];
+      // CREAR EL PAGO PARCIAL Y MOVIMIENTO (Un solo pago por el total)
+      const montoTotalMxnUnico = montoTotalMxn;
+      const montoUsdUnico = amountUSD > 0 ? amountUSD : null;
+      const fechaPago = fechaDoc || new Date();
 
-      let montoPagadoTotal = 0;
-      for (const pago of pagos) {
-        if (pago.monto > 0) {
-          let pagoMxn = pago.monto;
-          let pagoUsd = 0;
-          if (amountMXN === 0 && amountUSD > 0) {
-             pagoUsd = pago.monto;
-             pagoMxn = pago.monto * TASA_CAMBIO;
-          }
+      const descPago = `Pago a Proveedor/CxP: ${folioFactura} - Importado de CSV`;
 
-          const mov = await prisma.movimientoFinanciero.create({
-             data: {
-               fecha: pago.fecha || fechaDoc || new Date(),
-               descripcion: `Pago a Proveedor ${nombre} - ${folioFactura}`,
-               monto: pagoMxn,
-               monto_usd: pagoUsd > 0 ? pagoUsd : null,
-               tipo_flujo: TipoFlujo.OPERATIVO,
-               sentido: SentidoMovimiento.EGRESO,
-               origen: 'Cuenta Principal',
-               categoria_egreso: 'Histórico',
-             }
-          });
-
-          await prisma.pagoParcial.create({
-            data: {
-              monto: pagoMxn,
-              fecha: pago.fecha || fechaDoc || new Date(),
-              metodo_pago: pago.forma,
-              cuenta_por_pagar_id: cuentaPagar.id,
-              movimiento_id: mov.id
-            }
-          });
-          montoPagadoTotal += pagoMxn;
+      const mov = await prisma.movimientoFinanciero.create({
+        data: {
+          fecha: fechaPago,
+          descripcion: descPago,
+          monto: montoTotalMxnUnico,
+          monto_usd: montoUsdUnico,
+          sentido: SentidoMovimiento.EGRESO,
+          tipo_flujo: TipoFlujo.OPERATIVO,
+          origen: 'Cuenta Principal',
+          categoria_egreso: 'Histórico',
         }
-      }
+      });
 
-      let finalStatus = FacturaStatus.PENDIENTE;
-      if (montoPagadoTotal > 0) {
-         if (montoPagadoTotal >= montoTotalMxn * 0.99) { 
-            finalStatus = FacturaStatus.PAGADA;
-         } else {
-            finalStatus = FacturaStatus.PAGADA_PARCIALMENTE;
-         }
-      }
-
-      const saldoCsv = parseAmount(cols[17]);
-      if (saldoCsv === 0 && finalStatus === FacturaStatus.PENDIENTE) {
-         finalStatus = FacturaStatus.PAGADA;
-      }
+      await prisma.pagoParcial.create({
+        data: {
+          monto: montoTotalMxnUnico,
+          fecha: fechaPago,
+          metodo_pago: 'Transferencia',
+          referencia: 'Histórico CSV',
+          cuenta_por_pagar_id: cuentaPagar.id,
+          movimiento_id: mov.id
+        }
+      });
 
       await prisma.cuentaPorPagar.update({
         where: { id: cuentaPagar.id },
         data: { 
-          monto_pagado: montoPagadoTotal,
-          estatus: finalStatus
+          monto_pagado: montoTotalMxnUnico,
+          estatus: FacturaStatus.PAGADA
         }
       });
 
