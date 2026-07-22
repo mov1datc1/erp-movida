@@ -253,6 +253,7 @@ export function MovimientoModal({ isOpen, onClose, initialType, initialData }: M
                   <option value="" disabled>Selecciona una categoría</option>
                   {tipo === 'Ingreso' ? (
                     <>
+                      <option value="Histórico">Histórico</option>
                       <option value="Ventas y Servicios">Ventas y Servicios</option>
                       <option value="Subarrendamiento">Subarrendamiento</option>
                       <option value="Venta de Activos">Venta de Activos</option>
@@ -262,6 +263,7 @@ export function MovimientoModal({ isOpen, onClose, initialType, initialData }: M
                     </>
                   ) : (
                     <>
+                      <option value="Histórico">Histórico</option>
                       <option value="Nomina">Nómina</option>
                       <option value="Servicios">Servicios (Luz, Internet)</option>
                       <option value="Software">Licencias de Software</option>
