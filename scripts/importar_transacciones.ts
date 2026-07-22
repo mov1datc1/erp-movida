@@ -38,8 +38,7 @@ async function main() {
 
   // Cleanup from previous runs
   console.log('Limpiando importaciones previas...');
-  await prisma.movimientoFinanciero.deleteMany({ where: { descripcion: { contains: 'Pago' }, categoria_ingreso: 'Histórico' } }).catch(() => {});
-  await prisma.movimientoFinanciero.deleteMany({ where: { descripcion: { contains: 'Pago' }, categoria_egreso: 'Histórico' } }).catch(() => {});
+  await prisma.movimientoFinanciero.deleteMany({ where: { descripcion: { contains: 'Importado de CSV' } } }).catch(() => {});
   await prisma.factura.deleteMany({ where: { descripcion: { contains: 'Importado de CSV' } } });
   await prisma.cuentaPorPagar.deleteMany({ where: { descripcion: { contains: 'Importado de CSV' } } });
   
@@ -94,7 +93,19 @@ async function main() {
       amountUSD = montoTotalMxn / TASA_CAMBIO;
     }
 
-    if (montoTotalMxn === 0) continue; // Skip empty rows
+    // Fallback: Si las columnas de CANTIDAD (USD y MXN) están vacías,
+    // intentamos rescatar el monto de la columna de "PAGO 1 MONTO" (col 10)
+    if (montoTotalMxn === 0) {
+      const fallbackMonto = parseAmount(cols[10]);
+      if (fallbackMonto > 0) {
+        montoTotalMxn = fallbackMonto;
+      }
+    }
+
+    if (montoTotalMxn === 0) {
+      console.log(`Saltando fila sin monto: ${line}`);
+      continue; // Skip empty rows
+    }
 
     const baseFolio = facturaNum || remision || idNum || `FOLIO-${Date.now()}`;
     const folioFactura = `${baseFolio}-${insertCount}`.substring(0, 50);
