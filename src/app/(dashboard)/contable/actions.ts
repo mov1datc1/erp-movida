@@ -11,7 +11,9 @@ export async function createMovimiento(data: {
   fecha: string,
   categoria: string,
   descripcion: string,
-  origen: string
+  origen: string,
+  es_fiscal: boolean,
+  linea_producto_id?: string | null
 }) {
   try {
     await prisma.movimientoFinanciero.create({
@@ -25,6 +27,8 @@ export async function createMovimiento(data: {
         origen: data.origen,
         categoria_ingreso: data.tipo === 'Ingreso' ? data.categoria : null,
         categoria_egreso: data.tipo === 'Egreso' ? data.categoria : null,
+        es_fiscal: data.es_fiscal,
+        linea_producto_id: data.linea_producto_id || null,
       }
     })
 
@@ -45,7 +49,9 @@ export async function updateMovimiento(
     fecha: string,
     categoria: string,
     descripcion: string,
-    origen: string
+    origen: string,
+    es_fiscal: boolean,
+    linea_producto_id?: string | null
   }
 ) {
   try {
@@ -60,6 +66,8 @@ export async function updateMovimiento(
         origen: data.origen,
         categoria_ingreso: data.tipo === 'Ingreso' ? data.categoria : null,
         categoria_egreso: data.tipo === 'Egreso' ? data.categoria : null,
+        es_fiscal: data.es_fiscal,
+        linea_producto_id: data.linea_producto_id || null,
       }
     })
 

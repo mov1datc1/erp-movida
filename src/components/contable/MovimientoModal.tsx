@@ -15,6 +15,8 @@ export interface MovimientoData {
   categoria: string;
   descripcion: string;
   origen: string;
+  es_fiscal?: boolean;
+  linea_producto_id?: string | null;
 }
 
 interface MovimientoModalProps {
@@ -22,6 +24,7 @@ interface MovimientoModalProps {
   onClose: () => void;
   initialType?: MovimientoType;
   initialData?: MovimientoData | null;
+  lineasProducto?: any[];
 }
 
 const ORIGENES = [
@@ -30,12 +33,13 @@ const ORIGENES = [
   'Criptomonedas',
   'Tarjeta',
   'PayPal',
+  'Payoneer',
   'Stripe',
   'MercadoPago',
   'Otro'
 ];
 
-export function MovimientoModal({ isOpen, onClose, initialType, initialData }: MovimientoModalProps) {
+export function MovimientoModal({ isOpen, onClose, initialType, initialData, lineasProducto = [] }: MovimientoModalProps) {
   const [tipo, setTipo] = useState<MovimientoType>(initialType || 'Ingreso');
   const [monto, setMonto] = useState('');
   const [montoUsd, setMontoUsd] = useState('');
@@ -43,6 +47,8 @@ export function MovimientoModal({ isOpen, onClose, initialType, initialData }: M
   const [categoria, setCategoria] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [origen, setOrigen] = useState('Banco');
+  const [esFiscal, setEsFiscal] = useState(true);
+  const [lineaProductoId, setLineaProductoId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -54,6 +60,8 @@ export function MovimientoModal({ isOpen, onClose, initialType, initialData }: M
       setCategoria(initialData.categoria);
       setDescripcion(initialData.descripcion);
       setOrigen(initialData.origen || 'Banco');
+      setEsFiscal(initialData.es_fiscal ?? true);
+      setLineaProductoId(initialData.linea_producto_id || '');
     } else {
       if (initialType) setTipo(initialType);
       setMonto('');
@@ -65,6 +73,8 @@ export function MovimientoModal({ isOpen, onClose, initialType, initialData }: M
       setCategoria('');
       setDescripcion('');
       setOrigen('Banco');
+      setEsFiscal(true);
+      setLineaProductoId('');
     }
   }, [initialData, initialType, isOpen]);
 
@@ -83,7 +93,9 @@ export function MovimientoModal({ isOpen, onClose, initialType, initialData }: M
         fecha,
         categoria,
         descripcion,
-        origen
+        origen,
+        es_fiscal: esFiscal,
+        linea_producto_id: lineaProductoId || null,
       };
 
       let res;
@@ -226,7 +238,15 @@ export function MovimientoModal({ isOpen, onClose, initialType, initialData }: M
                   <select
                     required
                     value={origen}
-                    onChange={(e) => setOrigen(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setOrigen(val);
+                      if (['PayPal', 'Payoneer', 'Criptomonedas', 'Stripe', 'MercadoPago', 'Otro'].includes(val)) {
+                        setEsFiscal(false);
+                      } else {
+                        setEsFiscal(true);
+                      }
+                    }}
                     className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-text-main font-medium appearance-none"
                   >
                     <option value="" disabled>Selecciona un origen</option>
@@ -236,6 +256,40 @@ export function MovimientoModal({ isOpen, onClose, initialType, initialData }: M
                   </select>
                 </div>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-sm font-semibold text-text-main ml-1">Es movimiento fiscal (CFDI)</label>
+                <div className="flex items-center gap-3 pt-2 pl-2">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer"
+                      checked={esFiscal}
+                      onChange={(e) => setEsFiscal(e.target.checked)}
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    <span className="ml-3 text-sm font-medium text-slate-700">{esFiscal ? 'Sí, reportable al SAT' : 'No, cuenta shadow / interna'}</span>
+                  </label>
+                </div>
+              </div>
+
+              {lineasProducto.length > 0 && (
+                <div className="space-y-1">
+                  <label className="text-sm font-semibold text-text-main ml-1">Línea de Negocio</label>
+                  <select
+                    value={lineaProductoId}
+                    onChange={(e) => setLineaProductoId(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-text-main font-medium appearance-none"
+                  >
+                    <option value="">Selecciona (Opcional)</option>
+                    {lineasProducto.map(lp => (
+                      <option key={lp.id} value={lp.id}>{lp.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -272,6 +326,8 @@ export function MovimientoModal({ isOpen, onClose, initialType, initialData }: M
                       <option value="Impuestos">Impuestos</option>
                       <option value="Operaciones">Operaciones</option>
                       <option value="Marketing">Marketing y Ventas</option>
+                      <option value="Marketing y Pauta (CAC)">Marketing y Pauta (CAC)</option>
+                      <option value="Inversión (CAPEX)">Inversión (CAPEX)</option>
                       <option value="Otros">Otros Egresos</option>
                     </>
                   )}

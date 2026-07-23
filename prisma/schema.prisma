@@ -476,6 +476,7 @@ model MovimientoFinanciero {
   tipo_flujo        TipoFlujo
   sentido           SentidoMovimiento
   origen            String
+  es_fiscal         Boolean           @default(true)
   categoria_ingreso String?
   categoria_egreso  String?
 

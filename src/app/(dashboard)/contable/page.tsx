@@ -50,6 +50,10 @@ export default async function ContablePage() {
     return curr.sentido === 'INGRESO' ? acc + curr.monto : acc - curr.monto;
   }, 0);
 
+  const lineasProducto = await prisma.lineaProducto.findMany({
+    where: { activa: true }
+  });
+
   return (
     <ContableClient 
       movimientos={movimientos} 
@@ -59,6 +63,7 @@ export default async function ContablePage() {
       rawMovimientos={dbMovimientos}
       facturasPendientes={facturasPendientes}
       oportunidadesMes={oportunidadesMes}
+      lineasProducto={lineasProducto}
     />
   );
 }

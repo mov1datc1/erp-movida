@@ -1,23 +1,28 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { MovimientoFinanciero } from '@prisma/client';
-import { Download } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { MovimientoFinanciero, LineaProducto } from '@prisma/client';
+import { Download, Eye } from 'lucide-react';
+
+type MovimientoConLinea = MovimientoFinanciero & { linea_producto?: LineaProducto | null };
 
 interface EstadoResultadosViewProps {
-  movimientos: MovimientoFinanciero[];
+  movimientos: MovimientoConLinea[];
   anio: string;
   mes: string;
 }
 
 export function EstadoResultadosView({ movimientos, anio, mes }: EstadoResultadosViewProps) {
 
+  const [vistaFiscal, setVistaFiscal] = useState(false);
+
   const data = useMemo(() => {
     let filtrados = movimientos.filter(m => {
       const d = new Date(m.fecha);
       const yearMatch = d.getFullYear().toString() === anio;
       const monthMatch = mes === '' || (d.getMonth() + 1).toString() === mes;
-      return yearMatch && monthMatch;
+      const fiscalMatch = vistaFiscal ? m.es_fiscal === true : true;
+      return yearMatch && monthMatch && fiscalMatch;
     });
 
     const ingresos = filtrados.filter(m => m.sentido === 'INGRESO');
@@ -32,16 +37,18 @@ export function EstadoResultadosView({ movimientos, anio, mes }: EstadoResultado
     const costoDirecto = egresos.filter(m => ['Costo de Ventas', 'Costo de Ventas - Subcontratación', 'Costo de Ventas - Nómina', 'Compras'].includes(m.categoria_egreso || ''));
     
     // Gastos Operativos (Se incluye Operaciones por confirmación del usuario)
-    const gastosOperativos = egresos.filter(m => ['Nomina', 'Servicios', 'Software', 'Marketing', 'Operaciones', 'Gastos Operativos'].includes(m.categoria_egreso || ''));
+    const gastosOperativos = egresos.filter(m => ['Nomina', 'Servicios', 'Software', 'Marketing', 'Marketing y Pauta (CAC)', 'Operaciones', 'Gastos Operativos'].includes(m.categoria_egreso || ''));
     
     const impuestos = egresos.filter(m => m.categoria_egreso === 'Impuestos');
-    const otrosEgresos = egresos.filter(m => !['Costo de Ventas', 'Compras', 'Nomina', 'Servicios', 'Software', 'Marketing', 'Operaciones', 'Gastos Operativos', 'Impuestos'].includes(m.categoria_egreso || ''));
+    const capex = egresos.filter(m => m.categoria_egreso === 'Inversión (CAPEX)');
+    const otrosEgresos = egresos.filter(m => !['Costo de Ventas', 'Costo de Ventas - Subcontratación', 'Costo de Ventas - Nómina', 'Compras', 'Nomina', 'Servicios', 'Software', 'Marketing', 'Marketing y Pauta (CAC)', 'Operaciones', 'Gastos Operativos', 'Impuestos', 'Inversión (CAPEX)'].includes(m.categoria_egreso || ''));
 
     const totalIngresosOperativos = ingresosOperativos.reduce((acc, m) => acc + m.monto, 0);
     const totalOtrosIngresos = otrosIngresos.reduce((acc, m) => acc + m.monto, 0);
     const totalCostoDirecto = costoDirecto.reduce((acc, m) => acc + m.monto, 0);
     const totalGastosOperativos = gastosOperativos.reduce((acc, m) => acc + m.monto, 0);
     const totalImpuestos = impuestos.reduce((acc, m) => acc + m.monto, 0);
+    const totalCapex = capex.reduce((acc, m) => acc + m.monto, 0);
     const totalOtrosEgresos = otrosEgresos.reduce((acc, m) => acc + m.monto, 0);
 
     const utilidadBruta = totalIngresosOperativos - totalCostoDirecto;
@@ -56,6 +63,30 @@ export function EstadoResultadosView({ movimientos, anio, mes }: EstadoResultado
     // Margen Operativo (EBITDA / Ingresos Operativos)
     const margenOperativo = totalIngresosOperativos > 0 ? (ebitda / totalIngresosOperativos) * 100 : 0;
 
+    // Margen por Línea de Negocio
+    const margenPorLinea = ingresosOperativos.reduce((acc, m) => {
+      const linea = m.linea_producto?.nombre || 'Sin Línea Clasificada';
+      if (!acc[linea]) acc[linea] = { ingresos: 0, cogs: 0 };
+      acc[linea].ingresos += m.monto;
+      return acc;
+    }, {} as Record<string, { ingresos: number, cogs: number }>);
+
+    costoDirecto.forEach(m => {
+      const linea = m.linea_producto?.nombre || 'Sin Línea Clasificada';
+      if (!margenPorLinea[linea]) margenPorLinea[linea] = { ingresos: 0, cogs: 0 };
+      margenPorLinea[linea].cogs += m.monto;
+    });
+
+    const margenesLineaArray = Object.entries(margenPorLinea)
+      .map(([nombre, {ingresos, cogs}]) => ({
+        nombre,
+        ingresos,
+        cogs,
+        margenBruto: ingresos - cogs,
+        porcentaje: ingresos > 0 ? ((ingresos - cogs) / ingresos) * 100 : 0
+      }))
+      .sort((a, b) => b.ingresos - a.ingresos);
+
     return {
       totalIngresosOperativos,
       totalCostoDirecto,
@@ -66,11 +97,13 @@ export function EstadoResultadosView({ movimientos, anio, mes }: EstadoResultado
       totalOtrosEgresos,
       utilidadAntesImpuestos,
       totalImpuestos,
+      totalCapex,
       utilidadNeta,
       margenNeto,
-      margenOperativo
+      margenOperativo,
+      margenesLineaArray
     };
-  }, [movimientos, anio, mes]);
+  }, [movimientos, anio, mes, vistaFiscal]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
@@ -78,7 +111,24 @@ export function EstadoResultadosView({ movimientos, anio, mes }: EstadoResultado
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex justify-end print:hidden">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
+        
+        {/* Toggle Vista Fiscal vs Global */}
+        <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
+          <button
+            onClick={() => setVistaFiscal(false)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${!vistaFiscal ? 'bg-primary text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
+          >
+            Vista Global (Dueño)
+          </button>
+          <button
+            onClick={() => setVistaFiscal(true)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${vistaFiscal ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
+          >
+            Vista Fiscal (SAT)
+          </button>
+        </div>
+
         <button 
           onClick={() => window.print()}
           className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2"
@@ -127,7 +177,8 @@ export function EstadoResultadosView({ movimientos, anio, mes }: EstadoResultado
             { label: 'Otros Egresos', value: data.totalOtrosEgresos, variant: 'negative' },
             { label: 'Utilidad Antes de Impuestos', value: data.utilidadAntesImpuestos, variant: 'subtotal' },
             { label: 'Impuestos del Período', value: data.totalImpuestos, variant: 'negative' },
-            { label: 'Utilidad Neta', value: data.utilidadNeta, variant: 'final' }
+            { label: 'Utilidad Neta', value: data.utilidadNeta, variant: 'final' },
+            { label: 'Flujo de Inversión (CAPEX)', value: data.totalCapex, variant: 'negative' },
           ].map((row, idx) => (
             <div 
               key={idx} 
@@ -151,6 +202,36 @@ export function EstadoResultadosView({ movimientos, anio, mes }: EstadoResultado
           ))}
         </div>
       </div>
+
+      {/* Margen por Línea de Negocio */}
+      {data.margenesLineaArray.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden print:shadow-none print:border-none">
+          <div className="p-5 border-b border-slate-50 bg-slate-50/50">
+            <h3 className="font-bold text-slate-800 text-lg">Márgenes por Unidad de Negocio</h3>
+          </div>
+          <div className="p-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {data.margenesLineaArray.map((linea, idx) => (
+              <div key={idx} className="p-4 rounded-xl border border-slate-100 bg-slate-50 flex flex-col gap-2">
+                <p className="font-bold text-slate-700">{linea.nombre}</p>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Ingresos:</span>
+                  <span className="font-medium text-slate-700">{formatCurrency(linea.ingresos)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Costo (COGS):</span>
+                  <span className="font-medium text-danger">{formatCurrency(linea.cogs)}</span>
+                </div>
+                <div className="pt-2 mt-2 border-t border-slate-200 flex justify-between items-center">
+                  <span className="font-semibold text-slate-700">Margen:</span>
+                  <span className={`font-bold ${linea.margenBruto >= 0 ? 'text-success' : 'text-danger'}`}>
+                    {formatCurrency(linea.margenBruto)} ({linea.porcentaje.toFixed(1)}%)
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

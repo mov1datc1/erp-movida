@@ -30,9 +30,10 @@ interface ContableClientProps {
   rawMovimientos: any[];
   facturasPendientes?: any[];
   oportunidadesMes?: any[];
+  lineasProducto?: any[];
 }
 
-export default function ContableClient({ movimientos, balanceTotal, ingresosMes, egresosMes, rawMovimientos, facturasPendientes = [], oportunidadesMes = [] }: ContableClientProps) {
+export default function ContableClient({ movimientos, balanceTotal, ingresosMes, egresosMes, rawMovimientos, facturasPendientes = [], oportunidadesMes = [], lineasProducto = [] }: ContableClientProps) {
   const [activeTab, setActiveTab] = useState<'resumen' | 'flujo' | 'resultados' | 'kpis'>('kpis');
   
   const [anio, setAnio] = useState(new Date().getFullYear().toString());
@@ -353,6 +354,7 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
         onClose={() => setIsModalOpen(false)} 
         initialType={modalType} 
         initialData={editingData}
+        lineasProducto={lineasProducto}
       />
 
       <DetalleMovimientoModal
