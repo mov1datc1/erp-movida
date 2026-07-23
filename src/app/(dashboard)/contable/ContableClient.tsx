@@ -20,6 +20,8 @@ type Movimiento = {
   origen: string;
   tipo: 'Ingreso' | 'Egreso';
   categoria: string;
+  es_fiscal?: boolean;
+  linea_producto_id?: string | null;
 };
 
 interface ContableClientProps {
@@ -90,7 +92,9 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
       fecha: mov.rawFecha,
       categoria: mov.categoria,
       descripcion: mov.descripcion,
-      origen: mov.origen
+      origen: mov.origen,
+      es_fiscal: mov.es_fiscal,
+      linea_producto_id: mov.linea_producto_id
     });
     setIsModalOpen(true);
   };
@@ -102,10 +106,12 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
       tipo: mov.tipo,
       monto: mov.monto,
       monto_usd: mov.monto_usd,
-      fecha: mov.fecha, // We show formatted date in detail
+      fecha: mov.rawFecha,
       categoria: mov.categoria,
       descripcion: mov.descripcion,
-      origen: mov.origen
+      origen: mov.origen,
+      es_fiscal: mov.es_fiscal,
+      linea_producto_id: mov.linea_producto_id
     });
     setIsDetalleOpen(true);
   };

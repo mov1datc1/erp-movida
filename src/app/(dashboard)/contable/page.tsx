@@ -35,7 +35,9 @@ export default async function ContablePage() {
     monto_usd: m.monto_usd,
     origen: m.origen,
     tipo: (m.sentido === 'INGRESO' ? 'Ingreso' : 'Egreso') as 'Ingreso' | 'Egreso',
-    categoria: (m.sentido === 'INGRESO' ? m.categoria_ingreso : m.categoria_egreso) || ''
+    categoria: (m.sentido === 'INGRESO' ? m.categoria_ingreso : m.categoria_egreso) || '',
+    es_fiscal: m.es_fiscal,
+    linea_producto_id: m.linea_producto_id
   }));
 
   const ingresosMes = dbMovimientos
