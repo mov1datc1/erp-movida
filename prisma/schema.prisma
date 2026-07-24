@@ -246,6 +246,7 @@ model Proyecto {
   id           String         @id @default(uuid())
   nombre       String
   descripcion  String?
+  codigo       String?        @unique
   estado       ProyectoStatus @default(ACTIVO)
   fecha_inicio DateTime?
   fecha_fin    DateTime?
@@ -483,6 +484,9 @@ model MovimientoFinanciero {
   linea_producto_id String?
   linea_producto    LineaProducto? @relation(fields: [linea_producto_id], references: [id], onDelete: SetNull)
 
+  producto_servicio_id String?
+  producto_servicio    ProductoServicio? @relation(fields: [producto_servicio_id], references: [id], onDelete: SetNull)
+
   proyecto_id       String?
   proyecto          Proyecto?      @relation(fields: [proyecto_id], references: [id], onDelete: SetNull)
 
@@ -559,6 +563,7 @@ model ProductoServicio {
   updatedAt         DateTime @updatedAt
 
   cotizacionItems   CotizacionItem[]
+  movimientos       MovimientoFinanciero[]
 }
 
 model CotizacionItem {

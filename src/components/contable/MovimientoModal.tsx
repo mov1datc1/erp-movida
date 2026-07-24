@@ -17,6 +17,11 @@ export interface MovimientoData {
   origen: string;
   es_fiscal?: boolean;
   linea_producto_id?: string | null;
+  producto_servicio_id?: string | null;
+  proyecto_id?: string | null;
+  proyecto_nombre?: string | null;
+  linea_producto_nombre?: string | null;
+  producto_servicio_nombre?: string | null;
 }
 
 interface MovimientoModalProps {
@@ -25,6 +30,7 @@ interface MovimientoModalProps {
   initialType?: MovimientoType;
   initialData?: MovimientoData | null;
   lineasProducto?: any[];
+  proyectos?: any[];
 }
 
 const ORIGENES = [
@@ -39,16 +45,18 @@ const ORIGENES = [
   'Otro'
 ];
 
-export function MovimientoModal({ isOpen, onClose, initialType, initialData, lineasProducto = [] }: MovimientoModalProps) {
+export function MovimientoModal({ isOpen, onClose, initialType, initialData, lineasProducto = [], proyectos = [] }: MovimientoModalProps) {
   const [tipo, setTipo] = useState<MovimientoType>(initialType || 'Ingreso');
   const [monto, setMonto] = useState('');
   const [montoUsd, setMontoUsd] = useState('');
-  const [fecha, setFecha] = useState('');
+  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
   const [categoria, setCategoria] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [origen, setOrigen] = useState('Banco');
   const [esFiscal, setEsFiscal] = useState(true);
   const [lineaProductoId, setLineaProductoId] = useState('');
+  const [productoServicioId, setProductoServicioId] = useState('');
+  const [proyectoId, setProyectoId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -62,6 +70,8 @@ export function MovimientoModal({ isOpen, onClose, initialType, initialData, lin
       setOrigen(initialData.origen || 'Banco');
       setEsFiscal(initialData.es_fiscal ?? true);
       setLineaProductoId(initialData.linea_producto_id || '');
+      setProductoServicioId(initialData.producto_servicio_id || '');
+      setProyectoId(initialData.proyecto_id || '');
     } else {
       if (initialType) setTipo(initialType);
       setMonto('');
@@ -75,6 +85,8 @@ export function MovimientoModal({ isOpen, onClose, initialType, initialData, lin
       setOrigen('Banco');
       setEsFiscal(true);
       setLineaProductoId('');
+      setProductoServicioId('');
+      setProyectoId('');
     }
   }, [initialData, initialType, isOpen]);
 
@@ -96,6 +108,8 @@ export function MovimientoModal({ isOpen, onClose, initialType, initialData, lin
         origen,
         es_fiscal: esFiscal,
         linea_producto_id: lineaProductoId || null,
+        producto_servicio_id: productoServicioId || null,
+        proyecto_id: proyectoId || null,
       };
 
       let res;
@@ -275,19 +289,57 @@ export function MovimientoModal({ isOpen, onClose, initialType, initialData, lin
                 </div>
               </div>
 
-              {lineasProducto.length > 0 && (
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-text-main ml-1">Línea de Negocio</label>
-                  <select
-                    value={lineaProductoId}
-                    onChange={(e) => setLineaProductoId(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-text-main font-medium appearance-none"
-                  >
-                    <option value="">Selecciona (Opcional)</option>
-                    {lineasProducto.map(lp => (
-                      <option key={lp.id} value={lp.id}>{lp.nombre}</option>
-                    ))}
-                  </select>
+              {(lineasProducto.length > 0 || proyectos.length > 0) && (
+                <div className="space-y-4 col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-text-main ml-1">Línea de Negocio / Servicio</label>
+                    <select
+                      value={productoServicioId ? `${lineaProductoId}|${productoServicioId}` : lineaProductoId}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (!val) {
+                          setLineaProductoId('');
+                          setProductoServicioId('');
+                        } else if (val.includes('|')) {
+                          const [lId, pId] = val.split('|');
+                          setLineaProductoId(lId);
+                          setProductoServicioId(pId);
+                        } else {
+                          setLineaProductoId(val);
+                          setProductoServicioId('');
+                        }
+                      }}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-text-main font-medium appearance-none"
+                    >
+                      <option value="">Selecciona (Opcional)</option>
+                      {lineasProducto.map(lp => (
+                        <optgroup key={lp.id} label={lp.nombre} className="font-semibold text-slate-800">
+                          <option value={lp.id} className="font-normal">General: {lp.nombre}</option>
+                          {lp.productos?.map((prod: any) => (
+                            <option key={prod.id} value={`${lp.id}|${prod.id}`} className="font-normal pl-4">
+                              - {prod.nombre}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-text-main ml-1">Proyecto</label>
+                    <select
+                      value={proyectoId}
+                      onChange={(e) => setProyectoId(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-text-main font-medium appearance-none"
+                    >
+                      <option value="">Ninguno</option>
+                      {proyectos.map(prj => (
+                        <option key={prj.id} value={prj.id}>
+                          {prj.codigo ? `[${prj.codigo}] ` : ''}{prj.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               )}
             </div>

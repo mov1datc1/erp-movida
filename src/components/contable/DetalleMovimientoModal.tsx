@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { X, Calendar, DollarSign, Tag, FileText, Wallet } from 'lucide-react';
+import { X, Calendar, DollarSign, Tag, FileText, Wallet, FolderKanban } from 'lucide-react';
 import { MovimientoData } from './MovimientoModal';
 
 interface DetalleMovimientoModalProps {
@@ -117,6 +117,25 @@ export function DetalleMovimientoModal({ isOpen, onClose, data }: DetalleMovimie
                 <p className="text-sm text-slate-700 leading-relaxed">{data.descripcion}</p>
               </div>
             </div>
+
+            {(data.proyecto_nombre || data.linea_producto_nombre || data.producto_servicio_nombre) && (
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex gap-3 col-span-2">
+                <div className="p-2 bg-white rounded-lg shadow-sm h-fit">
+                  <FolderKanban className="w-5 h-5 text-slate-500" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Proyecto / Servicio</p>
+                  {data.proyecto_nombre && (
+                    <p className="text-sm font-semibold text-slate-800 mb-0.5">Proyecto: {data.proyecto_nombre}</p>
+                  )}
+                  {(data.linea_producto_nombre || data.producto_servicio_nombre) && (
+                    <p className="text-sm text-slate-600">
+                      Servicio: {data.linea_producto_nombre} {data.producto_servicio_nombre ? `> ${data.producto_servicio_nombre}` : ''}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="pt-6 flex justify-end">

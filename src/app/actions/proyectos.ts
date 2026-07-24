@@ -11,6 +11,11 @@ export async function createProyecto(formData: FormData) {
     const cliente_id = formData.get('cliente_id') as string | null
     const fecha_inicio_str = formData.get('fecha_inicio') as string | null
     const fecha_fin_str = formData.get('fecha_fin') as string | null
+    let codigo = formData.get('codigo') as string | null
+
+    if (codigo) {
+      codigo = codigo.toUpperCase().trim()
+    }
 
     if (!nombre || !cliente_id) {
       return { success: false, error: 'El nombre y el cliente son obligatorios' }
@@ -19,6 +24,7 @@ export async function createProyecto(formData: FormData) {
     const proyecto = await prisma.proyecto.create({
       data: {
         nombre,
+        codigo: codigo || null,
         descripcion: descripcion || null,
         cliente_id,
         estado: 'PLANIFICACION',

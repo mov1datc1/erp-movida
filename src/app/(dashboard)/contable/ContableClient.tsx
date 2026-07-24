@@ -22,6 +22,11 @@ type Movimiento = {
   categoria: string;
   es_fiscal?: boolean;
   linea_producto_id?: string | null;
+  producto_servicio_id?: string | null;
+  proyecto_id?: string | null;
+  proyecto_nombre?: string | null;
+  producto_servicio_nombre?: string | null;
+  linea_producto_nombre?: string | null;
 };
 
 interface ContableClientProps {
@@ -33,9 +38,10 @@ interface ContableClientProps {
   facturasPendientes?: any[];
   oportunidadesMes?: any[];
   lineasProducto?: any[];
+  proyectos?: any[];
 }
 
-export default function ContableClient({ movimientos, balanceTotal, ingresosMes, egresosMes, rawMovimientos, facturasPendientes = [], oportunidadesMes = [], lineasProducto = [] }: ContableClientProps) {
+export default function ContableClient({ movimientos, balanceTotal, ingresosMes, egresosMes, rawMovimientos, facturasPendientes = [], oportunidadesMes = [], lineasProducto = [], proyectos = [] }: ContableClientProps) {
   const [activeTab, setActiveTab] = useState<'resumen' | 'flujo' | 'resultados' | 'kpis'>('kpis');
   
   const [anio, setAnio] = useState(new Date().getFullYear().toString());
@@ -94,7 +100,9 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
       descripcion: mov.descripcion,
       origen: mov.origen,
       es_fiscal: mov.es_fiscal,
-      linea_producto_id: mov.linea_producto_id
+      linea_producto_id: mov.linea_producto_id,
+      producto_servicio_id: mov.producto_servicio_id,
+      proyecto_id: mov.proyecto_id
     });
     setIsModalOpen(true);
   };
@@ -111,7 +119,9 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
       descripcion: mov.descripcion,
       origen: mov.origen,
       es_fiscal: mov.es_fiscal,
-      linea_producto_id: mov.linea_producto_id
+      linea_producto_id: mov.linea_producto_id,
+      producto_servicio_id: mov.producto_servicio_id,
+      proyecto_id: mov.proyecto_id
     });
     setIsDetalleOpen(true);
   };
@@ -267,6 +277,7 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
                   <tr className="text-xs text-text-muted border-b border-slate-100 uppercase tracking-wider">
                     <th className="py-3 px-6 font-semibold">Fecha</th>
                     <th className="py-3 px-6 font-semibold">Descripción</th>
+                    <th className="py-3 px-6 font-semibold">Proyecto / Servicio</th>
                     <th className="py-3 px-6 font-semibold">Categoría</th>
                     <th className="py-3 px-6 font-semibold text-right">Monto</th>
                     <th className="py-3 px-6 font-semibold text-center w-20">Acciones</th>
@@ -278,6 +289,19 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
                       <td className="py-4 px-6 text-sm text-text-muted">{mov.fecha}</td>
                       <td className="py-4 px-6">
                         <p className="text-sm font-semibold text-text-main">{mov.descripcion}</p>
+                      </td>
+                      <td className="py-4 px-6">
+                        {mov.proyecto_nombre && (
+                          <div className="text-sm font-medium text-slate-800 mb-0.5">{mov.proyecto_nombre}</div>
+                        )}
+                        {(mov.producto_servicio_nombre || mov.linea_producto_nombre) && (
+                          <div className="text-xs text-slate-500">
+                            {mov.linea_producto_nombre} {mov.producto_servicio_nombre ? `> ${mov.producto_servicio_nombre}` : ''}
+                          </div>
+                        )}
+                        {!mov.proyecto_nombre && !mov.producto_servicio_nombre && !mov.linea_producto_nombre && (
+                          <span className="text-xs text-slate-400">N/A</span>
+                        )}
                       </td>
                       <td className="py-4 px-6">
                         <span className="text-xs font-medium px-2 py-1 bg-slate-100 text-text-muted rounded-lg">
@@ -329,7 +353,7 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
                   ))}
                   {filteredMovimientos.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-text-muted">No hay movimientos registrados para este período.</td>
+                      <td colSpan={6} className="py-8 text-center text-text-muted">No hay movimientos registrados para este período.</td>
                     </tr>
                   )}
                 </tbody>
@@ -356,11 +380,12 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
       )}
 
       <MovimientoModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        initialType={modalType} 
-        initialData={editingData}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        initialType={modalType || undefined}
+        initialData={editingData || undefined}
         lineasProducto={lineasProducto}
+        proyectos={proyectos}
       />
 
       <DetalleMovimientoModal

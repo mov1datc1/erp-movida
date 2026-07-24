@@ -7,7 +7,11 @@ export const dynamic = 'force-dynamic';
 
 export default async function ContablePage() {
   const dbMovimientos = await prisma.movimientoFinanciero.findMany({
-    include: { linea_producto: true },
+    include: { 
+      linea_producto: true,
+      producto_servicio: true,
+      proyecto: true 
+    },
     orderBy: { fecha: 'desc' }
   });
 
@@ -37,7 +41,12 @@ export default async function ContablePage() {
     tipo: (m.sentido === 'INGRESO' ? 'Ingreso' : 'Egreso') as 'Ingreso' | 'Egreso',
     categoria: (m.sentido === 'INGRESO' ? m.categoria_ingreso : m.categoria_egreso) || '',
     es_fiscal: m.es_fiscal,
-    linea_producto_id: m.linea_producto_id
+    linea_producto_id: m.linea_producto_id,
+    producto_servicio_id: m.producto_servicio_id,
+    proyecto_id: m.proyecto_id,
+    proyecto_nombre: m.proyecto?.nombre,
+    producto_servicio_nombre: m.producto_servicio?.nombre,
+    linea_producto_nombre: m.linea_producto?.nombre
   }));
 
   const ingresosMes = dbMovimientos
@@ -53,11 +62,17 @@ export default async function ContablePage() {
   }, 0);
 
   const lineasProducto = await prisma.lineaProducto.findMany({
-    where: { activa: true }
+    where: { activa: true },
+    include: { productos: true }
+  });
+
+  const proyectos = await prisma.proyecto.findMany({
+    where: { estado: 'ACTIVO' },
+    select: { id: true, nombre: true, codigo: true }
   });
 
   return (
-    <ContableClient 
+    <ContableClient  
       movimientos={movimientos} 
       ingresosMes={ingresosMes} 
       egresosMes={egresosMes} 
@@ -66,6 +81,7 @@ export default async function ContablePage() {
       facturasPendientes={facturasPendientes}
       oportunidadesMes={oportunidadesMes}
       lineasProducto={lineasProducto}
+      proyectos={proyectos}
     />
   );
 }
