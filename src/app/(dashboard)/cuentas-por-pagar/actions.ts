@@ -20,7 +20,7 @@ export async function createProveedor(data: { nombre: string, empresa?: string }
 // ---------------------------
 // CUENTAS POR PAGAR
 // ---------------------------
-export async function createCuentaPorPagar(data: { proveedor_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string, categoria?: string }) {
+export async function createCuentaPorPagar(data: { proveedor_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string, categoria?: string, proyecto_id?: string }) {
   try {
     const folio = `CXP-${Math.floor(1000 + Math.random() * 9000)}`;
     const fechaVen = data.fecha_vencimiento ? new Date(`${data.fecha_vencimiento}T12:00:00Z`) : new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
@@ -34,7 +34,8 @@ export async function createCuentaPorPagar(data: { proveedor_id: string, monto_t
         categoria: data.categoria,
         estatus: 'PENDIENTE',
         fecha_emision: new Date(),
-        fecha_vencimiento: fechaVen
+        fecha_vencimiento: fechaVen,
+        proyecto_id: data.proyecto_id || null
       }
     });
 
@@ -46,7 +47,7 @@ export async function createCuentaPorPagar(data: { proveedor_id: string, monto_t
   }
 }
 
-export async function updateCuentaPorPagar(id: string, data: { proveedor_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string, categoria?: string }) {
+export async function updateCuentaPorPagar(id: string, data: { proveedor_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string, categoria?: string, proyecto_id?: string }) {
   try {
     const fechaVen = data.fecha_vencimiento ? new Date(`${data.fecha_vencimiento}T12:00:00Z`) : null;
     
@@ -57,6 +58,7 @@ export async function updateCuentaPorPagar(id: string, data: { proveedor_id: str
         monto_total: data.monto_total,
         descripcion: data.descripcion,
         categoria: data.categoria,
+        proyecto_id: data.proyecto_id || null,
         ...(fechaVen && { fecha_vencimiento: fechaVen })
       }
     });
@@ -93,6 +95,7 @@ export async function markCuentaAsPagada(id: string, registerInFinance: boolean)
           sentido: 'EGRESO',
           origen: 'Transferencia / Banco',
           categoria_egreso: cxp.categoria || 'Otros',
+          proyecto_id: cxp.proyecto_id || null,
         }
       });
     }

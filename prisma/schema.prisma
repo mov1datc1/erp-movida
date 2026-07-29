@@ -259,6 +259,7 @@ model Proyecto {
   hitos        HitoProyecto[]
   cotizaciones Cotizacion[]
   tareas       Tarea[]
+  facturas          Factura[]
   cuentas_por_pagar CuentaPorPagar[]
   movimientos       MovimientoFinanciero[]
 }
@@ -371,6 +372,9 @@ model Factura {
 
   monto_pagado      Float          @default(0)
   pagos_parciales   PagoParcial[]
+
+  proyecto_id       String?
+  proyecto          Proyecto?      @relation(fields: [proyecto_id], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

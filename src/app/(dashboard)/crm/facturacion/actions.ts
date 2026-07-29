@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { MetodoPagoCFDI } from "@prisma/client";
 
-export async function createPrefactura(data: { cliente_id: string, monto_total: number, cotizacion_id?: string, fecha_vencimiento?: string, descripcion?: string, linea_producto_id?: string, categoria?: string }) {
+export async function createPrefactura(data: { cliente_id: string, monto_total: number, cotizacion_id?: string, fecha_vencimiento?: string, descripcion?: string, linea_producto_id?: string, categoria?: string, proyecto_id?: string }) {
   try {
     const folio = `PRE-${Math.floor(1000 + Math.random() * 9000)}`;
     const fechaVen = data.fecha_vencimiento ? new Date(`${data.fecha_vencimiento}T12:00:00Z`) : new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
@@ -20,7 +20,8 @@ export async function createPrefactura(data: { cliente_id: string, monto_total: 
         fecha_emision: new Date(),
         fecha_vencimiento: fechaVen,
         linea_producto_id: data.linea_producto_id || null,
-        categoria: data.categoria
+        categoria: data.categoria,
+        proyecto_id: data.proyecto_id || null
       }
     });
 
@@ -37,7 +38,7 @@ export async function createPrefactura(data: { cliente_id: string, monto_total: 
   }
 }
 
-export async function updatePrefactura(id: string, data: { cliente_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string, linea_producto_id?: string, categoria?: string, detalle_horas?: string, numero_orden?: string, mes_servicio?: string, tipo_servicio?: string, plataformas?: string }) {
+export async function updatePrefactura(id: string, data: { cliente_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string, linea_producto_id?: string, categoria?: string, detalle_horas?: string, numero_orden?: string, mes_servicio?: string, tipo_servicio?: string, plataformas?: string, proyecto_id?: string }) {
   try {
     const fechaVen = data.fecha_vencimiento ? new Date(`${data.fecha_vencimiento}T12:00:00Z`) : null;
     
@@ -54,6 +55,7 @@ export async function updatePrefactura(id: string, data: { cliente_id: string, m
         mes_servicio: data.mes_servicio,
         tipo_servicio: data.tipo_servicio,
         plataformas: data.plataformas,
+        proyecto_id: data.proyecto_id || null,
         ...(fechaVen && { fecha_vencimiento: fechaVen })
       }
     });
@@ -267,7 +269,7 @@ export async function timbrarFacturaCFDI(facturaId: string, timbradoData: {
   }
 }
 
-export async function crearFacturaUSA(data: { cliente_id: string, monto_total: number, monto_mxn_estimado?: number, descripcion?: string, linea_producto_id?: string, categoria?: string, detalle_horas?: string, numero_orden?: string }) {
+export async function crearFacturaUSA(data: { cliente_id: string, monto_total: number, monto_mxn_estimado?: number, descripcion?: string, linea_producto_id?: string, categoria?: string, detalle_horas?: string, numero_orden?: string, proyecto_id?: string }) {
   try {
     // Buscar la última factura USA para obtener el número actual
     const lastUsa = await prisma.factura.findFirst({
@@ -296,7 +298,8 @@ export async function crearFacturaUSA(data: { cliente_id: string, monto_total: n
         linea_producto_id: data.linea_producto_id,
         categoria: data.categoria || 'Ventas Internacionales',
         detalle_horas: data.detalle_horas,
-        numero_orden: data.numero_orden
+        numero_orden: data.numero_orden,
+        proyecto_id: data.proyecto_id || null
       }
     });
 
@@ -308,7 +311,7 @@ export async function crearFacturaUSA(data: { cliente_id: string, monto_total: n
   }
 }
 
-export async function crearFacturaMX(data: { cliente_id: string, monto_total: number, descripcion?: string, linea_producto_id?: string, categoria?: string, mes_servicio?: string, tipo_servicio?: string, plataformas?: string }) {
+export async function crearFacturaMX(data: { cliente_id: string, monto_total: number, descripcion?: string, linea_producto_id?: string, categoria?: string, mes_servicio?: string, tipo_servicio?: string, plataformas?: string, proyecto_id?: string }) {
   try {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
@@ -354,7 +357,8 @@ export async function crearFacturaMX(data: { cliente_id: string, monto_total: nu
         categoria: data.categoria || 'Ventas Nacionales',
         mes_servicio: data.mes_servicio,
         tipo_servicio: data.tipo_servicio,
-        plataformas: data.plataformas
+        plataformas: data.plataformas,
+        proyecto_id: data.proyecto_id || null
       }
     });
 

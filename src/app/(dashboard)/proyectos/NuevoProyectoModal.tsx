@@ -71,26 +71,16 @@ export default function NuevoProyectoModal({ clientes }: Props) {
               )}
 
               <form id="create-proyecto-form" onSubmit={handleCreateProyecto} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Nombre del Proyecto *</label>
-                    <input 
-                      type="text" 
-                      name="nombre" 
-                      required 
-                      placeholder="Ej. Implementación WMS..."
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Código</label>
-                    <input 
-                      type="text" 
-                      name="codigo" 
-                      placeholder="Ej. PRJ-001"
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all uppercase"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Nombre del Proyecto *</label>
+                  <input 
+                    type="text" 
+                    name="nombre" 
+                    required 
+                    placeholder="Ej. Implementación WMS..."
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">El código del proyecto se genera automáticamente (PROJ-M###)</p>
                 </div>
 
                 <div>

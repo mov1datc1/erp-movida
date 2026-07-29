@@ -265,7 +265,6 @@ function EditProyectoModal({
 
     const form = new FormData(e.currentTarget);
     const nombre = form.get('nombre') as string;
-    const codigo = form.get('codigo') as string | null;
     const descripcion = form.get('descripcion') as string | null;
     const cliente_id = form.get('cliente_id') as string;
     const estado = form.get('estado') as string;
@@ -280,7 +279,6 @@ function EditProyectoModal({
 
     const result = await updateProyecto(proyecto.id, {
       nombre,
-      codigo: codigo ? codigo.toUpperCase().trim() : null,
       descripcion: descripcion || null,
       cliente_id,
       estado,
@@ -340,15 +338,14 @@ function EditProyectoModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Código
+                <label className="block text-sm font-medium text-slate-500 mb-1">
+                  Código (auto-generado)
                 </label>
                 <input
                   type="text"
-                  name="codigo"
-                  defaultValue={proyecto.codigo || ''}
-                  placeholder="Ej. PRJ-001"
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all uppercase"
+                  disabled
+                  value={proyecto.codigo || 'Sin código'}
+                  className="w-full px-4 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-500 font-mono font-semibold cursor-not-allowed"
                 />
               </div>
             </div>

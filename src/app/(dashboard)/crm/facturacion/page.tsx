@@ -9,9 +9,10 @@ export default async function FacturacionPage() {
   let clientes: any[] = [];
   let catalog: any[] = [];
   let favoritos: any[] = [];
+  let proyectos: any[] = [];
   try {
     facturas = await prisma.factura.findMany({
-      include: { cliente: true },
+      include: { cliente: true, proyecto: { select: { id: true, nombre: true, codigo: true } } },
       orderBy: { createdAt: 'desc' }
     });
     clientes = await prisma.cliente.findMany({
@@ -29,13 +30,18 @@ export default async function FacturacionPage() {
       include: { cliente: true },
       orderBy: { createdAt: 'desc' }
     });
+    proyectos = await prisma.proyecto.findMany({
+      select: { id: true, nombre: true, codigo: true },
+      orderBy: { createdAt: 'desc' }
+    });
   } catch (e) {
     console.error("Failed to fetch facturas", e);
   }
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <FacturacionClient facturas={facturas} clientes={clientes} catalog={catalog} favoritos={favoritos} />
+      <FacturacionClient facturas={facturas} clientes={clientes} catalog={catalog} favoritos={favoritos} proyectos={proyectos} />
     </div>
   );
 }
+

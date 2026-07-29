@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare, Star, Trash2, ChevronDown, Check, Globe } from "lucide-react";
+import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare, Star, Trash2, ChevronDown, Check, Globe, FolderKanban } from "lucide-react";
 import { createPrefactura, updatePrefactura, markFacturaAsPagada, saveFavoritoCXC, deleteFavoritoCXC, solicitarFacturacionCFDI, timbrarFacturaCFDI, crearFacturaUSA, crearFacturaMX, eliminarFactura } from './actions';
 import { registrarPagoParcialCxC } from '@/app/actions/pagos';
 import QRCode from 'react-qr-code';
@@ -123,7 +123,7 @@ function numeroALetras(num: number, currency: string = 'USD'): string {
   if (data.enteros === 0) return `CERO ${data.centavos.toString().padStart(2, '0')}/100 ${currency}`;
   return `${Millones(data.enteros).trim()} ${data.centavos.toString().padStart(2, '0')}/100 ${currency}`;
 }
-export function FacturacionClient({ facturas, clientes, catalog = [], favoritos = [] }: { facturas: any[], clientes: any[], catalog?: any[], favoritos?: any[] }) {
+export function FacturacionClient({ facturas, clientes, catalog = [], favoritos = [], proyectos = [] }: { facturas: any[], clientes: any[], catalog?: any[], favoritos?: any[], proyectos?: any[] }) {
   const [activeTab, setActiveTab] = useState<'por_cobrar' | 'historial' | 'facturacion' | 'usa' | 'mx'>('por_cobrar');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
@@ -148,7 +148,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     numero_orden: '',
     mes_servicio: '',
     tipo_servicio: '',
-    plataformas: ''
+    plataformas: '',
+    proyecto_id: ''
   });
   
   // For printing
@@ -284,7 +285,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
   const openNewModal = () => {
     setEditingId(null);
-    setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '' });
+    setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '', proyecto_id: '' });
     setShowFavoritos(false);
     setFavSearchTerm('');
     setIsModalOpen(true);
@@ -304,7 +305,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
       numero_orden: factura.numero_orden || '',
       mes_servicio: factura.mes_servicio || '',
       tipo_servicio: factura.tipo_servicio || '',
-      plataformas: factura.plataformas || ''
+      plataformas: factura.plataformas || '',
+      proyecto_id: factura.proyecto_id || ''
     });
     setPrintData(factura);
     setShowFavoritos(false);
@@ -427,7 +429,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             <button 
               onClick={() => {
                 setEditingId(null);
-                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '' });
+                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '', proyecto_id: '' });
                 setIsModalOpen(true);
               }}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-emerald-600/20"
@@ -439,7 +441,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             <button 
               onClick={() => {
                 setEditingId(null);
-                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '' });
+                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '', proyecto_id: '' });
                 setIsModalOpen(true);
               }}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-blue-600/20"
@@ -756,7 +758,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                             numero_orden: '',
                             mes_servicio: '',
                             tipo_servicio: '',
-                            plataformas: ''
+                            plataformas: '',
+                            proyecto_id: ''
                           });
                         }}
                       >
@@ -893,7 +896,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                   descripcion: formData.descripcion,
                   categoria: formData.categoria,
                   detalle_horas: formData.detalle_horas,
-                  numero_orden: formData.numero_orden
+                  numero_orden: formData.numero_orden,
+                  proyecto_id: formData.proyecto_id || undefined
                 });
               } else {
                 if (activeTab === 'usa') {
@@ -905,7 +909,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                     linea_producto_id: formData.linea_producto_id,
                     categoria: formData.categoria || 'Ventas Internacionales',
                     detalle_horas: formData.detalle_horas,
-                    numero_orden: formData.numero_orden
+                    numero_orden: formData.numero_orden,
+                    proyecto_id: formData.proyecto_id || undefined
                   });
                 } else if (activeTab === 'mx') {
                   res = await crearFacturaMX({
@@ -916,7 +921,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                     categoria: formData.categoria || 'Ventas Nacionales',
                     mes_servicio: formData.mes_servicio,
                     tipo_servicio: formData.tipo_servicio,
-                    plataformas: formData.plataformas
+                    plataformas: formData.plataformas,
+                    proyecto_id: formData.proyecto_id || undefined
                   });
                 } else {
                   res = await createPrefactura({
@@ -924,7 +930,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                     monto_total: parseFloat(formData.monto_total),
                     fecha_vencimiento: formData.fecha_vencimiento,
                     descripcion: formData.descripcion,
-                    categoria: formData.categoria
+                    categoria: formData.categoria,
+                    proyecto_id: formData.proyecto_id || undefined
                   });
                 }
               }
@@ -932,7 +939,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               setIsLoading(false);
               if (res.success) {
                 setIsModalOpen(false);
-                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '' });
+                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '', proyecto_id: '' });
                 setEditingId(null);
               } else {
                 showNotification(res.error || 'Error al guardar', 'error');
@@ -1192,7 +1199,24 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                     />
                   </div>
                 </div>
-              </div>
+                </div>
+
+                {/* Proyecto Asociado (optional) */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <span className="flex items-center gap-1.5"><FolderKanban className="w-3.5 h-3.5 text-primary" /> Proyecto Asociado</span>
+                  </label>
+                  <select
+                    value={formData.proyecto_id}
+                    onChange={e => setFormData({...formData, proyecto_id: e.target.value})}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-800 bg-white"
+                  >
+                    <option value="">-- Sin proyecto --</option>
+                    {proyectos.map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.codigo ? `${p.codigo} — ` : ''}{p.nombre}</option>
+                    ))}
+                  </select>
+                </div>
 
               <div className="flex gap-3 pt-4">
                 <button 

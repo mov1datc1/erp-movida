@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare, Star, Trash2, ChevronDown, Check } from "lucide-react";
+import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare, Star, Trash2, ChevronDown, Check, FolderKanban } from "lucide-react";
 import { createCuentaPorPagar, updateCuentaPorPagar, markCuentaAsPagada, saveFavoritoCXP, deleteFavoritoCXP, createProveedor } from './actions';
 import { registrarPagoParcialCxP } from '@/app/actions/pagos';
 
-export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cuentas: any[], proveedores: any[], favoritos: any[] }) {
+export function CuentasPorPagarClient({ cuentas, proveedores, favoritos, proyectos = [] }: { cuentas: any[], proveedores: any[], favoritos: any[], proyectos?: any[] }) {
   const [activeTab, setActiveTab] = useState<'por_pagar' | 'historial'>('por_pagar');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
@@ -23,7 +23,8 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
     monto_total: '',
     fecha_vencimiento: '',
     descripcion: '',
-    categoria: ''
+    categoria: '',
+    proyecto_id: ''
   });
   
   // For printing
@@ -116,7 +117,7 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
 
   const openNewModal = () => {
     setEditingId(null);
-    setFormData({ proveedor_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', categoria: '' });
+    setFormData({ proveedor_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', categoria: '', proyecto_id: '' });
     setShowFavoritos(false);
     setFavSearchTerm('');
     setIsModalOpen(true);
@@ -129,7 +130,8 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
       monto_total: cuenta.monto_total.toString(),
       fecha_vencimiento: cuenta.fecha_vencimiento ? new Date(cuenta.fecha_vencimiento).toISOString().split('T')[0] : '',
       descripcion: cuenta.descripcion || '',
-      categoria: cuenta.categoria || ''
+      categoria: cuenta.categoria || '',
+      proyecto_id: cuenta.proyecto_id || ''
     });
     setPrintData(cuenta);
     setShowFavoritos(false);
@@ -477,7 +479,8 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
                             monto_total: fav.monto.toString(),
                             descripcion: fav.descripcion || '',
                             categoria: '',
-                            fecha_vencimiento: formData.fecha_vencimiento
+                            fecha_vencimiento: formData.fecha_vencimiento,
+                            proyecto_id: ''
                           });
                         }}
                       >
@@ -562,7 +565,8 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
                     monto_total: parseFloat(formData.monto_total),
                     fecha_vencimiento: formData.fecha_vencimiento,
                     descripcion: formData.descripcion,
-                    categoria: formData.categoria
+                    categoria: formData.categoria,
+                    proyecto_id: formData.proyecto_id || undefined
                   });
                 } else {
                   res = await createCuentaPorPagar({
@@ -570,14 +574,15 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
                     monto_total: parseFloat(formData.monto_total),
                     fecha_vencimiento: formData.fecha_vencimiento,
                     descripcion: formData.descripcion,
-                    categoria: formData.categoria
+                    categoria: formData.categoria,
+                    proyecto_id: formData.proyecto_id || undefined
                   });
                 }
                 
                 setIsLoading(false);
                 if (res.success) {
                   setIsModalOpen(false);
-                  setFormData({ proveedor_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', categoria: '' });
+                  setFormData({ proveedor_id: '', monto_total: '', fecha_vencimiento: '', descripcion: '', categoria: '', proyecto_id: '' });
                   setEditingId(null);
                 } else {
                   showNotification(res.error || 'Error al guardar', 'error');
@@ -716,6 +721,23 @@ export function CuentasPorPagarClient({ cuentas, proveedores, favoritos }: { cue
                       </>
                     )}
                   </div>
+                </div>
+
+                {/* Proyecto Selector (optional) */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <span className="flex items-center gap-1.5"><FolderKanban className="w-3.5 h-3.5 text-primary" /> Proyecto Asociado</span>
+                  </label>
+                  <select
+                    value={formData.proyecto_id}
+                    onChange={e => setFormData({...formData, proyecto_id: e.target.value})}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-800 bg-white"
+                  >
+                    <option value="">-- Sin proyecto --</option>
+                    {proyectos.map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.codigo ? `${p.codigo} — ` : ''}{p.nombre}</option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
