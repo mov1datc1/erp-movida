@@ -285,6 +285,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
   const openNewModal = () => {
     setEditingId(null);
+    setPrintData(null);
     setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '', proyecto_id: '' });
     setShowFavoritos(false);
     setFavSearchTerm('');
@@ -429,6 +430,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             <button 
               onClick={() => {
                 setEditingId(null);
+                setPrintData(null);
                 setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '', proyecto_id: '' });
                 setIsModalOpen(true);
               }}
@@ -441,6 +443,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
             <button 
               onClick={() => {
                 setEditingId(null);
+                setPrintData(null);
                 setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '', proyecto_id: '' });
                 setIsModalOpen(true);
               }}
@@ -1228,7 +1231,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                 </button>
                 <button 
                   type="submit" 
-                  disabled={isLoading || !formData.cliente_id || !formData.monto_total || (printData && printData.estatus !== 'PENDIENTE' && printData.estatus !== 'VENCIDA' && printData.estatus !== 'BORRADOR')}
+                  disabled={isLoading || !formData.cliente_id || !formData.monto_total || (editingId && printData && printData.estatus !== 'PENDIENTE' && printData.estatus !== 'VENCIDA' && printData.estatus !== 'BORRADOR')}
                   className="flex-1 px-4 py-2 text-white bg-primary hover:bg-primary-light rounded-xl font-bold transition-colors shadow-lg shadow-primary/30 disabled:opacity-70 flex items-center justify-center gap-2"
                 >
                   {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingId ? 'Guardar Cambios' : 'Generar')}
