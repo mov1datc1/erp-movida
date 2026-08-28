@@ -13,6 +13,9 @@ import {
   Calendar,
   AlertTriangle,
   Shield,
+  Layers,
+  Sparkles,
+  Zap,
 } from 'lucide-react';
 import { deleteProyecto, updateProyecto } from '@/app/actions/proyectos';
 
@@ -27,6 +30,13 @@ interface Cliente {
   nombre: string;
 }
 
+interface Sprint {
+  id: string;
+  numero: number;
+  estatus: string;
+  tareas: { id: string; estatus: string }[];
+}
+
 interface Proyecto {
   id: string;
   nombre: string;
@@ -37,6 +47,7 @@ interface Proyecto {
   fecha_fin: string | Date | null;
   cliente_id: string | null;
   cliente: Cliente | null;
+  sprints?: Sprint[];
   tareas: Tarea[];
 }
 
@@ -548,13 +559,22 @@ export default function ProyectosGrid({ proyectos, clientes }: Props) {
                       {proyecto.nombre}
                     </h3>
 
-                    {proyecto.codigo && (
-                      <span className="text-xs font-mono font-semibold text-primary/70 bg-primary/5 px-2 py-0.5 rounded-md border border-primary/10 w-fit mb-2">
-                        {proyecto.codigo}
-                      </span>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      {proyecto.codigo && (
+                        <span className="text-xs font-mono font-semibold text-primary/70 bg-primary/5 px-2 py-0.5 rounded-md border border-primary/10 w-fit">
+                          {proyecto.codigo}
+                        </span>
+                      )}
 
-                    <div className="text-sm font-semibold text-slate-500 mb-auto mt-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 inline-block w-fit">
+                      {proyecto.sprints && proyecto.sprints.length > 0 && (
+                        <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 flex items-center gap-1">
+                          <Layers className="w-3 h-3 text-indigo-500" />
+                          {proyecto.sprints.length} Sprints
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-sm font-semibold text-slate-500 mb-auto mt-1 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 inline-block w-fit">
                       {proyecto.cliente?.nombre || 'Interno'}
                     </div>
 

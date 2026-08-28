@@ -171,6 +171,11 @@ model Tarea {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
+  sprint_id String?
+  sprint    Sprint? @relation(fields: [sprint_id], references: [id], onDelete: SetNull)
+  horas_estimadas Float? @default(0)
+  horas_reales    Float? @default(0)
+
   proyecto_id String?
   proyecto    Proyecto? @relation(fields: [proyecto_id], references: [id], onDelete: SetNull)
 
@@ -240,7 +245,7 @@ enum RecordatorioStatus {
 }
 
 // -------------------------------------
-// Módulo de Proyectos (Kanban / Project Plan)
+// Módulo de Proyectos (Kanban / Project Plan / Sprints)
 // -------------------------------------
 model Proyecto {
   id           String         @id @default(uuid())
@@ -250,18 +255,51 @@ model Proyecto {
   estado       ProyectoStatus @default(ACTIVO)
   fecha_inicio DateTime?
   fecha_fin    DateTime?
+  horas_dia    Float?         @default(6)
+  dias_semana  Int?           @default(5)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
   cliente_id String?
   cliente    Cliente? @relation(fields: [cliente_id], references: [id])
 
+  sprints      Sprint[]
   hitos        HitoProyecto[]
   cotizaciones Cotizacion[]
   tareas       Tarea[]
   facturas          Factura[]
   cuentas_por_pagar CuentaPorPagar[]
   movimientos       MovimientoFinanciero[]
+}
+
+enum SprintEstatus {
+  PLANIFICADO
+  EN_CURSO
+  COMPLETADO
+  REVISION
+}
+
+model Sprint {
+  id                    String        @id @default(uuid())
+  numero                Int
+  nombre                String
+  objetivo              String?       @db.Text
+  fecha_inicio          DateTime?
+  fecha_fin             DateTime?
+  horas_estimadas       Float         @default(0)
+  horas_reales          Float         @default(0)
+  estatus               SprintEstatus @default(PLANIFICADO)
+  checkpoint_completado Boolean       @default(false)
+  notas_checkpoint      String?       @db.Text
+  bloqueos              String?       @db.Text
+  
+  proyecto_id           String
+  proyecto              Proyecto      @relation(fields: [proyecto_id], references: [id], onDelete: Cascade)
+  
+  tareas                Tarea[]
+
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 }
 
 enum ProyectoStatus {
