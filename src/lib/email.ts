@@ -185,6 +185,15 @@ export async function sendTaskStatusNotification(params: TaskStatusNotificationP
                 </tr>
 
                 <tr>
+                  <td style="padding: 12px 0; border-bottom: 1px solid #e2e8f0;">
+                    <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Realizado Por / Autor</span>
+                    <div style="font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 2px;">
+                      👤 ${params.usuarioNombre || 'Usuario de Movida ERP'}
+                    </div>
+                  </td>
+                </tr>
+
+                <tr>
                   <td style="padding-top: 16px;">
                     <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">
                       Movimiento Realizado
@@ -253,6 +262,7 @@ export interface SubtaskNotificationParams {
   proyectoNombre: string;
   sprintNumero?: number | null;
   sprintNombre?: string | null;
+  usuarioNombre?: string | null;
   allSubtareas?: Array<{ texto: string; completada: boolean }>;
 }
 
@@ -366,6 +376,15 @@ export async function sendSubtaskUpdateNotification(params: SubtaskNotificationP
                     <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Actividad Modificada</span>
                     <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-top: 2px;">
                       "${params.subtareaTexto}" ➔ <span style="color: ${params.subtareaCompletada ? '#059669' : '#dc2626'}; font-weight: 800;">${statusText}</span>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding: 12px 0; border-bottom: 1px solid #e2e8f0;">
+                    <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Realizado Por / Autor</span>
+                    <div style="font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 2px;">
+                      👤 ${params.usuarioNombre || 'Usuario de Movida ERP'}
                     </div>
                   </td>
                 </tr>

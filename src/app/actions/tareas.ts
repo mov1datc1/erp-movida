@@ -74,12 +74,15 @@ export async function updateTarea(id: string, updateData: any) {
       data: dataToUpdate,
       include: {
         proyecto: { select: { nombre: true } },
-        sprint: { select: { numero: true, nombre: true } }
+        sprint: { select: { numero: true, nombre: true } },
+        encargados: { select: { nombre: true } }
       }
     });
 
     // 2. Trigger SMTP Email Notification if status changed
     if (updateData.estatus && existing && existing.estatus !== updateData.estatus) {
+      const userAuthorName = updateData.usuarioNombre || (tarea.encargados.length > 0 ? tarea.encargados.map(e => e.nombre).join(', ') : 'Usuario de Movida ERP');
+
       sendTaskStatusNotification({
         taskTitle: tarea.titulo,
         oldStatus: existing.estatus,
@@ -87,6 +90,7 @@ export async function updateTarea(id: string, updateData: any) {
         proyectoNombre: tarea.proyecto?.nombre || 'Sin Proyecto (General)',
         sprintNumero: tarea.sprint?.numero,
         sprintNombre: tarea.sprint?.nombre,
+        usuarioNombre: userAuthorName,
       }).catch(err => console.error('Error enviando notificación SMTP:', err));
     }
 
@@ -234,7 +238,7 @@ export async function createSubtarea(tarea_id: string, texto: string) {
   }
 }
 
-export async function toggleSubtarea(id: string, completada: boolean) {
+export async function toggleSubtarea(id: string, completada: boolean, usuarioNombre?: string) {
   try {
     const subtarea = await prisma.subtarea.update({
       where: { id },
@@ -244,6 +248,7 @@ export async function toggleSubtarea(id: string, completada: boolean) {
           include: {
             proyecto: true,
             sprint: true,
+            encargados: { select: { nombre: true } },
             subtareas: { orderBy: { createdAt: 'asc' } },
           }
         }
@@ -255,6 +260,7 @@ export async function toggleSubtarea(id: string, completada: boolean) {
       const allSubs = subtarea.tarea.subtareas;
       const total = allSubs.length;
       const completadas = allSubs.filter(s => s.completada).length;
+      const author = usuarioNombre || (subtarea.tarea.encargados.length > 0 ? subtarea.tarea.encargados.map(e => e.nombre).join(', ') : 'Usuario de Movida ERP');
 
       sendSubtaskUpdateNotification({
         taskTitle: subtarea.tarea.titulo,
@@ -265,6 +271,7 @@ export async function toggleSubtarea(id: string, completada: boolean) {
         proyectoNombre: subtarea.tarea.proyecto?.nombre || 'Proyecto General',
         sprintNumero: subtarea.tarea.sprint?.numero,
         sprintNombre: subtarea.tarea.sprint?.nombre,
+        usuarioNombre: author,
         allSubtareas: allSubs.map(s => ({ texto: s.texto, completada: s.completada })),
       }).catch(err => console.error('[SMTP Subtask Error]', err));
     }
