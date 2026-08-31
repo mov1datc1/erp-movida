@@ -12,6 +12,7 @@ import {
   Building2,
   AlertTriangle,
   CheckCircle2,
+  XCircle,
   HelpCircle,
   Zap,
   Sparkles,
@@ -26,7 +27,10 @@ import {
   ShoppingBag,
   CreditCard,
   Target,
-  Info
+  Info,
+  Calendar,
+  Layers,
+  Check
 } from 'lucide-react';
 
 interface Movimiento {
@@ -57,7 +61,7 @@ export function SaludFinanciera5PasosView({
   facturasPendientes = [],
   proyectos = []
 }: Props) {
-  const [pasoActivo, setPasoActivo] = useState<1 | 2 | 3 | 4 | 5 | 'decision_engine'>(1);
+  const [pasoActivo, setPasoActivo] = useState<1 | 2 | 3 | 4 | 5 | 'decision_engine'>('decision_engine');
 
   // -------------------------------------------------------------
   // MOTOR DE DECISIONES DE INVERSIÓN Y COMPRAS
@@ -78,8 +82,8 @@ export function SaludFinanciera5PasosView({
   const [porcentajeCorteEgresos, setPorcentajeCorteEgresos] = useState<number>(25);
   const [porcentajeCobranza, setPorcentajeCobranza] = useState<number>(50);
   const [deudas, setDeudas] = useState([
-    { id: '1', concepto: 'Recargos Fiscales / Impuestos Vencidos', monto: 85000, tasaAnual: 36, tipo: 'Fiscal/SAT' },
-    { id: '2', concepto: 'Tarjeta de Crédito Corporativa', monto: 45000, tasaAnual: 48, tipo: 'Bancario Alta Tasa' },
+    { id: '1', concepto: 'Recargos Fiscales / Impuestos Vencidos', monto: 85000, tasaAnual: 36, tipo: 'Fiscal' },
+    { id: '2', concepto: 'Tarjeta de Crédito Corporativa', monto: 45000, tasaAnual: 48, tipo: 'Bancario' },
     { id: '3', concepto: 'Proveedor Insumos (Vencido)', monto: 62000, tasaAnual: 18, tipo: 'Comercial' },
   ]);
   const [tasaRefinanciamiento, setTasaRefinanciamiento] = useState<number>(14);
@@ -157,15 +161,15 @@ export function SaludFinanciera5PasosView({
     if (nuevoRunway >= 45 && nuevoBalance >= egresosEsenciales * 0.5) {
       dictamen = 'SEGURO';
       justificacion = `Liquidez holgada. Después de realizar la inversión, mantienes ${nuevoRunway} días de Runway y reservas para nómina.`;
-      fechaSugerida = 'HOY MISMO (Disponibilidad inmediata)';
+      fechaSugerida = 'Disponible hoy mismo (disponibilidad inmediata de efectivo)';
     } else if (nuevoRunway >= 20) {
       dictamen = 'CONDICIONADO';
       justificacion = `Factible pero reduce el Runway a ${nuevoRunway} días. Se recomienda diferir a cuotas o cobrar el 40% de facturas pendientes primero.`;
-      fechaSugerida = 'EN 10-14 DÍAS (Tras cobranza programada)';
+      fechaSugerida = 'En 10 a 14 días (tras cobranza de facturas del pipeline)';
     } else {
       dictamen = 'INVIABLE';
       justificacion = `Riesgo alto de bache de caja. Esta compra descapitalizaría la empresa en menos de 20 días.`;
-      fechaSugerida = 'EN 30-45 DÍAS (O diferir a 6 meses con anticipo menor al 15%)';
+      fechaSugerida = 'En 30 a 45 días (o diferir a 6 meses con anticipo menor al 15%)';
     }
 
     return {
@@ -186,8 +190,8 @@ export function SaludFinanciera5PasosView({
     const cubreDeudaHoy = cajaDisponibleParaDeuda >= montoDeudaTarget;
 
     const fechaRecomendada = cubreDeudaHoy
-      ? 'HOY (Fondos suficientes y reserva protegida)'
-      : 'SEMANA 2 (Tras ingresar cobros pendientes del pipeline)';
+      ? 'Disponible HOY (fondos suficientes y reserva operativa protegida)'
+      : 'Semana 2 (tras ingresar cobros pendientes del pipeline)';
 
     return {
       reservaMinima,
@@ -228,28 +232,27 @@ export function SaludFinanciera5PasosView({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* ------------------------------------------------------------- */}
-      {/* HEADER BANNER */}
+      {/* HEADER BANNER - MOVIDA ERP BRANDING */}
       {/* ------------------------------------------------------------- */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 rounded-2xl p-6 md:p-8 text-white shadow-sm border border-blue-900">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-semibold text-purple-200 border border-white/10">
-              <Brain className="w-3.5 h-3.5 text-amber-300" />
-              <span>Motor de Decisiones Financieras &amp; Inteligencia de Caja</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-medium text-blue-100 border border-white/10">
+              <Brain className="w-3.5 h-3.5 text-blue-300" />
+              <span>Inteligencia de Caja &amp; Motor de Decisiones</span>
             </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-              Control de Caja &amp; Evaluador Inteligente de Compras / Inversiones
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+              Salud Financiera &amp; Evaluador de Decisiones
             </h2>
-            <p className="text-purple-200/90 text-sm max-w-2xl leading-relaxed">
-              Toma decisiones respaldadas por datos: evalúa compras, calcula la fecha exacta para pagar deudas y proyecta tu flujo de caja sin descapitalizar el negocio.
+            <p className="text-blue-100/90 text-sm max-w-2xl leading-relaxed">
+              Analiza la factibilidad de inversiones, calcula la fecha exacta para saldar deudas y proyecta la liquidez de tu empresa respetando tu reserva operativa.
             </p>
           </div>
 
           {/* RUNWAY GAUGE BADGE */}
-          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15 shrink-0 flex items-center gap-4 min-w-[250px]">
+          <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/15 shrink-0 flex items-center gap-4 min-w-[240px]">
             <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+              className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
                 runwayDias >= 60
                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                   : runwayDias >= 25
@@ -258,24 +261,24 @@ export function SaludFinanciera5PasosView({
               }`}
             >
               {runwayDias >= 60 ? (
-                <CheckCircle2 className="w-6 h-6" />
+                <CheckCircle2 className="w-5 h-5" />
               ) : runwayDias >= 25 ? (
-                <AlertTriangle className="w-6 h-6" />
+                <AlertTriangle className="w-5 h-5" />
               ) : (
-                <ShieldAlert className="w-6 h-6" />
+                <ShieldAlert className="w-5 h-5" />
               )}
             </div>
             <div>
-              <p className="text-xs text-purple-200 font-medium">Runway de Caja Actual</p>
-              <p className="text-2xl font-black font-mono">
-                {runwayDias} <span className="text-xs font-normal text-purple-200">días</span>
+              <p className="text-xs text-blue-200 font-medium">Runway de Caja Actual</p>
+              <p className="text-2xl font-bold font-mono">
+                {runwayDias} <span className="text-xs font-normal text-blue-200">días</span>
               </p>
-              <p className="text-[11px] text-purple-300 font-medium mt-0.5">
+              <p className="text-[11px] text-blue-200 font-medium mt-0.5">
                 {runwayDias >= 60
-                  ? ' Saldo Protegido'
+                  ? 'Liquidez Estable'
                   : runwayDias >= 25
-                  ? '⚠️ Precaución (Revisar baches)'
-                  : '🚨 Crítico (Ajuste Necesario)'}
+                  ? 'Precaución (Bache cercano)'
+                  : 'Atención (Requiere ajuste)'}
               </p>
             </div>
           </div>
@@ -283,27 +286,27 @@ export function SaludFinanciera5PasosView({
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* DECISION ENGINE BAR & 5-STEP NAVIGATION CARDS */}
+      {/* NAVIGATION TABS - BRANDING BLUE */}
       {/* ------------------------------------------------------------- */}
-      <div className="flex flex-wrap gap-2.5">
+      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
         <button
           onClick={() => setPasoActivo('decision_engine')}
-          className={`px-5 py-3 rounded-2xl font-bold text-xs flex items-center gap-2.5 transition-all shadow-sm ${
+          className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all ${
             pasoActivo === 'decision_engine'
-              ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-amber-500/20 ring-2 ring-amber-400/40'
-              : 'bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100'
+              ? 'bg-blue-900 text-white shadow-xs'
+              : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
           }`}
         >
-          <Brain className="w-4 h-4 text-amber-300" />
-          <span>🧠 MOTOR DE DECISIONES (Comprar / Invertir / Deudas)</span>
+          <Brain className="w-4 h-4" />
+          <span>Motor de Decisiones (Comprar / Deudas)</span>
         </button>
 
         {[
-          { paso: 1, num: '01', titulo: '1. Orden de Caja', sub: 'Runway & Liquidez', icon: Clock },
-          { paso: 2, num: '02', titulo: '2. Proyección 4 Semanas', sub: 'Matriz & Baches', icon: TrendingUp },
-          { paso: 3, num: '03', titulo: '3. Trabajamos Salidas', sub: 'Tijera Financiera', icon: Scissors },
-          { paso: 4, num: '04', titulo: '4. Liberar Capital', sub: 'Stock & Cobranza', icon: Package },
-          { paso: 5, num: '05', titulo: '5. Ordenar Deuda', sub: 'Reestructurar Pasivos', icon: Building2 },
+          { paso: 1, num: '01', titulo: '1. Orden de Caja', icon: Clock },
+          { paso: 2, num: '02', titulo: '2. Proyección 4 Semanas', icon: TrendingUp },
+          { paso: 3, num: '03', titulo: '3. Optimizar Salidas', icon: Scissors },
+          { paso: 4, num: '04', titulo: '4. Liberar Capital', icon: Package },
+          { paso: 5, num: '05', titulo: '5. Ordenar Deuda', icon: Building2 },
         ].map(item => {
           const Icon = item.icon;
           const isSelected = pasoActivo === item.paso;
@@ -311,13 +314,13 @@ export function SaludFinanciera5PasosView({
             <button
               key={item.paso}
               onClick={() => setPasoActivo(item.paso as any)}
-              className={`px-4 py-2.5 rounded-2xl text-left border transition-all text-xs font-semibold flex items-center gap-2 ${
+              className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
                 isSelected
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <Icon className="w-3.5 h-3.5" />
               <span>{item.titulo}</span>
             </button>
           );
@@ -328,31 +331,31 @@ export function SaludFinanciera5PasosView({
       {/* TAB DESTACADA: MOTOR DE INTELIGENCIA DE DECISIONES */}
       {/* ============================================================= */}
       {pasoActivo === 'decision_engine' && (
-        <div className="space-y-8 animate-in fade-in duration-200">
+        <div className="space-y-6 animate-in fade-in duration-200">
           {/* SIMULADOR DE EVALUACIÓN DE COMPRAS E INVERSIONES */}
-          <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-100">
+          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl text-white shadow-md">
-                  <ShoppingBag className="w-6 h-6" />
+                <div className="p-2.5 bg-blue-50 border border-blue-100 rounded-xl text-blue-900">
+                  <ShoppingBag className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="text-xs font-bold font-mono text-indigo-600 uppercase tracking-wider bg-indigo-50 px-2.5 py-0.5 rounded-full">
-                    Inteligencia Financiera — Evaluación de Inversión
+                  <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">
+                    Evaluación de Inversión y Compras
                   </span>
-                  <h3 className="text-xl font-bold text-slate-900 mt-1">
+                  <h3 className="text-lg font-bold text-slate-900 mt-0.5">
                     ¿Puedo comprar o invertir en esto sin descapitalizarme?
                   </h3>
                 </div>
               </div>
-              <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-xl">
+              <span className="text-xs font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
                 Caja Disponible: <strong className="text-slate-900 font-mono">{formatCurrency(balanceTotal)}</strong>
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* FORM INPUTS */}
-              <div className="space-y-4 md:col-span-1 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+              <div className="space-y-4 md:col-span-1 bg-slate-50/60 p-5 rounded-xl border border-slate-200">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
                     Concepto de Compra / Inversión
@@ -361,8 +364,8 @@ export function SaludFinanciera5PasosView({
                     type="text"
                     value={conceptoInversion}
                     onChange={e => setConceptoInversion(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20"
-                    placeholder="Ej. Servidor, Contratación, Equipo"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-blue-700"
+                    placeholder="Ej. Servidor, Equipo, Licencias"
                   />
                 </div>
 
@@ -374,7 +377,7 @@ export function SaludFinanciera5PasosView({
                     type="number"
                     value={montoInversion}
                     onChange={e => setMontoInversion(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-lg font-black font-mono text-indigo-900 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-base font-bold font-mono text-slate-900 outline-none focus:border-blue-700"
                   />
                 </div>
 
@@ -385,7 +388,7 @@ export function SaludFinanciera5PasosView({
                   <select
                     value={modalidadInversion}
                     onChange={e => setModalidadInversion(e.target.value as any)}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-blue-700"
                   >
                     <option value="CONTADO">Pago de Contado Inmediato (100% hoy)</option>
                     <option value="DIFERIDO_3">Diferido a 3 Pagos Mensuales</option>
@@ -397,80 +400,90 @@ export function SaludFinanciera5PasosView({
               {/* EVALUATION OUTPUT CARD */}
               <div className="md:col-span-2 space-y-4">
                 <div
-                  className={`p-6 rounded-3xl border space-y-4 shadow-sm transition-all ${
+                  className={`p-5 rounded-xl border space-y-3 transition-all ${
                     evaluacionInversion.dictamen === 'SEGURO'
-                      ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
+                      ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
                       : evaluacionInversion.dictamen === 'CONDICIONADO'
-                      ? 'bg-amber-50/80 border-amber-200 text-amber-950'
-                      : 'bg-red-50/80 border-red-200 text-red-950'
+                      ? 'bg-amber-50/70 border-amber-200 text-amber-950'
+                      : 'bg-red-50/70 border-red-200 text-red-950'
                   }`}
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`p-2.5 rounded-2xl text-white font-bold text-xs uppercase tracking-wider ${
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      {evaluacionInversion.dictamen === 'SEGURO' && (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-700" />
+                      )}
+                      {evaluacionInversion.dictamen === 'CONDICIONADO' && (
+                        <AlertTriangle className="w-5 h-5 text-amber-700" />
+                      )}
+                      {evaluacionInversion.dictamen === 'INVIABLE' && (
+                        <XCircle className="w-5 h-5 text-red-700" />
+                      )}
+                      <span
+                        className={`text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
                           evaluacionInversion.dictamen === 'SEGURO'
-                            ? 'bg-emerald-600'
+                            ? 'bg-emerald-100 text-emerald-800'
                             : evaluacionInversion.dictamen === 'CONDICIONADO'
-                            ? 'bg-amber-500'
-                            : 'bg-red-600'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-red-100 text-red-800'
                         }`}
                       >
                         {evaluacionInversion.dictamen === 'SEGURO'
-                          ? '🟢 COMPRA SEGURA & VIABLE'
+                          ? 'Compra Segura & Viable'
                           : evaluacionInversion.dictamen === 'CONDICIONADO'
-                          ? '🟡 VIABLE CON CONDICIÓN'
-                          : '🔴 ALTO RIESGO / INVIABLE HOY'}
-                      </div>
+                          ? 'Viable con Condición'
+                          : 'Alto Riesgo / Inviable Hoy'}
+                      </span>
                     </div>
-                    <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-white border border-slate-200 shadow-2xs">
+                    <span className="text-xs font-mono font-semibold text-slate-700 bg-white px-2.5 py-1 rounded-md border border-slate-200">
                       Impacto Inicial: {formatCurrency(evaluacionInversion.impactoInmediato)}
                     </span>
                   </div>
 
-                  <p className="text-sm font-bold leading-relaxed">{evaluacionInversion.justificacion}</p>
+                  <p className="text-xs font-medium leading-relaxed">{evaluacionInversion.justificacion}</p>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200/60">
-                    <div className="bg-white/80 p-3.5 rounded-2xl border border-slate-200/80">
-                      <span className="text-xs text-slate-500 font-semibold block">Fecha Sugerida para Ejecutar</span>
-                      <span className="text-sm font-extrabold text-slate-900 mt-0.5 block">
-                        📅 {evaluacionInversion.fechaSugerida}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200/60">
+                    <div className="bg-white p-3 rounded-lg border border-slate-200">
+                      <span className="text-[11px] text-slate-500 font-semibold block">Fecha Sugerida para Ejecutar</span>
+                      <span className="text-xs font-bold text-slate-900 mt-0.5 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-blue-700" />
+                        {evaluacionInversion.fechaSugerida}
                       </span>
                     </div>
 
-                    <div className="bg-white/80 p-3.5 rounded-2xl border border-slate-200/80">
-                      <span className="text-xs text-slate-500 font-semibold block">Runway Resultante post-compra</span>
-                      <span className="text-sm font-black font-mono text-indigo-900 mt-0.5 block">
+                    <div className="bg-white p-3 rounded-lg border border-slate-200">
+                      <span className="text-[11px] text-slate-500 font-semibold block">Runway Resultante post-compra</span>
+                      <span className="text-xs font-bold font-mono text-slate-900 mt-0.5 block">
                         {evaluacionInversion.nuevoRunway} días (antes: {runwayDias} días)
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-4 bg-slate-900 text-white rounded-2xl text-xs space-y-1">
-                  <span className="text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                    <Brain className="w-3.5 h-3.5" /> Recomendación del Copiloto Financiero:
+                <div className="p-4 bg-slate-900 text-white rounded-xl text-xs space-y-1">
+                  <span className="text-blue-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <Info className="w-3.5 h-3.5" /> Recomendación Financiera:
                   </span>
-                  <p className="text-slate-300">
-                    Si decides efectuar la compra de <strong className="text-white">&ldquo;{conceptoInversion}&rdquo;</strong> por {formatCurrency(montoInversion)}, tu saldo neto disponible pasará a {formatCurrency(evaluacionInversion.nuevoBalance)}. Mantendrás reserva suficiente para operar sin sorpresas.
+                  <p className="text-slate-300 leading-relaxed">
+                    Si ejecutas la compra de <strong className="text-white">&ldquo;{conceptoInversion}&rdquo;</strong> por {formatCurrency(montoInversion)}, tu caja disponible proyectada será de {formatCurrency(evaluacionInversion.nuevoBalance)}. Tu operación habitual no se verá afectada.
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* PLANIFICADOR DE PAGO DE DEUDAS (¿CUÁNDO CONTAR CON EL DINERO?) */}
-          <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-100">
+          {/* PLANIFICADOR DE PAGO DE DEUDAS */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-700 rounded-2xl text-white shadow-md">
-                  <CalendarCheck className="w-6 h-6" />
+                <div className="p-2.5 bg-blue-50 border border-blue-100 rounded-xl text-blue-900">
+                  <CalendarCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="text-xs font-bold font-mono text-emerald-600 uppercase tracking-wider bg-emerald-50 px-2.5 py-0.5 rounded-full">
-                    Planificador de Vencimientos &amp; Holgura
+                  <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">
+                    Planificador de Vencimientos
                   </span>
-                  <h3 className="text-xl font-bold text-slate-900 mt-1">
+                  <h3 className="text-lg font-bold text-slate-900 mt-0.5">
                     ¿Cuándo tendré el dinero seguro para pagar esta deuda o compromiso?
                   </h3>
                 </div>
@@ -478,7 +491,7 @@ export function SaludFinanciera5PasosView({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-4 md:col-span-1 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+              <div className="space-y-4 md:col-span-1 bg-slate-50/60 p-5 rounded-xl border border-slate-200">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
                     Deuda o Compromiso a Pagar
@@ -487,7 +500,7 @@ export function SaludFinanciera5PasosView({
                     type="text"
                     value={conceptoDeudaTarget}
                     onChange={e => setConceptoDeudaTarget(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-blue-700"
                     placeholder="Ej. Impuestos, Proveedor Core"
                   />
                 </div>
@@ -500,33 +513,34 @@ export function SaludFinanciera5PasosView({
                     type="number"
                     value={montoDeudaTarget}
                     onChange={e => setMontoDeudaTarget(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-lg font-black font-mono text-emerald-900 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-base font-bold font-mono text-slate-900 outline-none focus:border-blue-700"
                   />
                 </div>
               </div>
 
               <div className="md:col-span-2 space-y-4">
-                <div className="p-6 bg-gradient-to-br from-emerald-900 to-teal-950 text-white rounded-3xl space-y-4 shadow-md">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider">
-                      Dictamen de Fecha Óptima de Pago
+                <div className="p-5 bg-slate-900 text-white rounded-xl space-y-3">
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span className="text-xs font-bold text-blue-300 uppercase tracking-wider">
+                      Fecha Óptima Recomendada
                     </span>
-                    <span className="text-xs font-mono bg-white/10 text-emerald-200 px-3 py-1 rounded-full border border-white/10">
-                      Reserva de Operación Protegida: {formatCurrency(evaluacionPagoDeudaTarget.reservaMinima)}
+                    <span className="text-xs font-mono bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded border border-slate-700">
+                      Reserva Operativa Protegida: {formatCurrency(evaluacionPagoDeudaTarget.reservaMinima)}
                     </span>
                   </div>
 
                   <div className="pt-1">
-                    <span className="text-xs text-emerald-200 font-medium block">Fecha Recomendada de Pago:</span>
-                    <p className="text-2xl font-black text-amber-300 mt-0.5">
-                      🗓️ {evaluacionPagoDeudaTarget.fechaRecomendada}
+                    <span className="text-xs text-slate-400 font-medium block">Fecha Óptima sugerida por el sistema:</span>
+                    <p className="text-lg font-bold text-emerald-400 mt-0.5 flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-emerald-400" />
+                      {evaluacionPagoDeudaTarget.fechaRecomendada}
                     </p>
                   </div>
 
-                  <p className="text-xs text-emerald-100 leading-relaxed">
+                  <p className="text-xs text-slate-300 leading-relaxed">
                     {evaluacionPagoDeudaTarget.cubreDeudaHoy
-                      ? `Dispones de ${formatCurrency(evaluacionPagoDeudaTarget.cajaDisponibleParaDeuda)} de caja libre tras proteger la nómina y gastos fijos del mes. Puedes liquidar "${conceptoDeudaTarget}" por ${formatCurrency(montoDeudaTarget)} hoy mismo.`
-                      : `Actualmente la caja libre protegida es de ${formatCurrency(evaluacionPagoDeudaTarget.cajaDisponibleParaDeuda)}. Se sugiere liquidar la deuda en la Semana 2 para evitar tocar la reserva operativa.`}
+                      ? `Cuenta con ${formatCurrency(evaluacionPagoDeudaTarget.cajaDisponibleParaDeuda)} de caja libre tras resguardar los costos fijos. Es seguro liquidar "${conceptoDeudaTarget}" por ${formatCurrency(montoDeudaTarget)}.`
+                      : `La caja libre tras reserva es de ${formatCurrency(evaluacionPagoDeudaTarget.cajaDisponibleParaDeuda)}. Se recomienda programar el pago en la Semana 2 tras recibir la cobranza en curso.`}
                   </p>
                 </div>
               </div>
@@ -539,108 +553,108 @@ export function SaludFinanciera5PasosView({
       {/* PASO 1: ORDENAMOS LA CAJA */}
       {/* ------------------------------------------------------------- */}
       {pasoActivo === 1 && (
-        <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-8 animate-in fade-in duration-200">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-100">
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6 animate-in fade-in duration-200">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-100">
             <div>
-              <span className="text-xs font-bold font-mono text-blue-600 uppercase tracking-wider bg-blue-50 px-2.5 py-1 rounded-full">
+              <span className="text-xs font-bold text-blue-900 uppercase tracking-wider bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
                 Paso 1 — Diagnóstico de Liquidez Inmediata
               </span>
-              <h3 className="text-xl font-bold text-slate-900 mt-2">
+              <h3 className="text-lg font-bold text-slate-900 mt-1.5">
                 Primer Paso: Ordenamos la Caja
               </h3>
-              <p className="text-sm text-slate-500 mt-1">
-                No buscamos más plata ni vender más impulsivamente. Primero medimos con exactitud cuánto dinero entra, cuánto sale y cuándo.
+              <p className="text-xs text-slate-500 mt-0.5">
+                Evaluación previa del flujo de ingresos, egresos y el plazo de cobranza.
               </p>
             </div>
-            <div className="text-right bg-blue-50/50 p-3 rounded-2xl border border-blue-100">
-              <span className="text-xs font-semibold text-slate-500">Caja Disponible Actual</span>
-              <p className="text-2xl font-black text-blue-700 font-mono">{formatCurrency(balanceTotal)}</p>
+            <div className="text-right bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <span className="text-xs font-medium text-slate-500">Caja Disponible Actual</span>
+              <p className="text-xl font-bold text-blue-900 font-mono">{formatCurrency(balanceTotal)}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-b from-blue-50/50 to-white p-6 rounded-2xl border border-blue-100 space-y-4">
+            <div className="bg-slate-50/60 p-5 rounded-xl border border-slate-200 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center font-bold text-xs">
                   1
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-800">¿Cuánto entra?</h4>
-                  <p className="text-xs text-slate-500">Ingresos consolidados</p>
+                  <h4 className="font-bold text-slate-800 text-sm">¿Cuánto entra?</h4>
+                  <p className="text-[11px] text-slate-500">Ingresos del período</p>
                 </div>
               </div>
-              <div className="pt-2">
-                <p className="text-2xl font-black text-emerald-600 font-mono">{formatCurrency(ingresosMes)}</p>
-                <p className="text-xs text-slate-500 mt-1">Ingresos registrados este mes</p>
+              <div>
+                <p className="text-xl font-bold text-emerald-700 font-mono">{formatCurrency(ingresosMes)}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Ingresos registrados este mes</p>
               </div>
-              <div className="p-3 bg-white rounded-xl border border-slate-200/80 text-xs space-y-1">
+              <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs space-y-1">
                 <div className="flex justify-between text-slate-600">
                   <span>Facturas pendientes:</span>
-                  <span className="font-bold text-slate-800">{formatCurrency(totalFacturasPendientes)}</span>
+                  <span className="font-bold text-slate-800 font-mono">{formatCurrency(totalFacturasPendientes)}</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gradient-to-b from-purple-50/50 to-white p-6 rounded-2xl border border-purple-100 space-y-4">
+            <div className="bg-slate-50/60 p-5 rounded-xl border border-slate-200 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold text-xs">
                   2
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-800">¿Cuánto sale?</h4>
-                  <p className="text-xs text-slate-500">Egresos consolidados</p>
+                  <h4 className="font-bold text-slate-800 text-sm">¿Cuánto sale?</h4>
+                  <p className="text-[11px] text-slate-500">Egresos del período</p>
                 </div>
               </div>
-              <div className="pt-2">
-                <p className="text-2xl font-black text-red-500 font-mono">{formatCurrency(egresosMes)}</p>
-                <p className="text-xs text-slate-500 mt-1">Egresos registrados este mes</p>
+              <div>
+                <p className="text-xl font-bold text-red-600 font-mono">{formatCurrency(egresosMes)}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Egresos registrados este mes</p>
               </div>
-              <div className="p-3 bg-white rounded-xl border border-slate-200/80 text-xs space-y-1">
+              <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs space-y-1">
                 <div className="flex justify-between text-slate-600">
-                  <span>Tasa de Quema Diaria:</span>
-                  <span className="font-bold text-red-600 font-mono">{formatCurrency(burnRateDiario)} /día</span>
+                  <span>Quema Diaria:</span>
+                  <span className="font-bold text-red-600 font-mono">{formatCurrency(burnRateDiario)}/día</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gradient-to-b from-amber-50/50 to-white p-6 rounded-2xl border border-amber-100 space-y-4">
+            <div className="bg-slate-50/60 p-5 rounded-xl border border-slate-200 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-blue-800 text-white flex items-center justify-center font-bold text-xs">
                   3
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-800">¿Cuándo?</h4>
-                  <p className="text-xs text-slate-500">Calendario &amp; Runway</p>
+                  <h4 className="font-bold text-slate-800 text-sm">¿Cuándo?</h4>
+                  <p className="text-[11px] text-slate-500">Días de Runway</p>
                 </div>
               </div>
-              <div className="pt-2">
-                <p className="text-2xl font-black text-indigo-700 font-mono">{runwayDias} días</p>
-                <p className="text-xs text-slate-500 mt-1">Tiempo de vida garantizado sin ingresos</p>
+              <div>
+                <p className="text-xl font-bold text-slate-900 font-mono">{runwayDias} días</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Tiempo de operación garantizada</p>
               </div>
-              <div className="p-3 bg-white rounded-xl border border-slate-200/80 text-xs space-y-1">
+              <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs space-y-1">
                 <div className="flex justify-between text-slate-600">
-                  <span>Meses de Runway:</span>
-                  <span className="font-bold text-indigo-900">{(runwayDias / 30).toFixed(1)} meses</span>
+                  <span>Equivalente:</span>
+                  <span className="font-bold text-slate-800 font-mono">{(runwayDias / 30).toFixed(1)} meses</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="p-6 bg-slate-900 text-white rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="p-5 bg-slate-900 text-white rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-wider">
-                <Zap className="w-4 h-4" /> Diagnóstico del Experto Contable
-              </div>
-              <p className="text-sm font-medium text-slate-200 max-w-2xl">
-                Al ritmo actual de egresos ({formatCurrency(burnRateDiario)}/día), la empresa tiene{' '}
-                <strong className="text-amber-300 font-mono">{runwayDias} días de liquidez garantizada</strong>.
+              <span className="text-blue-300 font-bold text-xs uppercase tracking-wider flex items-center gap-1">
+                <Info className="w-3.5 h-3.5" /> Diagnóstico Financiero
+              </span>
+              <p className="text-xs text-slate-300 max-w-2xl">
+                Al ritmo actual de egresos ({formatCurrency(burnRateDiario)}/día), la empresa cuenta con{' '}
+                <strong className="text-white font-mono">{runwayDias} días de liquidez garantizada</strong> sin necesidad de nuevo financiamiento.
               </p>
             </div>
             <button
               onClick={() => setPasoActivo(2)}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition-all shadow-md shrink-0 flex items-center gap-2"
+              className="px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white font-semibold text-xs rounded-lg transition-all shrink-0 flex items-center gap-1.5"
             >
-              Ir al Paso 2: Proyectar la Caja <ChevronRight className="w-4 h-4" />
+              Ir al Paso 2: Proyectar Caja <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -650,54 +664,54 @@ export function SaludFinanciera5PasosView({
       {/* PASO 2: PROYECTAMOS LA CAJA */}
       {/* ------------------------------------------------------------- */}
       {pasoActivo === 2 && (
-        <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6 animate-in fade-in duration-200">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-100">
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6 animate-in fade-in duration-200">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-100">
             <div>
-              <span className="text-xs font-bold font-mono text-indigo-600 uppercase tracking-wider bg-indigo-50 px-2.5 py-1 rounded-full">
-                Paso 2 — Anticipar Baches Financieros
+              <span className="text-xs font-bold text-blue-900 uppercase tracking-wider bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
+                Paso 2 — Proyección de Flujo
               </span>
-              <h3 className="text-xl font-bold text-slate-900 mt-2">
+              <h3 className="text-lg font-bold text-slate-900 mt-1.5">
                 Segundo Paso: Proyectamos la Caja a 4 Semanas
               </h3>
-              <p className="text-sm text-slate-500 mt-1">
-                Dejamos de decidir mirando el día a día. Armamos una proyección de flujo de fondos para los próximos meses para anticipar baches de caja.
+              <p className="text-xs text-slate-500 mt-0.5">
+                Matriz dinámica para anticipar baches de caja semanas antes de que ocurran.
               </p>
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-900 text-white text-xs font-bold uppercase tracking-wider">
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider border-b border-slate-200">
                 <tr>
-                  <th className="p-4">Concepto / Período</th>
-                  <th className="p-4 bg-slate-800 text-amber-300">Semana Actual (S0)</th>
-                  <th className="p-4">Semana 1 (S1)</th>
-                  <th className="p-4">Semana 2 (S2)</th>
-                  <th className="p-4">Semana 3 (S3)</th>
-                  <th className="p-4">Semana 4 (S4)</th>
+                  <th className="p-3">Concepto / Período</th>
+                  <th className="p-3 bg-slate-200 text-slate-900">Semana Actual (S0)</th>
+                  <th className="p-3">Semana 1 (S1)</th>
+                  <th className="p-3">Semana 2 (S2)</th>
+                  <th className="p-3">Semana 3 (S3)</th>
+                  <th className="p-3">Semana 4 (S4)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
-                <tr className="bg-emerald-50/40 font-semibold text-emerald-900">
-                  <td className="p-4">(+) INGRESOS ESPERADOS (Cobranzas/Ventas)</td>
-                  <td className="p-4 font-mono font-bold text-emerald-700">{formatCurrency(ingresosMes * 0.25)}</td>
-                  <td className="p-4 font-mono text-emerald-700">{formatCurrency((totalFacturasPendientes * 0.4) + (ingresosMes * 0.25))}</td>
-                  <td className="p-4 font-mono text-emerald-700">{formatCurrency(ingresosMes * 0.25)}</td>
-                  <td className="p-4 font-mono text-emerald-700">{formatCurrency((totalFacturasPendientes * 0.3) + (ingresosMes * 0.25))}</td>
-                  <td className="p-4 font-mono text-emerald-700">{formatCurrency(ingresosMes * 0.25)}</td>
+                <tr className="bg-emerald-50/30 text-emerald-950">
+                  <td className="p-3 font-semibold text-slate-800">(+) Ingresos Esperados</td>
+                  <td className="p-3 font-mono text-emerald-700">{formatCurrency(ingresosMes * 0.25)}</td>
+                  <td className="p-3 font-mono text-emerald-700">{formatCurrency((totalFacturasPendientes * 0.4) + (ingresosMes * 0.25))}</td>
+                  <td className="p-3 font-mono text-emerald-700">{formatCurrency(ingresosMes * 0.25)}</td>
+                  <td className="p-3 font-mono text-emerald-700">{formatCurrency((totalFacturasPendientes * 0.3) + (ingresosMes * 0.25))}</td>
+                  <td className="p-3 font-mono text-emerald-700">{formatCurrency(ingresosMes * 0.25)}</td>
                 </tr>
 
-                <tr className="bg-red-50/40 text-red-900">
-                  <td className="p-4">(-) EGRESOS PROGRAMADOS (Nómina/Renta/Proveedores)</td>
-                  <td className="p-4 font-mono font-bold text-red-600">{formatCurrency(egresosMes * 0.25)}</td>
-                  <td className="p-4 font-mono text-red-600">{formatCurrency(egresosEsenciales * 0.5 + egresosReducibles * 0.25)}</td>
-                  <td className="p-4 font-mono text-red-600">{formatCurrency(egresosMes * 0.25)}</td>
-                  <td className="p-4 font-mono text-red-600">{formatCurrency(egresosEsenciales * 0.5 + egresosReducibles * 0.25)}</td>
-                  <td className="p-4 font-mono text-red-600">{formatCurrency(egresosMes * 0.25)}</td>
+                <tr className="bg-red-50/30 text-red-950">
+                  <td className="p-3 font-semibold text-slate-800">(-) Egresos Programados</td>
+                  <td className="p-3 font-mono text-red-600">{formatCurrency(egresosMes * 0.25)}</td>
+                  <td className="p-3 font-mono text-red-600">{formatCurrency(egresosEsenciales * 0.5 + egresosReducibles * 0.25)}</td>
+                  <td className="p-3 font-mono text-red-600">{formatCurrency(egresosMes * 0.25)}</td>
+                  <td className="p-3 font-mono text-red-600">{formatCurrency(egresosEsenciales * 0.5 + egresosReducibles * 0.25)}</td>
+                  <td className="p-3 font-mono text-red-600">{formatCurrency(egresosMes * 0.25)}</td>
                 </tr>
 
-                <tr className="bg-slate-50 font-bold text-slate-800 border-t-2 border-slate-200">
-                  <td className="p-4 text-base">(=) SALDO NETO PROYECTADO DE CAJA</td>
+                <tr className="bg-slate-50 font-bold border-t border-slate-200">
+                  <td className="p-3 text-slate-900">(=) Saldo Neto Proyectado de Caja</td>
                   {[
                     balanceTotal,
                     balanceTotal + (totalFacturasPendientes * 0.4) - (egresosEsenciales * 0.1),
@@ -705,8 +719,8 @@ export function SaludFinanciera5PasosView({
                     balanceTotal + (totalFacturasPendientes * 0.7) - (egresosEsenciales * 0.4),
                     balanceTotal + (totalFacturasPendientes * 0.7) - (egresosEsenciales * 0.5),
                   ].map((val, idx) => (
-                    <td key={idx} className="p-4 font-mono text-base">
-                      <span className={`px-2.5 py-1 rounded-xl ${val >= balanceTotal ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'}`}>
+                    <td key={idx} className="p-3 font-mono">
+                      <span className={`px-2 py-0.5 rounded font-bold ${val >= balanceTotal ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
                         {formatCurrency(val)}
                       </span>
                     </td>
@@ -722,33 +736,33 @@ export function SaludFinanciera5PasosView({
       {/* PASO 3: TRABAJAMOS SOBRE LAS SALIDAS */}
       {/* ------------------------------------------------------------- */}
       {pasoActivo === 3 && (
-        <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-8 animate-in fade-in duration-200">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-100">
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6 animate-in fade-in duration-200">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-100">
             <div>
-              <span className="text-xs font-bold font-mono text-purple-600 uppercase tracking-wider bg-purple-50 px-2.5 py-1 rounded-full">
-                Paso 3 — Clasificación Estratégica de Egresos
+              <span className="text-xs font-bold text-blue-900 uppercase tracking-wider bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
+                Paso 3 — Optimización de Gastos
               </span>
-              <h3 className="text-xl font-bold text-slate-900 mt-2">
+              <h3 className="text-lg font-bold text-slate-900 mt-1.5">
                 Tercer Paso: Trabajamos sobre las Salidas
               </h3>
-              <p className="text-sm text-slate-500 mt-1">
-                &ldquo;Cuando el flujo de caja es ajustado, no alcanza con vender más. También hay que saber qué dinero no debería estar saliendo.&rdquo;
+              <p className="text-xs text-slate-500 mt-0.5">
+                Clasificación de egresos esenciales e identificación de partidas prescindibles.
               </p>
             </div>
           </div>
 
-          <div className="bg-purple-900 text-white p-6 md:p-8 rounded-3xl space-y-6 shadow-lg">
+          <div className="bg-slate-900 text-white p-6 rounded-2xl space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-purple-700/50 rounded-2xl border border-purple-500/30">
-                  <Scissors className="w-6 h-6 text-purple-200" />
+                <div className="p-2 bg-slate-800 rounded-lg border border-slate-700">
+                  <Scissors className="w-5 h-5 text-blue-300" />
                 </div>
                 <div>
-                  <h4 className="font-extrabold text-lg">Simulador de Tijera Financiera (Recorte Inteligente)</h4>
-                  <p className="text-xs text-purple-200">Ajusta el % de corte sobre egresos posponibles o eliminables</p>
+                  <h4 className="font-bold text-sm">Simulador de Recorte de Gastos Reducibles</h4>
+                  <p className="text-xs text-slate-400">Ajusta el % de optimización sobre egresos prescindibles</p>
                 </div>
               </div>
-              <span className="text-3xl font-black font-mono text-amber-300">{porcentajeCorteEgresos}%</span>
+              <span className="text-2xl font-bold font-mono text-blue-300">{porcentajeCorteEgresos}%</span>
             </div>
 
             <input
@@ -758,21 +772,21 @@ export function SaludFinanciera5PasosView({
               step="5"
               value={porcentajeCorteEgresos}
               onChange={e => setPorcentajeCorteEgresos(parseInt(e.target.value, 10))}
-              className="w-full h-3 bg-purple-950 rounded-lg appearance-none cursor-pointer accent-amber-400"
+              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
             />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-              <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-                <span className="text-xs text-purple-200 font-medium">Ahorro Mensual en Salidas</span>
-                <p className="text-2xl font-black text-emerald-400 font-mono mt-1">{formatCurrency(ahorroEgresosMes)}</p>
+              <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700">
+                <span className="text-[11px] text-slate-400 font-medium">Ahorro Mensual Proyectado</span>
+                <p className="text-lg font-bold text-emerald-400 font-mono mt-0.5">{formatCurrency(ahorroEgresosMes)}</p>
               </div>
-              <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-                <span className="text-xs text-purple-200 font-medium">Nuevo Runway Proyectado</span>
-                <p className="text-2xl font-black text-amber-300 font-mono mt-1">{nuevoRunwayDias} días</p>
+              <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700">
+                <span className="text-[11px] text-slate-400 font-medium">Nuevo Runway Proyectado</span>
+                <p className="text-lg font-bold text-white font-mono mt-0.5">{nuevoRunwayDias} días</p>
               </div>
-              <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-                <span className="text-xs text-purple-200 font-medium">Días Extra de Vida Ganados</span>
-                <p className="text-2xl font-black text-white font-mono mt-1">+{diasGanadosRunway} días 🎉</p>
+              <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700">
+                <span className="text-[11px] text-slate-400 font-medium">Días Extra Ganados</span>
+                <p className="text-lg font-bold text-blue-300 font-mono mt-0.5">+{diasGanadosRunway} días</p>
               </div>
             </div>
           </div>
@@ -783,33 +797,33 @@ export function SaludFinanciera5PasosView({
       {/* PASO 4: LIBERAMOS PLATA INMOVILIZADA */}
       {/* ------------------------------------------------------------- */}
       {pasoActivo === 4 && (
-        <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-8 animate-in fade-in duration-200">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-100">
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6 animate-in fade-in duration-200">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-100">
             <div>
-              <span className="text-xs font-bold font-mono text-amber-600 uppercase tracking-wider bg-amber-50 px-2.5 py-1 rounded-full">
-                Paso 4 — Descongelamiento de Capital
+              <span className="text-xs font-bold text-blue-900 uppercase tracking-wider bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
+                Paso 4 — Recuperación de Activos
               </span>
-              <h3 className="text-xl font-bold text-slate-900 mt-2">
+              <h3 className="text-lg font-bold text-slate-900 mt-1.5">
                 Cuarto Paso: Liberamos Plata Inmovilizada
               </h3>
-              <p className="text-sm text-slate-500 mt-1">
-                ¿Cómo convertimos cuentas por cobrar vencidas e inventario/servicios estancados en efectivo directo para la caja?
+              <p className="text-xs text-slate-500 mt-0.5">
+                Estrategias para acelerar la cobranza de facturas vencidas e inventario sin rotación.
               </p>
             </div>
           </div>
 
-          <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-6 md:p-8 rounded-3xl space-y-6 shadow-lg">
+          <div className="bg-slate-900 text-white p-6 rounded-2xl space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-white/20 rounded-2xl border border-white/20">
-                  <Package className="w-6 h-6 text-white" />
+                <div className="p-2 bg-slate-800 rounded-lg border border-slate-700">
+                  <Package className="w-5 h-5 text-blue-300" />
                 </div>
                 <div>
-                  <h4 className="font-extrabold text-lg">Simulador de Recuperación de Cartera &amp; Stock</h4>
-                  <p className="text-xs text-amber-100">% de cobranza proyectada de facturas pendientes ({formatCurrency(totalFacturasPendientes)})</p>
+                  <h4 className="font-bold text-sm">Simulador de Cobranza Acelerada</h4>
+                  <p className="text-xs text-slate-400">Total Facturas Pendientes: {formatCurrency(totalFacturasPendientes)}</p>
                 </div>
               </div>
-              <span className="text-3xl font-black font-mono text-white">{porcentajeCobranza}%</span>
+              <span className="text-2xl font-bold font-mono text-blue-300">{porcentajeCobranza}%</span>
             </div>
 
             <input
@@ -819,17 +833,17 @@ export function SaludFinanciera5PasosView({
               step="10"
               value={porcentajeCobranza}
               onChange={e => setPorcentajeCobranza(parseInt(e.target.value, 10))}
-              className="w-full h-3 bg-amber-900/40 rounded-lg appearance-none cursor-pointer accent-white"
+              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-              <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15">
-                <span className="text-xs text-amber-100 font-medium">Inyección Directa a Caja por Cobranza</span>
-                <p className="text-2xl font-black text-white font-mono mt-1">+{formatCurrency(dineroLiberadoCobranza)}</p>
+              <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700">
+                <span className="text-[11px] text-slate-400 font-medium">Inyección de Liquidez por Cobranza</span>
+                <p className="text-lg font-bold text-emerald-400 font-mono mt-0.5">+{formatCurrency(dineroLiberadoCobranza)}</p>
               </div>
-              <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15">
-                <span className="text-xs text-amber-100 font-medium">Nuevo Runway con Cartera Cobrada</span>
-                <p className="text-2xl font-black text-amber-200 font-mono mt-1">{runwayConCobranzaDias} días de vida 🎉</p>
+              <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700">
+                <span className="text-[11px] text-slate-400 font-medium">Nuevo Runway con Cartera Cobrada</span>
+                <p className="text-lg font-bold text-white font-mono mt-0.5">{runwayConCobranzaDias} días de liquidez</p>
               </div>
             </div>
           </div>
@@ -840,59 +854,59 @@ export function SaludFinanciera5PasosView({
       {/* PASO 5: ORDENAMOS LA DEUDA */}
       {/* ------------------------------------------------------------- */}
       {pasoActivo === 5 && (
-        <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-8 animate-in fade-in duration-200">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-100">
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6 animate-in fade-in duration-200">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-100">
             <div>
-              <span className="text-xs font-bold font-mono text-emerald-600 uppercase tracking-wider bg-emerald-50 px-2.5 py-1 rounded-full">
-                Paso 5 — Diagnóstico de Pasivos &amp; Refinanciación
+              <span className="text-xs font-bold text-blue-900 uppercase tracking-wider bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
+                Paso 5 — Diagnóstico y Reestructuración
               </span>
-              <h3 className="text-xl font-bold text-slate-900 mt-2">
+              <h3 className="text-lg font-bold text-slate-900 mt-1.5">
                 Quinto Paso: Ordenamos la Deuda
               </h3>
-              <p className="text-sm text-slate-500 mt-1">
-                No se trata de refinanciar y patear el problema. Analizamos cada deuda, su costo financiero (CFT) y su impacto en la caja.
+              <p className="text-xs text-slate-500 mt-0.5">
+                Análisis de costo financiero y sustitución de pasivos de alta tasa.
               </p>
             </div>
           </div>
 
-          <div className="bg-emerald-950 text-white p-6 md:p-8 rounded-3xl space-y-6 shadow-xl border border-emerald-800/50">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-emerald-800/80 pb-4">
+          <div className="bg-slate-900 text-white p-6 rounded-2xl space-y-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-3">
               <div>
-                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                  Estrategia de Sustitución de Deuda
+                <span className="text-xs font-bold text-blue-300 uppercase tracking-wider">
+                  Consolidación de Deuda
                 </span>
-                <h4 className="text-xl font-extrabold mt-0.5">
-                  Reemplazar Deuda Cara por Préstamo Estructurado a Cuota Fija Más Baja
+                <h4 className="text-base font-bold mt-0.5">
+                  Sustitución de Pasivos por Crédito Estructurado a Tasa Menor
                 </h4>
               </div>
-              <div className="flex items-center gap-2 bg-emerald-900 px-4 py-2 rounded-xl border border-emerald-700">
-                <span className="text-xs text-emerald-200">Tasa Crédito Consolidado:</span>
+              <div className="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+                <span className="text-xs text-slate-300">Tasa Crédito Consolidado:</span>
                 <input
                   type="number"
                   value={tasaRefinanciamiento}
                   onChange={e => setTasaRefinanciamiento(parseFloat(e.target.value) || 0)}
-                  className="w-16 px-2 py-1 bg-emerald-950 text-white font-mono font-bold text-sm border border-emerald-600 rounded outline-none text-center"
+                  className="w-14 px-2 py-0.5 bg-slate-900 text-white font-mono font-bold text-xs border border-slate-700 rounded outline-none text-center"
                 />
-                <span className="text-xs text-emerald-200">%</span>
+                <span className="text-xs text-slate-300">%</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
-                <span className="text-xs text-emerald-200 font-medium">Costo Financiero Promedio Actual</span>
-                <p className="text-2xl font-black text-red-400 font-mono mt-1">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-3.5 bg-slate-800/80 rounded-xl border border-slate-700">
+                <span className="text-[11px] text-slate-400 font-medium">Costo Financiero Promedio Actual</span>
+                <p className="text-lg font-bold text-red-400 font-mono mt-0.5">
                   {costoFinancieroActualPromedio.toFixed(1)}% anual
                 </p>
               </div>
 
-              <div className="p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
-                <span className="text-xs text-emerald-200 font-medium">Nuevo Costo Refinanciado</span>
-                <p className="text-2xl font-black text-emerald-300 font-mono mt-1">{tasaRefinanciamiento}% anual</p>
+              <div className="p-3.5 bg-slate-800/80 rounded-xl border border-slate-700">
+                <span className="text-[11px] text-slate-400 font-medium">Nuevo Costo Refinanciado</span>
+                <p className="text-lg font-bold text-emerald-400 font-mono mt-0.5">{tasaRefinanciamiento}% anual</p>
               </div>
 
-              <div className="p-4 bg-emerald-900/80 backdrop-blur-md rounded-2xl border border-emerald-500/50">
-                <span className="text-xs text-amber-300 font-bold uppercase tracking-wider">Ahorro Neto Estimado</span>
-                <p className="text-2xl font-black text-amber-300 font-mono mt-1">
+              <div className="p-3.5 bg-slate-800/80 rounded-xl border border-slate-700">
+                <span className="text-[11px] text-slate-400 font-medium">Ahorro Neto Estimado</span>
+                <p className="text-lg font-bold text-blue-300 font-mono mt-0.5">
                   {formatCurrency(ahorroInteresMensual)} /mes
                 </p>
               </div>
