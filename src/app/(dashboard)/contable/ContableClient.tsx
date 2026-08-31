@@ -8,6 +8,7 @@ import { deleteMovimiento } from "./actions";
 import { FlujoCajaView } from "./components/FlujoCajaView";
 import { EstadoResultadosView } from "./components/EstadoResultadosView";
 import { KpiSemanalesView } from "./components/KpiSemanalesView";
+import { SaludFinanciera5PasosView } from "./components/SaludFinanciera5PasosView";
 import { MovimientoFinanciero } from "@prisma/client";
 
 type Movimiento = {
@@ -42,7 +43,7 @@ interface ContableClientProps {
 }
 
 export default function ContableClient({ movimientos, balanceTotal, ingresosMes, egresosMes, rawMovimientos, facturasPendientes = [], oportunidadesMes = [], lineasProducto = [], proyectos = [] }: ContableClientProps) {
-  const [activeTab, setActiveTab] = useState<'resumen' | 'flujo' | 'resultados' | 'kpis'>('kpis');
+  const [activeTab, setActiveTab] = useState<'salud' | 'kpis' | 'resumen' | 'flujo' | 'resultados'>('salud');
   
   const [anio, setAnio] = useState(new Date().getFullYear().toString());
   const [mes, setMes] = useState((new Date().getMonth() + 1).toString());
@@ -167,8 +168,21 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-200 gap-4 md:gap-0 print:hidden">
         <div className="flex">
           <button
+            onClick={() => setActiveTab('salud')}
+            className={`px-5 py-3 text-sm font-extrabold border-b-2 transition-colors flex items-center gap-2 ${
+              activeTab === 'salud'
+                ? 'border-indigo-600 text-indigo-700 bg-indigo-50/60 rounded-t-xl'
+                : 'border-transparent text-slate-600 hover:text-indigo-600 hover:border-slate-300'
+            }`}
+          >
+            <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full">
+              Método 5 Pasos
+            </span>
+            Salud Financiera
+          </button>
+          <button
             onClick={() => setActiveTab('resumen')}
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'resumen' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
@@ -176,7 +190,7 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
           </button>
           <button
             onClick={() => setActiveTab('flujo')}
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'flujo' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
@@ -184,7 +198,7 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
           </button>
           <button
             onClick={() => setActiveTab('resultados')}
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'resultados' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
@@ -192,7 +206,7 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
           </button>
           <button
             onClick={() => setActiveTab('kpis')}
-            className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${
+            className={`px-5 py-3 text-sm font-bold border-b-2 transition-colors ${
               activeTab === 'kpis' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
@@ -232,6 +246,18 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
       </div>
 
       {/* Tab Content */}
+      {activeTab === 'salud' && (
+        <SaludFinanciera5PasosView
+          movimientos={filteredMovimientos}
+          balanceTotal={balanceTotal}
+          ingresosMes={filteredIngresos}
+          egresosMes={filteredEgresos}
+          facturasPendientes={facturasPendientes}
+          rawMovimientos={rawMovimientos}
+          proyectos={proyectos}
+        />
+      )}
+
       {activeTab === 'resumen' && (
         <div className="space-y-6 animate-in fade-in duration-300">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
