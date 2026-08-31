@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { Prioridad, CategoriaTarea, TareaStatus } from "@prisma/client"
-import { sendTaskStatusNotification } from "@/lib/email"
+import { sendTaskStatusNotification, sendSubtaskUpdateNotification } from "@/lib/email"
 
 export async function createTarea(formData: FormData) {
   try {
@@ -206,5 +206,88 @@ export async function deleteEncargado(id: string) {
   } catch (error) {
     console.error("Error deleting encargado:", error)
     return { success: false, error: 'Ocurrió un error al eliminar el encargado' }
+  }
+}
+
+export async function createSubtarea(tarea_id: string, texto: string) {
+  try {
+    if (!texto.trim()) {
+      return { success: false, error: 'El texto de la subtarea es obligatorio' }
+    }
+
+    const count = await prisma.subtarea.count({ where: { tarea_id } })
+    const subtarea = await prisma.subtarea.create({
+      data: {
+        tarea_id,
+        texto: texto.trim(),
+        completada: false,
+        orden: count,
+      }
+    })
+
+    revalidatePath('/proyectos')
+    revalidatePath('/tareas')
+    return { success: true, data: subtarea }
+  } catch (error) {
+    console.error("Error creating subtarea:", error)
+    return { success: false, error: 'Ocurrió un error al crear la subtarea' }
+  }
+}
+
+export async function toggleSubtarea(id: string, completada: boolean) {
+  try {
+    const subtarea = await prisma.subtarea.update({
+      where: { id },
+      data: { completada },
+      include: {
+        tarea: {
+          include: {
+            proyecto: true,
+            sprint: true,
+            subtareas: { orderBy: { createdAt: 'asc' } },
+          }
+        }
+      }
+    })
+
+    // Trigger async email notification for subtask toggle
+    if (subtarea.tarea) {
+      const allSubs = subtarea.tarea.subtareas;
+      const total = allSubs.length;
+      const completadas = allSubs.filter(s => s.completada).length;
+
+      sendSubtaskUpdateNotification({
+        taskTitle: subtarea.tarea.titulo,
+        subtareaTexto: subtarea.texto,
+        subtareaCompletada: completada,
+        totalSubtareas: total,
+        completadasSubtareas: completadas,
+        proyectoNombre: subtarea.tarea.proyecto?.nombre || 'Proyecto General',
+        sprintNumero: subtarea.tarea.sprint?.numero,
+        sprintNombre: subtarea.tarea.sprint?.nombre,
+        allSubtareas: allSubs.map(s => ({ texto: s.texto, completada: s.completada })),
+      }).catch(err => console.error('[SMTP Subtask Error]', err));
+    }
+
+    revalidatePath('/proyectos')
+    revalidatePath('/tareas')
+    return { success: true, data: subtarea }
+  } catch (error) {
+    console.error("Error toggling subtarea:", error)
+    return { success: false, error: 'Ocurrió un error al actualizar la subtarea' }
+  }
+}
+
+export async function deleteSubtarea(id: string) {
+  try {
+    const subtarea = await prisma.subtarea.delete({
+      where: { id }
+    })
+    revalidatePath('/proyectos')
+    revalidatePath('/tareas')
+    return { success: true, data: subtarea }
+  } catch (error) {
+    console.error("Error deleting subtarea:", error)
+    return { success: false, error: 'Ocurrió un error al eliminar la subtarea' }
   }
 }

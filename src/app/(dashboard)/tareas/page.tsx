@@ -16,6 +16,7 @@ export default async function TareasPage() {
       include: {
         cliente: { select: { id: true, nombre: true } },
         encargados: { select: { id: true, nombre: true } },
+        subtareas: { orderBy: { createdAt: 'asc' } },
         comentarios: { orderBy: { createdAt: 'desc' } }
       },
       orderBy: { createdAt: 'desc' }

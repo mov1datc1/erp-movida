@@ -244,6 +244,196 @@ export async function sendTaskStatusNotification(params: TaskStatusNotificationP
   }
 }
 
+export interface SubtaskNotificationParams {
+  taskTitle: string;
+  subtareaTexto: string;
+  subtareaCompletada: boolean;
+  totalSubtareas: number;
+  completadasSubtareas: number;
+  proyectoNombre: string;
+  sprintNumero?: number | null;
+  sprintNombre?: string | null;
+  allSubtareas?: Array<{ texto: string; completada: boolean }>;
+}
+
+/**
+ * Sends notification email when a subtask checklist item is toggled
+ */
+export async function sendSubtaskUpdateNotification(params: SubtaskNotificationParams) {
+  try {
+    const { transporter, config } = await getMailTransporter();
+
+    if (!config.activa) {
+      return { success: false, reason: 'Integration disabled' };
+    }
+
+    const recipientsList = config.recipients
+      .split(/[,;\n]/)
+      .map((e: string) => e.trim())
+      .filter((e: string) => e.length > 0);
+
+    if (recipientsList.length === 0) {
+      return { success: false, reason: 'No recipients configured' };
+    }
+
+    const sprintText = params.sprintNumero ? `Sprint #${params.sprintNumero}${params.sprintNombre ? ` - ${params.sprintNombre}` : ''}` : 'Sin Sprint';
+    const statusText = params.subtareaCompletada ? 'COMPLETADA ✅' : 'PENDIENTE ☐';
+    const porcentaje = params.totalSubtareas > 0 ? Math.round((params.completadasSubtareas / params.totalSubtareas) * 100) : 0;
+
+    const fechaHoraStr = new Date().toLocaleString('es-ES', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    });
+
+    const subject = `[Movida ERP] Checklist Actualizado: "${params.taskTitle}" (${params.completadasSubtareas}/${params.totalSubtareas})`;
+
+    const subtareasRows = (params.allSubtareas || [])
+      .map(
+        sub => `
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 10px 12px; font-size: 13px; color: ${sub.completada ? '#059669' : '#334155'}; font-weight: ${sub.completada ? '700' : '500'};">
+            ${sub.completada ? '☑' : '☐'} ${sub.texto}
+          </td>
+          <td style="padding: 10px 12px; font-size: 11px; font-weight: 700; text-align: right; color: ${sub.completada ? '#059669' : '#64748b'};">
+            ${sub.completada ? 'Completado' : 'Pendiente'}
+          </td>
+        </tr>`
+      )
+      .join('');
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Actualización de Checklist</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1e293b;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); overflow: hidden;">
+          
+          <!-- Header -->
+          <tr>
+            <td style="padding: 28px 32px; background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: #ffffff;">
+              <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; font-family: monospace;">
+                Movida ERP — Avance de Entregables
+              </span>
+              <h1 style="margin: 12px 0 0 0; font-size: 20px; font-weight: 800; color: #ffffff; line-height: 1.3;">
+                Actualización de Checklist de Subtareas
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 32px;">
+              <table role="presentation" width="100%" style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 16px; padding: 20px; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding-bottom: 12px; border-bottom: 1px solid #e2e8f0;">
+                    <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Proyecto</span>
+                    <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">
+                      ${params.proyectoNombre}
+                    </div>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding: 12px 0; border-bottom: 1px solid #e2e8f0;">
+                    <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Sprint</span>
+                    <div style="font-size: 14px; font-weight: 700; color: #475569; margin-top: 2px;">
+                      ${sprintText}
+                    </div>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding: 12px 0; border-bottom: 1px solid #e2e8f0;">
+                    <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Tarjeta</span>
+                    <div style="font-size: 15px; font-weight: 800; color: #059669; margin-top: 2px;">
+                      ${params.taskTitle}
+                    </div>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding: 12px 0; border-bottom: 1px solid #e2e8f0;">
+                    <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Actividad Modificada</span>
+                    <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-top: 2px;">
+                      "${params.subtareaTexto}" ➔ <span style="color: ${params.subtareaCompletada ? '#059669' : '#dc2626'}; font-weight: 800;">${statusText}</span>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding-top: 16px;">
+                    <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 6px;">
+                      Progreso General del Checklist (${params.completadasSubtareas}/${params.totalSubtareas} - ${porcentaje}%)
+                    </span>
+                    <div style="background-color: #e2e8f0; height: 10px; border-radius: 10px; overflow: hidden;">
+                      <div style="background-color: #059669; width: ${porcentaje}%; height: 100%; border-radius: 10px;"></div>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              ${subtareasRows ? `
+              <div style="margin-bottom: 24px;">
+                <span style="font-size: 12px; font-weight: 800; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 12px;">
+                  Detalle de Actividades del Checklist:
+                </span>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+                  ${subtareasRows}
+                </table>
+              </div>
+              ` : ''}
+
+              <p style="margin: 0 0 16px 0; font-size: 12px; color: #64748b;">
+                <strong>Fecha del cambio:</strong> ${fechaHoraStr}
+              </p>
+
+              <div style="text-align: center; margin-top: 28px;">
+                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://erp-movida.vercel.app'}/proyectos" style="display: inline-block; background-color: #059669; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 12px; font-size: 14px; font-weight: 700; box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);">
+                  Ver Tarjeta en Movida ERP
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 32px; background-color: #f1f5f9; text-align: center; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b;">
+              Notificación automática generada por <strong>Movida ERP</strong> — Movida TCI LLC
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `;
+
+    const info = await transporter.sendMail({
+      from: `"Movida ERP Notificaciones" <${config.user}>`,
+      to: recipientsList,
+      subject,
+      html: htmlBody,
+    });
+
+    console.log(`[SMTP] Subtask update notification sent to ${recipientsList.join(', ')}.`);
+    return { success: true, messageId: info.messageId };
+  } catch (error: any) {
+    console.error('[SMTP] Error sending subtask notification:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 /**
  * Sends a test email to verify SMTP configuration
  */

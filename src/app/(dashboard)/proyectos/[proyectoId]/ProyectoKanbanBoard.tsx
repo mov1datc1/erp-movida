@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { TareaStatus, Prioridad, CategoriaTarea, SprintEstatus } from '@prisma/client';
 import { updateTarea } from '@/app/actions/tareas';
-import { MoreHorizontal, Plus, Clock, MessageSquare, Flame, Layers, Sparkles, UserCheck } from 'lucide-react';
+import { MoreHorizontal, Plus, Clock, MessageSquare, Flame, Layers, Sparkles, UserCheck, CheckSquare } from 'lucide-react';
 import NuevaTareaModal from '../../tareas/NuevaTareaModal';
 import EditarTareaModal from '../../tareas/EditarTareaModal';
 import EliminarTareaModal from '../../tareas/EliminarTareaModal';
@@ -64,6 +64,7 @@ interface Tarea {
   horas_reales?: number | null;
   encargados: Encargado[];
   comentarios: Comentario[];
+  subtareas?: Array<{ id: string; texto: string; completada: boolean }>;
   createdAt: Date;
 }
 
@@ -265,6 +266,20 @@ export default function ProyectoKanbanBoard({ proyecto, initialTareas, encargado
                                 {tarea.horas_estimadas}h
                               </span>
                             ) : null}
+
+                            {tarea.subtareas && tarea.subtareas.length > 0 && (
+                              <span 
+                                className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded flex items-center gap-1 ${
+                                  tarea.subtareas.every((s: any) => s.completada)
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : 'bg-slate-100 text-slate-700'
+                                }`}
+                                title="Avance del checklist"
+                              >
+                                <CheckSquare className="w-3 h-3 text-emerald-600" />
+                                {tarea.subtareas.filter((s: any) => s.completada).length}/{tarea.subtareas.length}
+                              </span>
+                            )}
                           </div>
 
                           {tarea.comentarios.length > 0 && (

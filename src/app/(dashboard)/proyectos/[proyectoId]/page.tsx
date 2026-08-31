@@ -24,7 +24,8 @@ export default async function ProyectoPage({ params }: Props) {
         include: {
           tareas: {
             include: {
-              encargados: true
+              encargados: true,
+              subtareas: { orderBy: { createdAt: 'asc' } }
             }
           }
         }
@@ -32,6 +33,7 @@ export default async function ProyectoPage({ params }: Props) {
       tareas: {
         include: {
           encargados: true,
+          subtareas: { orderBy: { createdAt: 'asc' } },
           comentarios: { orderBy: { createdAt: 'desc' } }
         },
         orderBy: { orden: 'asc' }

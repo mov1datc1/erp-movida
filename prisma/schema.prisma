@@ -185,12 +185,24 @@ model Tarea {
   encargados Encargado[] // Relación N:M implícita
 
   comentarios ComentarioTarea[]
+  subtareas   Subtarea[]
 
   // Opcional, mantenemos compatibilidad con el sistema de Profile anterior por si acaso
   asignado_a_id String?
   asignado_a    Profile? @relation("TareasAsignadas", fields: [asignado_a_id], references: [id])
 
   recordatorios TareaRecordatorio[]
+}
+
+model Subtarea {
+  id         String   @id @default(uuid())
+  texto      String
+  completada Boolean  @default(false)
+  orden      Int      @default(0)
+  tarea_id   String
+  tarea      Tarea    @relation(fields: [tarea_id], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model ComentarioTarea {

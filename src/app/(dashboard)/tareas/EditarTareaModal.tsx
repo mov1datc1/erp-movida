@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Edit2, Loader2, Calendar, Trash2, Search, ChevronDown } from 'lucide-react';
-import { updateTarea, createEncargado, deleteEncargado } from '@/app/actions/tareas';
+import { X, Edit2, Loader2, Calendar, Trash2, Search, ChevronDown, CheckSquare, Plus } from 'lucide-react';
+import { updateTarea, createEncargado, deleteEncargado, createSubtarea, toggleSubtarea, deleteSubtarea } from '@/app/actions/tareas';
 import EliminarTareaModal from './EliminarTareaModal';
 
 interface Cliente {
@@ -51,6 +51,42 @@ export default function EditarTareaModal({ tareaToEdit, clientes, encargados, pr
   const [selectedClienteId, setSelectedClienteId] = useState(tareaToEdit.cliente_id || "");
   const [selectedSprintId, setSelectedSprintId] = useState(tareaToEdit.sprint_id || "");
   const [showClienteDropdown, setShowClienteDropdown] = useState(false);
+
+  const [subtareas, setSubtareas] = useState<Array<{ id: string; texto: string; completada: boolean }>>(
+    tareaToEdit.subtareas || []
+  );
+  const [newSubtareaText, setNewSubtareaText] = useState('');
+  const [isAddingSubtarea, setIsAddingSubtarea] = useState(false);
+
+  const handleAddSubtarea = async () => {
+    if (!newSubtareaText.trim()) return;
+    setIsAddingSubtarea(true);
+    const result = await createSubtarea(tareaToEdit.id, newSubtareaText);
+    if (result.success && result.data) {
+      setSubtareas(prev => [...prev, result.data]);
+      setNewSubtareaText('');
+    } else {
+      setError(result.error || 'Error al agregar subtarea');
+    }
+    setIsAddingSubtarea(false);
+  };
+
+  const handleToggleSubtarea = async (id: string, completada: boolean) => {
+    setSubtareas(prev => prev.map(s => s.id === id ? { ...s, completada } : s));
+    const result = await toggleSubtarea(id, completada);
+    if (!result.success) {
+      setSubtareas(prev => prev.map(s => s.id === id ? { ...s, completada: !completada } : s));
+      setError(result.error || 'Error al actualizar subtarea');
+    }
+  };
+
+  const handleDeleteSubtarea = async (id: string) => {
+    setSubtareas(prev => prev.filter(s => s.id !== id));
+    const result = await deleteSubtarea(id);
+    if (!result.success) {
+      setError(result.error || 'Error al eliminar subtarea');
+    }
+  };
   
   const filteredClientes = clientes.filter(c => c.nombre.toLowerCase().includes(searchCliente.toLowerCase()));
 
@@ -395,6 +431,90 @@ export default function EditarTareaModal({ tareaToEdit, clientes, encargados, pr
                       placeholder="Detalles sobre la tarea..."
                       defaultValue={tareaToEdit.descripcion || ''}
                     ></textarea>
+                  </div>
+
+                  {/* Checklist de Subtareas */}
+                  <div className="md:col-span-2 bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3 mt-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CheckSquare className="w-4 h-4 text-emerald-600" />
+                        <h3 className="text-sm font-bold text-slate-800">Checklist de Subtareas & Entregables</h3>
+                      </div>
+                      {subtareas.length > 0 && (
+                        <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                          {subtareas.filter(s => s.completada).length} / {subtareas.length} ({Math.round((subtareas.filter(s => s.completada).length / subtareas.length) * 100)}%)
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Progress bar */}
+                    {subtareas.length > 0 && (
+                      <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                        <div 
+                          className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.round((subtareas.filter(s => s.completada).length / subtareas.length) * 100)}%` }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Subtasks List */}
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                      {subtareas.map(sub => (
+                        <div key={sub.id} className="flex items-center justify-between group p-2 hover:bg-white rounded-xl transition-all border border-transparent hover:border-slate-200">
+                          <label className="flex items-center gap-2.5 cursor-pointer flex-1 text-sm font-medium">
+                            <input 
+                              type="checkbox"
+                              checked={sub.completada}
+                              onChange={(e) => handleToggleSubtarea(sub.id, e.target.checked)}
+                              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                            />
+                            <span className={sub.completada ? "line-through text-slate-400 font-normal" : "text-slate-700 font-semibold"}>
+                              {sub.texto}
+                            </span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSubtarea(sub.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            title="Eliminar subtarea"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+
+                      {subtareas.length === 0 && (
+                        <p className="text-xs text-slate-400 italic text-center py-2">
+                          No hay subtareas registradas aún. Agrega la primera abajo.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Add subtask input */}
+                    <div className="flex gap-2 pt-1">
+                      <input 
+                        type="text"
+                        value={newSubtareaText}
+                        onChange={(e) => setNewSubtareaText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddSubtarea();
+                          }
+                        }}
+                        placeholder="+ Agregar subtarea o actividad..."
+                        className="flex-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddSubtarea}
+                        disabled={isAddingSubtarea || !newSubtareaText.trim()}
+                        className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-xl transition-all shadow-sm flex items-center gap-1 shrink-0"
+                      >
+                        {isAddingSubtarea ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                        Añadir
+                      </button>
+                    </div>
                   </div>
                 </div>
 
