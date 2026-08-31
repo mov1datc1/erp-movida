@@ -16,14 +16,21 @@ interface Encargado {
   nombre: string;
 }
 
+interface SprintItem {
+  id: string;
+  numero: number;
+  nombre: string;
+}
+
 interface Props {
   tareaToEdit: any;
   clientes: Cliente[];
   encargados: Encargado[];
   proyecto_id?: string;
+  sprints?: SprintItem[];
 }
 
-export default function EditarTareaModal({ tareaToEdit, clientes, encargados, proyecto_id }: Props) {
+export default function EditarTareaModal({ tareaToEdit, clientes, encargados, proyecto_id, sprints = [] }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +49,7 @@ export default function EditarTareaModal({ tareaToEdit, clientes, encargados, pr
 
   const [searchCliente, setSearchCliente] = useState('');
   const [selectedClienteId, setSelectedClienteId] = useState(tareaToEdit.cliente_id || "");
+  const [selectedSprintId, setSelectedSprintId] = useState(tareaToEdit.sprint_id || "");
   const [showClienteDropdown, setShowClienteDropdown] = useState(false);
   
   const filteredClientes = clientes.filter(c => c.nombre.toLowerCase().includes(searchCliente.toLowerCase()));
@@ -68,6 +76,7 @@ export default function EditarTareaModal({ tareaToEdit, clientes, encargados, pr
     const updateData: any = {
       titulo: formData.get('titulo') as string,
       cliente_id: formData.get('cliente_id') as string || null,
+      sprint_id: selectedSprintId || null,
       prioridad: formData.get('prioridad') as string,
       categoria: formData.get('categoria') as string,
       fecha_limite: formData.get('fecha_limite') ? new Date(formData.get('fecha_limite') as string) : null,
@@ -177,6 +186,26 @@ export default function EditarTareaModal({ tareaToEdit, clientes, encargados, pr
               ) : null}
 
               <form id="edit-task-form" onSubmit={handleUpdateTask} className="space-y-4">
+                {sprints.length > 0 && (
+                  <div className="bg-indigo-50/60 p-3.5 rounded-xl border border-indigo-100 mb-2">
+                    <label className="block text-xs font-bold text-indigo-900 uppercase tracking-wider mb-1">
+                      Sprint Asignado
+                    </label>
+                    <select
+                      value={selectedSprintId}
+                      onChange={(e) => setSelectedSprintId(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-lg text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    >
+                      <option value="">Sin Sprint (General)</option>
+                      {sprints.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          Sprint #{s.numero} - {s.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Título de la Tarea *</label>
                   <input 

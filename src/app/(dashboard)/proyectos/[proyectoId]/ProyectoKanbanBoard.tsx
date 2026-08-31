@@ -214,6 +214,7 @@ export default function ProyectoKanbanBoard({ proyecto, initialTareas, encargado
                               clientes={proyecto.cliente ? [proyecto.cliente] : []}
                               encargados={encargados}
                               proyecto_id={proyecto.id}
+                              sprints={proyecto.sprints}
                             />
                             <EliminarTareaModal
                               tareaId={tarea.id}
@@ -283,6 +284,8 @@ export default function ProyectoKanbanBoard({ proyecto, initialTareas, encargado
                       encargados={encargados}
                       variant="ghost"
                       proyecto_id={proyecto.id}
+                      sprints={proyecto.sprints}
+                      defaultSprintId={selectedSprintId !== 'ALL' ? selectedSprintId : undefined}
                     />
                   </div>
                 </div>

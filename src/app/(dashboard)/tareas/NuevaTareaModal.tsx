@@ -15,15 +15,31 @@ interface Encargado {
   nombre: string;
 }
 
+interface SprintItem {
+  id: string;
+  numero: number;
+  nombre: string;
+}
+
 interface Props {
   clientes: Cliente[];
   encargados: Encargado[];
   variant?: 'primary' | 'ghost';
   proyecto_id?: string;
   defaultClienteId?: string;
+  sprints?: SprintItem[];
+  defaultSprintId?: string;
 }
 
-export default function NuevaTareaModal({ clientes, encargados, variant = 'primary', proyecto_id, defaultClienteId }: Props) {
+export default function NuevaTareaModal({
+  clientes,
+  encargados,
+  variant = 'primary',
+  proyecto_id,
+  defaultClienteId,
+  sprints = [],
+  defaultSprintId,
+}: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +51,14 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
   
   const [searchCliente, setSearchCliente] = useState('');
   const [selectedClienteId, setSelectedClienteId] = useState(defaultClienteId || (clientes.length === 1 ? clientes[0].id : ""));
+  const [selectedSprintId, setSelectedSprintId] = useState(defaultSprintId || '');
   const [showClienteDropdown, setShowClienteDropdown] = useState(false);
+
+  React.useEffect(() => {
+    if (defaultSprintId) {
+      setSelectedSprintId(defaultSprintId);
+    }
+  }, [defaultSprintId]);
   
   const filteredClientes = clientes.filter(c => c.nombre.toLowerCase().includes(searchCliente.toLowerCase()));
 
@@ -172,6 +195,28 @@ export default function NuevaTareaModal({ clientes, encargados, variant = 'prima
 
               <form id="create-task-form" onSubmit={handleCreateTask} className="space-y-4">
                 {proyecto_id && <input type="hidden" name="proyecto_id" value={proyecto_id} />}
+                <input type="hidden" name="sprint_id" value={selectedSprintId} />
+
+                {sprints.length > 0 && (
+                  <div className="bg-indigo-50/60 p-3.5 rounded-xl border border-indigo-100 mb-2">
+                    <label className="block text-xs font-bold text-indigo-900 uppercase tracking-wider mb-1">
+                      Sprint Asignado
+                    </label>
+                    <select
+                      value={selectedSprintId}
+                      onChange={(e) => setSelectedSprintId(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-lg text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    >
+                      <option value="">Sin Sprint (General)</option>
+                      {sprints.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          Sprint #{s.numero} - {s.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Título de la Tarea *</label>
                   <input

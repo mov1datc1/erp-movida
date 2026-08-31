@@ -12,9 +12,11 @@ export async function createTarea(formData: FormData) {
     const prioridad = formData.get('prioridad') as Prioridad
     const categoria = formData.get('categoria') as CategoriaTarea
     const proyecto_id = formData.get('proyecto_id') as string | null
+    const sprint_id = formData.get('sprint_id') as string | null
     const cliente_id = formData.get('cliente_id') as string | null
     const encargadosIds = formData.getAll('encargados') as string[]
     const fecha_limite_str = formData.get('fecha_limite') as string | null
+    const horas_estimadas_str = formData.get('horas_estimadas') as string | null
 
     if (!titulo) {
       return { success: false, error: 'El título es obligatorio' }
@@ -28,8 +30,10 @@ export async function createTarea(formData: FormData) {
         categoria: categoria || 'OTRO',
         estatus: 'PENDIENTE',
         proyecto_id: proyecto_id || null,
+        sprint_id: sprint_id || null,
         cliente_id: cliente_id || null,
         fecha_limite: fecha_limite_str ? new Date(fecha_limite_str) : null,
+        horas_estimadas: horas_estimadas_str ? parseFloat(horas_estimadas_str) : null,
         encargados: {
           connect: encargadosIds.map(id => ({ id }))
         }
