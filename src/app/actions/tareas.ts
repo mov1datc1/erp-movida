@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { Prioridad, CategoriaTarea, TareaStatus } from "@prisma/client"
+import { sendTaskStatusNotification } from "@/lib/email"
 
 export async function createTarea(formData: FormData) {
   try {
@@ -46,6 +47,15 @@ export async function createTarea(formData: FormData) {
 
 export async function updateTarea(id: string, updateData: any) {
   try {
+    // 1. Fetch existing task details to compare previous status and get project/sprint names
+    const existing = await prisma.tarea.findUnique({
+      where: { id },
+      include: {
+        proyecto: { select: { nombre: true } },
+        sprint: { select: { numero: true, nombre: true } }
+      }
+    });
+
     const { encargadosIds, ...rest } = updateData;
     
     const dataToUpdate: any = { ...rest };
@@ -57,8 +67,25 @@ export async function updateTarea(id: string, updateData: any) {
 
     const tarea = await prisma.tarea.update({
       where: { id },
-      data: dataToUpdate
-    })
+      data: dataToUpdate,
+      include: {
+        proyecto: { select: { nombre: true } },
+        sprint: { select: { numero: true, nombre: true } }
+      }
+    });
+
+    // 2. Trigger SMTP Email Notification if status changed
+    if (updateData.estatus && existing && existing.estatus !== updateData.estatus) {
+      sendTaskStatusNotification({
+        taskTitle: tarea.titulo,
+        oldStatus: existing.estatus,
+        newStatus: updateData.estatus,
+        proyectoNombre: tarea.proyecto?.nombre || 'Sin Proyecto (General)',
+        sprintNumero: tarea.sprint?.numero,
+        sprintNombre: tarea.sprint?.nombre,
+      }).catch(err => console.error('Error enviando notificación SMTP:', err));
+    }
+
     revalidatePath('/tareas')
     revalidatePath('/proyectos')
     return { success: true, data: tarea }

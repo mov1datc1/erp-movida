@@ -180,6 +180,8 @@ export async function getIntegraciones() {
   }
 }
 
+import { sendTestEmail } from '@/lib/email';
+
 export async function saveIntegracion(proveedor: string, config: any, activa: boolean) {
   try {
     const intg = await prisma.integracion.upsert({
@@ -196,6 +198,15 @@ export async function saveIntegracion(proveedor: string, config: any, activa: bo
     });
     revalidatePath('/configuracion');
     return { success: true, data: intg };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function sendTestSMTPEmailAction(emailToTest?: string) {
+  try {
+    const res = await sendTestEmail(emailToTest);
+    return res;
   } catch (error: any) {
     return { success: false, error: error.message };
   }
