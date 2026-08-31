@@ -6,6 +6,7 @@ import { updateTarea } from '@/app/actions/tareas';
 import { MoreHorizontal, Plus, Clock, MessageSquare, Flame, Layers, Sparkles, UserCheck } from 'lucide-react';
 import NuevaTareaModal from '../../tareas/NuevaTareaModal';
 import EditarTareaModal from '../../tareas/EditarTareaModal';
+import EliminarTareaModal from '../../tareas/EliminarTareaModal';
 import WeeklySprintNavigator from './WeeklySprintNavigator';
 import POExecutiveDigest from './POExecutiveDigest';
 import { useRouter } from 'next/navigation';
@@ -207,12 +208,20 @@ export default function ProyectoKanbanBoard({ proyecto, initialTareas, encargado
                             )}
                           </div>
 
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
                             <EditarTareaModal
                               tareaToEdit={tarea}
                               clientes={proyecto.cliente ? [proyecto.cliente] : []}
                               encargados={encargados}
                               proyecto_id={proyecto.id}
+                            />
+                            <EliminarTareaModal
+                              tareaId={tarea.id}
+                              tareaTitulo={tarea.titulo}
+                              onDeleted={(deletedId) => {
+                                setTareas(prev => prev.filter(t => t.id !== deletedId));
+                                handleRefresh();
+                              }}
                             />
                           </div>
                         </div>

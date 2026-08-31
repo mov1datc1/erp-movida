@@ -6,6 +6,7 @@ import { GripVertical, MoreVertical, Search, CheckSquare, Clock, Edit2, Trash2, 
 import { TareaStatus, Prioridad, CategoriaTarea } from '@prisma/client';
 import BitacoraModal from './BitacoraModal';
 import EditarTareaModal from './EditarTareaModal';
+import EliminarTareaModal from './EliminarTareaModal';
 
 interface Cliente {
   id: string;
@@ -364,13 +365,11 @@ export default function TareasDataGrid({ initialTareas, clientes, encargados }: 
                clientes={clientes} 
                encargados={encargados} 
              />
-             <button 
-               onClick={() => handleDelete(tarea.id)}
-               className="p-1.5 text-slate-400 hover:text-danger hover:bg-danger/10 rounded-md transition-colors"
-               title="Eliminar"
-             >
-               <Trash2 className="w-3.5 h-3.5" />
-             </button>
+              <EliminarTareaModal 
+                tareaId={tarea.id} 
+                tareaTitulo={tarea.titulo} 
+                onDeleted={(id) => setTareas(prev => prev.filter(t => t.id !== id))} 
+              />
            </div>
         </div>
       </div>
@@ -594,13 +593,11 @@ export default function TareasDataGrid({ initialTareas, clientes, encargados }: 
                             clientes={clientes} 
                             encargados={encargados} 
                           />
-                          <button 
-                            onClick={() => handleDelete(tarea.id)}
-                            className="p-1.5 text-slate-400 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
-                            title="Eliminar"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <EliminarTareaModal 
+                            tareaId={tarea.id} 
+                            tareaTitulo={tarea.titulo} 
+                            onDeleted={(id) => setTareas(prev => prev.filter(t => t.id !== id))} 
+                          />
                         </div>
                       </td>
                     </tr>

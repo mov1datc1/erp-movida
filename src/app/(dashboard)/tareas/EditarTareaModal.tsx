@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Edit2, Loader2, Calendar, Trash2, Search, ChevronDown } from 'lucide-react';
 import { updateTarea, createEncargado, deleteEncargado } from '@/app/actions/tareas';
+import EliminarTareaModal from './EliminarTareaModal';
 
 interface Cliente {
   id: string;
@@ -368,23 +369,40 @@ export default function EditarTareaModal({ tareaToEdit, clientes, encargados, pr
                   </div>
                 </div>
 
-                <div className="pt-6 flex justify-end gap-3 border-t border-slate-100 mt-6">
-                  <button 
-                    type="button" 
-                    onClick={() => setIsOpen(false)}
-                    disabled={isLoading}
-                    className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    type="submit" 
-                    form="edit-task-form"
-                    disabled={isLoading}
-                    className="bg-primary hover:bg-primary-light text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-primary/20 flex items-center gap-2"
-                  >
-                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Guardar Cambios'}
-                  </button>
+                <div className="pt-6 flex justify-between items-center border-t border-slate-100 mt-6">
+                  <EliminarTareaModal
+                    tareaId={tareaToEdit.id}
+                    tareaTitulo={tareaToEdit.titulo}
+                    onDeleted={() => setIsOpen(false)}
+                    triggerButton={
+                      <button
+                        type="button"
+                        className="px-4 py-2 text-red-600 font-semibold hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1.5 text-sm"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Eliminar Tarjeta
+                      </button>
+                    }
+                  />
+
+                  <div className="flex gap-3">
+                    <button 
+                      type="button" 
+                      onClick={() => setIsOpen(false)}
+                      disabled={isLoading}
+                      className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit" 
+                      form="edit-task-form"
+                      disabled={isLoading}
+                      className="bg-primary hover:bg-primary-light text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-primary/20 flex items-center gap-2"
+                    >
+                      {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Guardar Cambios'}
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
