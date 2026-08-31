@@ -96,20 +96,17 @@ export default function AISprintPlannerModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 p-6 text-white relative shrink-0">
-          <div className="absolute right-0 top-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="bg-white p-6 border-b border-slate-100 text-slate-900 relative shrink-0">
           <div className="flex justify-between items-start relative z-10">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-purple-600 p-0.5 shadow-lg">
-                <div className="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-amber-300" />
-                </div>
+              <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 shadow-2xs">
+                <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-400/20">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
                   IA Sprint Architect
                 </span>
-                <h2 className="text-xl font-bold text-white mt-1">
+                <h2 className="text-xl font-bold text-slate-900 mt-1">
                   Generador de Sprints: {proyectoNombre}
                 </h2>
               </div>
@@ -118,13 +115,13 @@ export default function AISprintPlannerModal({
             <button
               onClick={() => !isLoading && setIsOpen(false)}
               disabled={isLoading}
-              className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-white/10 transition-colors"
+              className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <p className="text-slate-300 text-xs mt-3 leading-relaxed">
+          <p className="text-slate-500 text-xs mt-3 leading-relaxed">
             Define el alcance y la carga horaria diaria para que la IA estructure los Sprints semanales, entregables y asignación de capacidad de tu equipo.
           </p>
         </div>
@@ -236,20 +233,20 @@ export default function AISprintPlannerModal({
             </div>
 
             {/* Capacity summary badge */}
-            <div className="bg-gradient-to-r from-slate-900 to-indigo-900 p-4 rounded-2xl text-white flex items-center justify-between shadow-md">
+            <div className="bg-indigo-50/70 border border-indigo-100 p-4 rounded-2xl flex items-center justify-between shadow-2xs">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-700">
                   Cálculo de Capacidad Estimada
                 </span>
-                <p className="text-xs text-slate-300 mt-0.5">
+                <p className="text-xs text-slate-600 font-medium mt-0.5">
                   {semanas} semanas &times; {diasSemana} días &times; {horasDia} hrs/día por desarrollador
                 </p>
               </div>
               <div className="text-right">
-                <span className="text-2xl font-black text-amber-300 font-mono">
+                <span className="text-2xl font-black text-indigo-600 font-mono">
                   {capacidadTotal} hrs
                 </span>
-                <p className="text-[10px] font-semibold text-slate-400">Total Proyecto</p>
+                <p className="text-[10px] font-semibold text-slate-500">Total Proyecto</p>
               </div>
             </div>
           </form>

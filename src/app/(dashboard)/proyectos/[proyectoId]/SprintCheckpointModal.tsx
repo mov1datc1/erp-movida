@@ -115,52 +115,52 @@ export default function SprintCheckpointModal({ sprint, onUpdate, triggerButton 
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 p-6 text-white shrink-0 relative">
+        <div className="bg-white p-6 border-b border-slate-100 text-slate-900 shrink-0 relative">
           <div className="flex justify-between items-start">
             <div>
               <div className="flex items-center gap-2">
-                <span className="bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-                  Sprint Checkpoint # {sprint.numero}
+                <span className="bg-emerald-50 text-emerald-700 font-mono text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  Sprint Checkpoint #{sprint.numero}
                 </span>
-                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                  sprint.estatus === 'COMPLETADO' ? 'bg-emerald-400 text-emerald-950' : 'bg-amber-400 text-amber-950'
+                <span className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full ${
+                  sprint.estatus === 'COMPLETADO' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                 }`}>
                   {sprint.estatus}
                 </span>
               </div>
-              <h2 className="text-xl font-bold text-white mt-1">
+              <h2 className="text-xl font-bold text-slate-900 mt-1">
                 {sprint.nombre}
               </h2>
-              <p className="text-slate-300 text-xs mt-1">
+              <p className="text-slate-500 text-xs mt-1">
                 {sprint.objetivo || 'Avance semanal del equipo de desarrollo.'}
               </p>
             </div>
 
             <button
               onClick={() => setIsOpen(false)}
-              className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-white/10 transition-colors"
+              className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Progress metric bar */}
-          <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-3 gap-4">
+          <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-3 gap-4">
             <div>
-              <span className="text-[10px] font-semibold text-slate-400 uppercase">Entregables</span>
-              <p className="text-lg font-bold text-emerald-300 font-mono">
+              <span className="text-[10px] font-semibold text-slate-500 uppercase">Entregables</span>
+              <p className="text-lg font-bold text-emerald-600 font-mono">
                 {completadas} / {totalTareas} ({porcentaje}%)
               </p>
             </div>
             <div>
-              <span className="text-[10px] font-semibold text-slate-400 uppercase">Capacidad Est.</span>
-              <p className="text-lg font-bold text-white font-mono">
+              <span className="text-[10px] font-semibold text-slate-500 uppercase">Capacidad Est.</span>
+              <p className="text-lg font-bold text-slate-800 font-mono">
                 {sprint.horas_estimadas} hrs
               </p>
             </div>
             <div>
-              <span className="text-[10px] font-semibold text-slate-400 uppercase">Horas Reales</span>
-              <p className="text-lg font-bold text-amber-300 font-mono">
+              <span className="text-[10px] font-semibold text-slate-500 uppercase">Horas Reales</span>
+              <p className="text-lg font-bold text-sky-600 font-mono">
                 {horasReales} hrs
               </p>
             </div>

@@ -94,109 +94,106 @@ export default function POExecutiveDigest({ proyecto, onRefresh }: Props) {
   return (
     <div className="space-y-6 pb-8 animate-in fade-in duration-300">
       {/* Executive Hero Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-2xl border border-indigo-900/50">
-        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 -mb-12 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      <div className="bg-white rounded-3xl p-6 md:p-8 text-slate-900 shadow-sm border border-slate-200/80 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* Main Title & Status */}
           <div className="lg:col-span-7 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-extrabold text-[10px] uppercase tracking-wider px-3 py-1 rounded-full shadow-sm flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> Dashboard Product Owner & Jefatura
+              <span className="bg-indigo-50 text-indigo-700 font-extrabold text-[10px] uppercase tracking-wider px-3 py-1 rounded-full border border-indigo-200/70 shadow-2xs flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> Dashboard Product Owner &amp; Jefatura
               </span>
-              <span className="bg-white/10 text-white text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
+              <span className="bg-slate-100 text-slate-700 text-xs font-semibold px-3 py-1 rounded-full border border-slate-200">
                 Cliente: {proyecto.cliente?.nombre || 'Interno'}
               </span>
             </div>
 
-            <h2 className="text-3xl font-black text-white tracking-tight leading-tight">
+            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
               {proyecto.nombre}
             </h2>
 
-            <p className="text-slate-300 text-sm leading-relaxed max-w-2xl">
+            <p className="text-slate-600 text-sm leading-relaxed max-w-2xl">
               {proyecto.descripcion || 'Plan de Sprints semanales y seguimiento ejecutivo de entregables sin necesidad de consultas directas.'}
             </p>
 
             {/* Quick Metrics */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-              <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl backdrop-blur-sm">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              <div className="bg-slate-50 border border-slate-200/80 p-3.5 rounded-2xl transition-all hover:bg-slate-100/50">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                   Progreso Global
                 </span>
-                <span className="text-2xl font-black text-amber-300 font-mono">
+                <span className="text-2xl font-black text-indigo-600 font-mono">
                   {progresoGeneral}%
                 </span>
               </div>
 
-              <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl backdrop-blur-sm">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              <div className="bg-slate-50 border border-slate-200/80 p-3.5 rounded-2xl transition-all hover:bg-slate-100/50">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                   Sprints Finalizados
                 </span>
-                <span className="text-2xl font-black text-emerald-400 font-mono">
+                <span className="text-2xl font-black text-emerald-600 font-mono">
                   {sprintsCompletados} / {totalSprints}
                 </span>
               </div>
 
-              <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl backdrop-blur-sm">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              <div className="bg-slate-50 border border-slate-200/80 p-3.5 rounded-2xl transition-all hover:bg-slate-100/50">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                   Capacidad Total
                 </span>
-                <span className="text-2xl font-black text-indigo-300 font-mono">
+                <span className="text-2xl font-black text-slate-800 font-mono">
                   {totalHorasEst} hrs
                 </span>
               </div>
 
-              <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl backdrop-blur-sm">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              <div className="bg-slate-50 border border-slate-200/80 p-3.5 rounded-2xl transition-all hover:bg-slate-100/50">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                   Horas Invertidas
                 </span>
-                <span className="text-2xl font-black text-sky-300 font-mono">
+                <span className="text-2xl font-black text-sky-600 font-mono">
                   {totalHorasReales} hrs
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Progress Circular Radial Gauge / AI Summary Card */}
-          <div className="lg:col-span-5 bg-white/10 border border-white/15 rounded-3xl p-6 backdrop-blur-md space-y-4">
+          {/* Executive Summary Card */}
+          <div className="lg:col-span-5 bg-slate-50/80 border border-slate-200/90 rounded-3xl p-6 space-y-4 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Zap className="w-4 h-4" /> Resumen Ejecutivo IA
+              <span className="text-xs font-extrabold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-indigo-600" /> Resumen Ejecutivo IA
               </span>
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-md border border-emerald-500/30">
-                PROYECTO A TIEMPO 🟢
+              <span className="text-[11px] bg-emerald-50 text-emerald-700 font-bold px-2.5 py-1 rounded-lg border border-emerald-200/80 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Proyecto a Tiempo
               </span>
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between text-xs font-semibold text-slate-200">
+              <div className="flex justify-between text-xs font-semibold text-slate-700">
                 <span>Avance de entregables</span>
-                <span className="font-mono">{tareasCompletadas} de {totalTareas} tareas</span>
+                <span className="font-mono text-slate-900">{tareasCompletadas} de {totalTareas} tareas</span>
               </div>
-              <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden p-0.5 border border-white/10">
+              <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-amber-400 via-indigo-400 to-emerald-400 h-full rounded-full transition-all duration-1000 shadow-lg"
+                  className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-500 h-full rounded-full transition-all duration-1000"
                   style={{ width: `${progresoGeneral}%` }}
                 />
               </div>
             </div>
 
             {activeSprint && (
-              <div className="bg-slate-900/60 rounded-2xl p-4 border border-white/10 space-y-2">
+              <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-indigo-300 font-bold">
+                  <span className="text-indigo-700 font-bold">
                     Sprint Actual en Curso: #{activeSprint.numero}
                   </span>
-                  <span className="text-slate-400 text-[11px] font-mono">
+                  <span className="text-slate-500 text-[11px] font-mono">
                     {formatDate(activeSprint.fecha_inicio)} - {formatDate(activeSprint.fecha_fin)}
                   </span>
                 </div>
-                <p className="text-xs text-white font-medium line-clamp-2">
+                <p className="text-xs text-slate-800 font-semibold line-clamp-2">
                   {activeSprint.nombre}
                 </p>
                 {activeSprint.notas_checkpoint && (
-                  <p className="text-[11px] text-emerald-300 italic bg-emerald-950/40 p-2 rounded-xl border border-emerald-500/20">
+                  <p className="text-[11px] text-emerald-800 italic bg-emerald-50/80 p-2.5 rounded-xl border border-emerald-200/60 font-medium">
                     &ldquo;{activeSprint.notas_checkpoint}&rdquo;
                   </p>
                 )}

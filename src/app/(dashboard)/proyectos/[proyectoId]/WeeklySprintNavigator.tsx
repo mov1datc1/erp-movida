@@ -128,11 +128,11 @@ export default function WeeklySprintNavigator({
               onClick={() => onToggleViewMode('PO_DIGEST')}
               className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
                 viewMode === 'PO_DIGEST'
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
+                  ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              <PieChart className="w-3.5 h-3.5 text-amber-300" />
+              <PieChart className="w-3.5 h-3.5 text-white" />
               Vista PO / Jefe
             </button>
           </div>
