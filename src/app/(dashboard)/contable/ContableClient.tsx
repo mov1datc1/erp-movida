@@ -37,12 +37,14 @@ interface ContableClientProps {
   egresosMes: number;
   rawMovimientos: any[];
   facturasPendientes?: any[];
+  facturasCobrar?: any[];
+  cuentasPorPagar?: any[];
   oportunidadesMes?: any[];
   lineasProducto?: any[];
   proyectos?: any[];
 }
 
-export default function ContableClient({ movimientos, balanceTotal, ingresosMes, egresosMes, rawMovimientos, facturasPendientes = [], oportunidadesMes = [], lineasProducto = [], proyectos = [] }: ContableClientProps) {
+export default function ContableClient({ movimientos, balanceTotal, ingresosMes, egresosMes, rawMovimientos, facturasPendientes = [], facturasCobrar = [], cuentasPorPagar = [], oportunidadesMes = [], lineasProducto = [], proyectos = [] }: ContableClientProps) {
   const [activeTab, setActiveTab] = useState<'salud' | 'kpis' | 'resumen' | 'flujo' | 'resultados'>('salud');
   
   const [anio, setAnio] = useState(new Date().getFullYear().toString());
@@ -252,7 +254,9 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
           balanceTotal={balanceTotal}
           ingresosMes={filteredIngresos}
           egresosMes={filteredEgresos}
-          facturasPendientes={facturasPendientes}
+          facturasPendientes={facturasCobrar.length > 0 ? facturasCobrar : facturasPendientes}
+          facturasCobrar={facturasCobrar}
+          cuentasPorPagar={cuentasPorPagar}
           rawMovimientos={rawMovimientos}
           proyectos={proyectos}
         />

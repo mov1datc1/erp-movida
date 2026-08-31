@@ -30,8 +30,12 @@ import {
   Info,
   Calendar,
   Layers,
-  Check
+  Check,
+  Receipt,
+  FileCheck,
+  TrendingDown
 } from 'lucide-react';
+import { startOfWeek, addWeeks, isWithinInterval, parseISO } from 'date-fns';
 
 interface Movimiento {
   id: string;
@@ -49,6 +53,8 @@ interface Props {
   ingresosMes: number;
   egresosMes: number;
   facturasPendientes?: any[];
+  facturasCobrar?: any[];
+  cuentasPorPagar?: any[];
   rawMovimientos?: any[];
   proyectos?: any[];
 }
@@ -59,6 +65,8 @@ export function SaludFinanciera5PasosView({
   ingresosMes,
   egresosMes,
   facturasPendientes = [],
+  facturasCobrar = [],
+  cuentasPorPagar = [],
   proyectos = []
 }: Props) {
   const [pasoActivo, setPasoActivo] = useState<1 | 2 | 3 | 4 | 5 | 'decision_engine'>('decision_engine');
@@ -89,7 +97,66 @@ export function SaludFinanciera5PasosView({
   const [tasaRefinanciamiento, setTasaRefinanciamiento] = useState<number>(14);
 
   // -------------------------------------------------------------
-  // CALCULATED METRICS & DECISION LOGIC
+  // INTEGRATED ACCOUNTS RECEIVABLE (FACTURAS COBRAR) WITH PARTIAL PAYMENTS
+  // -------------------------------------------------------------
+  const facturasCobrarStats = useMemo(() => {
+    const invoices = facturasCobrar.length > 0 ? facturasCobrar : facturasPendientes;
+    let montoTotalFacturado = 0;
+    let montoPagadoAcumulado = 0;
+    let saldoPendienteCobro = 0;
+
+    invoices.forEach(f => {
+      const total = f.monto_total || f.monto || 0;
+      const pagado = f.monto_pagado || 0;
+      const saldo = Math.max(0, total - pagado);
+
+      montoTotalFacturado += total;
+      montoPagadoAcumulado += pagado;
+      saldoPendienteCobro += saldo;
+    });
+
+    const conPagoParcial = invoices.filter(f => f.estatus === 'PAGADA_PARCIALMENTE');
+
+    return {
+      invoices,
+      montoTotalFacturado,
+      montoPagadoAcumulado,
+      saldoPendienteCobro,
+      conPagoParcial,
+    };
+  }, [facturasCobrar, facturasPendientes]);
+
+  // -------------------------------------------------------------
+  // INTEGRATED ACCOUNTS PAYABLE (CUENTAS POR PAGAR) WITH PARTIAL PAYMENTS
+  // -------------------------------------------------------------
+  const cuentasPorPagarStats = useMemo(() => {
+    let montoTotalEgresos = 0;
+    let montoPagadoProveedorAcumulado = 0;
+    let saldoPendientePago = 0;
+
+    cuentasPorPagar.forEach(c => {
+      const total = c.monto_total || c.monto || 0;
+      const pagado = c.monto_pagado || 0;
+      const saldo = Math.max(0, total - pagado);
+
+      montoTotalEgresos += total;
+      montoPagadoProveedorAcumulado += pagado;
+      saldoPendientePago += saldo;
+    });
+
+    const conPagoParcial = cuentasPorPagar.filter(c => c.estatus === 'PAGADA_PARCIALMENTE');
+
+    return {
+      cuentasPorPagar,
+      montoTotalEgresos,
+      montoPagadoProveedorAcumulado,
+      saldoPendientePago,
+      conPagoParcial,
+    };
+  }, [cuentasPorPagar]);
+
+  // -------------------------------------------------------------
+  // CALCULATED METRICS
   // -------------------------------------------------------------
   const burnRateDiario = useMemo(() => {
     return egresosMes > 0 ? egresosMes / 30 : 1;
@@ -99,10 +166,6 @@ export function SaludFinanciera5PasosView({
     if (burnRateDiario <= 0) return 999;
     return Math.max(0, Math.round(balanceTotal / burnRateDiario));
   }, [balanceTotal, burnRateDiario]);
-
-  const totalFacturasPendientes = useMemo(() => {
-    return facturasPendientes.reduce((sum, f) => sum + (f.total || f.monto || 0), 0);
-  }, [facturasPendientes]);
 
   // Categorize expenses (Esenciales vs Posponibles/Eliminables)
   const { egresosEsenciales, egresosReducibles } = useMemo(() => {
@@ -137,6 +200,65 @@ export function SaludFinanciera5PasosView({
   }, [movimientos, egresosMes]);
 
   // -------------------------------------------------------------
+  // WEEKLY CASHFLOW PROJECTION BY REAL DUE DATES (S0 - S4)
+  // -------------------------------------------------------------
+  const matrizSemanalesReal = useMemo(() => {
+    const today = new Date();
+    const startS0 = startOfWeek(today, { weekStartsOn: 1 });
+
+    const weeks = Array.from({ length: 5 }, (_, i) => {
+      const start = addWeeks(startS0, i);
+      const end = addWeeks(start, 1);
+      return { index: i, start, end, ingresosFacturas: 0, egresosCuentas: 0 };
+    });
+
+    // Group receivables by due date
+    facturasCobrarStats.invoices.forEach(f => {
+      const saldo = Math.max(0, (f.monto_total || f.monto || 0) - (f.monto_pagado || 0));
+      if (saldo <= 0) return;
+
+      const fVenc = f.fecha_vencimiento ? new Date(f.fecha_vencimiento) : today;
+      const matchingWeek = weeks.find(w => fVenc >= w.start && fVenc < w.end);
+      if (matchingWeek) {
+        matchingWeek.ingresosFacturas += saldo;
+      } else {
+        // Fallback to S1 if due soon or overdue
+        weeks[1].ingresosFacturas += saldo * 0.5;
+        weeks[2].ingresosFacturas += saldo * 0.5;
+      }
+    });
+
+    // Group payables by due date
+    cuentasPorPagarStats.cuentasPorPagar.forEach(c => {
+      const saldo = Math.max(0, (c.monto_total || c.monto || 0) - (c.monto_pagado || 0));
+      if (saldo <= 0) return;
+
+      const fVenc = c.fecha_vencimiento ? new Date(c.fecha_vencimiento) : today;
+      const matchingWeek = weeks.find(w => fVenc >= w.start && fVenc < w.end);
+      if (matchingWeek) {
+        matchingWeek.egresosCuentas += saldo;
+      } else {
+        weeks[1].egresosCuentas += saldo * 0.5;
+        weeks[2].egresosCuentas += saldo * 0.5;
+      }
+    });
+
+    // Calculate cumulative cash position
+    let runningBalance = balanceTotal;
+    return weeks.map(w => {
+      const ing = w.ingresosFacturas > 0 ? w.ingresosFacturas : (ingresosMes * 0.25);
+      const egr = w.egresosCuentas > 0 ? w.egresosCuentas : (egresosMes * 0.25);
+      runningBalance = runningBalance + ing - egr;
+      return {
+        ...w,
+        ingresosTotal: ing,
+        egresosTotal: egr,
+        saldoAcumulado: runningBalance,
+      };
+    });
+  }, [facturasCobrarStats, cuentasPorPagarStats, balanceTotal, ingresosMes, egresosMes]);
+
+  // -------------------------------------------------------------
   // AI DECISION ENGINE CALCULATIONS
   // -------------------------------------------------------------
   const evaluacionInversion = useMemo(() => {
@@ -164,11 +286,11 @@ export function SaludFinanciera5PasosView({
       fechaSugerida = 'Disponible hoy mismo (disponibilidad inmediata de efectivo)';
     } else if (nuevoRunway >= 20) {
       dictamen = 'CONDICIONADO';
-      justificacion = `Factible pero reduce el Runway a ${nuevoRunway} días. Se recomienda diferir a cuotas o cobrar el 40% de facturas pendientes primero.`;
+      justificacion = `Factible pero reduce el Runway a ${nuevoRunway} días. Se recomienda diferir a cuotas o cobrar el 40% de los ${formatCurrency(facturasCobrarStats.saldoPendienteCobro)} pendientes por cobrar primero.`;
       fechaSugerida = 'En 10 a 14 días (tras cobranza de facturas del pipeline)';
     } else {
       dictamen = 'INVIABLE';
-      justificacion = `Riesgo alto de bache de caja. Esta compra descapitalizaría la empresa en menos de 20 días.`;
+      justificacion = `Riesgo alto de bache de caja. Esta compra descapitalizaría la empresa en menos de 20 días al considerar las cuentas por pagar comprometidas (${formatCurrency(cuentasPorPagarStats.saldoPendientePago)}).`;
       fechaSugerida = 'En 30 a 45 días (o diferir a 6 meses con anticipo menor al 15%)';
     }
 
@@ -181,16 +303,16 @@ export function SaludFinanciera5PasosView({
       justificacion,
       fechaSugerida,
     };
-  }, [balanceTotal, burnRateDiario, egresosEsenciales, montoInversion, modalidadInversion]);
+  }, [balanceTotal, burnRateDiario, egresosEsenciales, montoInversion, modalidadInversion, facturasCobrarStats, cuentasPorPagarStats]);
 
   // Debt Payoff Evaluator
   const evaluacionPagoDeudaTarget = useMemo(() => {
-    const reservaMinima = egresosEsenciales * 0.4;
+    const reservaMinima = egresosEsenciales * 0.4 + cuentasPorPagarStats.saldoPendientePago * 0.5;
     const cajaDisponibleParaDeuda = Math.max(0, balanceTotal - reservaMinima);
     const cubreDeudaHoy = cajaDisponibleParaDeuda >= montoDeudaTarget;
 
     const fechaRecomendada = cubreDeudaHoy
-      ? 'Disponible HOY (fondos suficientes y reserva operativa protegida)'
+      ? 'Disponible HOY (fondos suficientes y cuentas por pagar resguardadas)'
       : 'Semana 2 (tras ingresar cobros pendientes del pipeline)';
 
     return {
@@ -199,7 +321,7 @@ export function SaludFinanciera5PasosView({
       cubreDeudaHoy,
       fechaRecomendada,
     };
-  }, [balanceTotal, egresosEsenciales, montoDeudaTarget]);
+  }, [balanceTotal, egresosEsenciales, montoDeudaTarget, cuentasPorPagarStats]);
 
   // Step 3 Simulation calculations
   const ahorroEgresosMes = (egresosReducibles * porcentajeCorteEgresos) / 100;
@@ -209,7 +331,7 @@ export function SaludFinanciera5PasosView({
   const diasGanadosRunway = nuevoRunwayDias - runwayDias;
 
   // Step 4 Simulation calculations
-  const dineroLiberadoCobranza = (totalFacturasPendientes * porcentajeCobranza) / 100;
+  const dineroLiberadoCobranza = (facturasCobrarStats.saldoPendienteCobro * porcentajeCobranza) / 100;
   const nuevoBalanceConCobranza = balanceTotal + dineroLiberadoCobranza;
   const runwayConCobranzaDias = Math.max(0, Math.round(nuevoBalanceConCobranza / burnRateDiario));
 
@@ -239,13 +361,13 @@ export function SaludFinanciera5PasosView({
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-medium text-blue-100 border border-white/10">
               <Brain className="w-3.5 h-3.5 text-blue-300" />
-              <span>Inteligencia de Caja &amp; Motor de Decisiones</span>
+              <span>Inteligencia de Caja Integrada (Cobrar + Pagar + Movimientos)</span>
             </div>
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
               Salud Financiera &amp; Evaluador de Decisiones
             </h2>
             <p className="text-blue-100/90 text-sm max-w-2xl leading-relaxed">
-              Analiza la factibilidad de inversiones, calcula la fecha exacta para saldar deudas y proyecta la liquidez de tu empresa respetando tu reserva operativa.
+              Integrado con facturas por cobrar (incluyendo pagos parciales), cuentas por pagar a proveedores y fechas reales de vencimiento.
             </p>
           </div>
 
@@ -282,6 +404,95 @@ export function SaludFinanciera5PasosView({
               </p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* RESUMEN DE INTEGRACIÓN DE CARTERA & PROVEEDORES */}
+      {/* ------------------------------------------------------------- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* CUENTAS POR COBRAR INTEGRADAS */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <Receipt className="w-4 h-4 text-emerald-600" />
+              <h4 className="font-bold text-slate-800 text-sm">Cuentas por Cobrar (Facturación)</h4>
+            </div>
+            <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+              {facturasCobrarStats.invoices.length} Facturas Activas
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div>
+              <span className="text-[11px] text-slate-500 font-semibold block">Saldo Pendiente de Cobro</span>
+              <span className="text-lg font-bold font-mono text-emerald-700 block">
+                {formatCurrency(facturasCobrarStats.saldoPendienteCobro)}
+              </span>
+            </div>
+            <div>
+              <span className="text-[11px] text-slate-500 font-semibold block">Cobrado Parcialmente</span>
+              <span className="text-lg font-bold font-mono text-slate-700 block">
+                {formatCurrency(facturasCobrarStats.montoPagadoAcumulado)}
+              </span>
+            </div>
+          </div>
+
+          {facturasCobrarStats.conPagoParcial.length > 0 && (
+            <div className="p-2.5 bg-slate-50 rounded-xl text-xs space-y-1 border border-slate-200/80">
+              <span className="font-semibold text-slate-700 block">Facturas con Abonos Parciales:</span>
+              {facturasCobrarStats.conPagoParcial.map((f: any) => (
+                <div key={f.id} className="flex justify-between text-slate-600">
+                  <span className="truncate max-w-[180px]">• {f.folio} - {f.cliente?.nombre || 'Cliente'}</span>
+                  <span className="font-mono text-emerald-700 font-bold">
+                    Abonado: {formatCurrency(f.monto_pagado || 0)} / Riego: {formatCurrency((f.monto_total || 0) - (f.monto_pagado || 0))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* CUENTAS POR PAGAR INTEGRADAS */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-red-600" />
+              <h4 className="font-bold text-slate-800 text-sm">Cuentas por Pagar (Proveedores)</h4>
+            </div>
+            <span className="text-[11px] font-bold text-red-800 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+              {cuentasPorPagarStats.cuentasPorPagar.length} Egresos Pendientes
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div>
+              <span className="text-[11px] text-slate-500 font-semibold block">Saldo Pendiente de Pago</span>
+              <span className="text-lg font-bold font-mono text-red-600 block">
+                {formatCurrency(cuentasPorPagarStats.saldoPendientePago)}
+              </span>
+            </div>
+            <div>
+              <span className="text-[11px] text-slate-500 font-semibold block">Pagado a Proveedores</span>
+              <span className="text-lg font-bold font-mono text-slate-700 block">
+                {formatCurrency(cuentasPorPagarStats.montoPagadoProveedorAcumulado)}
+              </span>
+            </div>
+          </div>
+
+          {cuentasPorPagarStats.conPagoParcial.length > 0 && (
+            <div className="p-2.5 bg-slate-50 rounded-xl text-xs space-y-1 border border-slate-200/80">
+              <span className="font-semibold text-slate-700 block">Cuentas con Abonos Parciales:</span>
+              {cuentasPorPagarStats.conPagoParcial.map((c: any) => (
+                <div key={c.id} className="flex justify-between text-slate-600">
+                  <span className="truncate max-w-[180px]">• {c.folio} - {c.proveedor?.nombre || 'Proveedor'}</span>
+                  <span className="font-mono text-red-600 font-bold">
+                    Abonado: {formatCurrency(c.monto_pagado || 0)} / Resta: {formatCurrency((c.monto_total || 0) - (c.monto_pagado || 0))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -539,7 +750,7 @@ export function SaludFinanciera5PasosView({
 
                   <p className="text-xs text-slate-300 leading-relaxed">
                     {evaluacionPagoDeudaTarget.cubreDeudaHoy
-                      ? `Cuenta con ${formatCurrency(evaluacionPagoDeudaTarget.cajaDisponibleParaDeuda)} de caja libre tras resguardar los costos fijos. Es seguro liquidar "${conceptoDeudaTarget}" por ${formatCurrency(montoDeudaTarget)}.`
+                      ? `Cuenta con ${formatCurrency(evaluacionPagoDeudaTarget.cajaDisponibleParaDeuda)} de caja libre tras resguardar los costos fijos y cuentas por pagar vencidas. Es seguro liquidar "${conceptoDeudaTarget}" por ${formatCurrency(montoDeudaTarget)}.`
                       : `La caja libre tras reserva es de ${formatCurrency(evaluacionPagoDeudaTarget.cajaDisponibleParaDeuda)}. Se recomienda programar el pago en la Semana 2 tras recibir la cobranza en curso.`}
                   </p>
                 </div>
@@ -590,7 +801,7 @@ export function SaludFinanciera5PasosView({
               <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs space-y-1">
                 <div className="flex justify-between text-slate-600">
                   <span>Facturas pendientes:</span>
-                  <span className="font-bold text-slate-800 font-mono">{formatCurrency(totalFacturasPendientes)}</span>
+                  <span className="font-bold text-slate-800 font-mono">{formatCurrency(facturasCobrarStats.saldoPendienteCobro)}</span>
                 </div>
               </div>
             </div>
@@ -611,8 +822,8 @@ export function SaludFinanciera5PasosView({
               </div>
               <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs space-y-1">
                 <div className="flex justify-between text-slate-600">
-                  <span>Quema Diaria:</span>
-                  <span className="font-bold text-red-600 font-mono">{formatCurrency(burnRateDiario)}/día</span>
+                  <span>Cuentas por pagar:</span>
+                  <span className="font-bold text-red-600 font-mono">{formatCurrency(cuentasPorPagarStats.saldoPendientePago)}</span>
                 </div>
               </div>
             </div>
@@ -643,11 +854,11 @@ export function SaludFinanciera5PasosView({
           <div className="p-5 bg-slate-900 text-white rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="space-y-1">
               <span className="text-blue-300 font-bold text-xs uppercase tracking-wider flex items-center gap-1">
-                <Info className="w-3.5 h-3.5" /> Diagnóstico Financiero
+                <Info className="w-3.5 h-3.5" /> Diagnóstico Financiero Integrado
               </span>
               <p className="text-xs text-slate-300 max-w-2xl">
                 Al ritmo actual de egresos ({formatCurrency(burnRateDiario)}/día), la empresa cuenta con{' '}
-                <strong className="text-white font-mono">{runwayDias} días de liquidez garantizada</strong> sin necesidad de nuevo financiamiento.
+                <strong className="text-white font-mono">{runwayDias} días de liquidez garantizada</strong>. Facturas por cobrar netas: {formatCurrency(facturasCobrarStats.saldoPendienteCobro)} | Cuentas por pagar netas: {formatCurrency(cuentasPorPagarStats.saldoPendientePago)}.
               </p>
             </div>
             <button
@@ -661,20 +872,20 @@ export function SaludFinanciera5PasosView({
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* PASO 2: PROYECTAMOS LA CAJA */}
+      {/* PASO 2: PROYECTAMOS LA CAJA (MATRIZ POR FECHAS REALES) */}
       {/* ------------------------------------------------------------- */}
       {pasoActivo === 2 && (
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6 animate-in fade-in duration-200">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-100">
             <div>
               <span className="text-xs font-bold text-blue-900 uppercase tracking-wider bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
-                Paso 2 — Proyección de Flujo
+                Paso 2 — Proyección por Fechas de Vencimiento
               </span>
               <h3 className="text-lg font-bold text-slate-900 mt-1.5">
-                Segundo Paso: Proyectamos la Caja a 4 Semanas
+                Segundo Paso: Proyectamos la Caja a 4 Semanas con Fechas Reales
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Matriz dinámica para anticipar baches de caja semanas antes de que ocurran.
+                Calculado a partir de las fechas de vencimiento de tus facturas por cobrar y cuentas por pagar a proveedores.
               </p>
             </div>
           </div>
@@ -684,44 +895,42 @@ export function SaludFinanciera5PasosView({
               <thead className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider border-b border-slate-200">
                 <tr>
                   <th className="p-3">Concepto / Período</th>
-                  <th className="p-3 bg-slate-200 text-slate-900">Semana Actual (S0)</th>
-                  <th className="p-3">Semana 1 (S1)</th>
-                  <th className="p-3">Semana 2 (S2)</th>
-                  <th className="p-3">Semana 3 (S3)</th>
-                  <th className="p-3">Semana 4 (S4)</th>
+                  {matrizSemanalesReal.map((w, idx) => (
+                    <th key={idx} className={`p-3 ${idx === 0 ? 'bg-slate-200 text-slate-900 font-bold' : ''}`}>
+                      {idx === 0 ? 'Semana Actual (S0)' : `Semana ${idx} (S${idx})`}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
                 <tr className="bg-emerald-50/30 text-emerald-950">
-                  <td className="p-3 font-semibold text-slate-800">(+) Ingresos Esperados</td>
-                  <td className="p-3 font-mono text-emerald-700">{formatCurrency(ingresosMes * 0.25)}</td>
-                  <td className="p-3 font-mono text-emerald-700">{formatCurrency((totalFacturasPendientes * 0.4) + (ingresosMes * 0.25))}</td>
-                  <td className="p-3 font-mono text-emerald-700">{formatCurrency(ingresosMes * 0.25)}</td>
-                  <td className="p-3 font-mono text-emerald-700">{formatCurrency((totalFacturasPendientes * 0.3) + (ingresosMes * 0.25))}</td>
-                  <td className="p-3 font-mono text-emerald-700">{formatCurrency(ingresosMes * 0.25)}</td>
+                  <td className="p-3 font-semibold text-slate-800">(+) Cobranza Real Proyectada (Facturas)</td>
+                  {matrizSemanalesReal.map((w, idx) => (
+                    <td key={idx} className="p-3 font-mono text-emerald-700 font-bold">
+                      {formatCurrency(w.ingresosTotal)}
+                    </td>
+                  ))}
                 </tr>
 
                 <tr className="bg-red-50/30 text-red-950">
-                  <td className="p-3 font-semibold text-slate-800">(-) Egresos Programados</td>
-                  <td className="p-3 font-mono text-red-600">{formatCurrency(egresosMes * 0.25)}</td>
-                  <td className="p-3 font-mono text-red-600">{formatCurrency(egresosEsenciales * 0.5 + egresosReducibles * 0.25)}</td>
-                  <td className="p-3 font-mono text-red-600">{formatCurrency(egresosMes * 0.25)}</td>
-                  <td className="p-3 font-mono text-red-600">{formatCurrency(egresosEsenciales * 0.5 + egresosReducibles * 0.25)}</td>
-                  <td className="p-3 font-mono text-red-600">{formatCurrency(egresosMes * 0.25)}</td>
+                  <td className="p-3 font-semibold text-slate-800">(-) Pagos Obligatorios Proyectados (Proveedores)</td>
+                  {matrizSemanalesReal.map((w, idx) => (
+                    <td key={idx} className="p-3 font-mono text-red-600 font-bold">
+                      {formatCurrency(w.egresosTotal)}
+                    </td>
+                  ))}
                 </tr>
 
                 <tr className="bg-slate-50 font-bold border-t border-slate-200">
                   <td className="p-3 text-slate-900">(=) Saldo Neto Proyectado de Caja</td>
-                  {[
-                    balanceTotal,
-                    balanceTotal + (totalFacturasPendientes * 0.4) - (egresosEsenciales * 0.1),
-                    balanceTotal + (totalFacturasPendientes * 0.4) - (egresosEsenciales * 0.2),
-                    balanceTotal + (totalFacturasPendientes * 0.7) - (egresosEsenciales * 0.4),
-                    balanceTotal + (totalFacturasPendientes * 0.7) - (egresosEsenciales * 0.5),
-                  ].map((val, idx) => (
+                  {matrizSemanalesReal.map((w, idx) => (
                     <td key={idx} className="p-3 font-mono">
-                      <span className={`px-2 py-0.5 rounded font-bold ${val >= balanceTotal ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                        {formatCurrency(val)}
+                      <span
+                        className={`px-2 py-0.5 rounded font-bold ${
+                          w.saldoAcumulado >= balanceTotal ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {formatCurrency(w.saldoAcumulado)}
                       </span>
                     </td>
                   ))}
@@ -820,7 +1029,7 @@ export function SaludFinanciera5PasosView({
                 </div>
                 <div>
                   <h4 className="font-bold text-sm">Simulador de Cobranza Acelerada</h4>
-                  <p className="text-xs text-slate-400">Total Facturas Pendientes: {formatCurrency(totalFacturasPendientes)}</p>
+                  <p className="text-xs text-slate-400">Total Facturas Pendientes Netas: {formatCurrency(facturasCobrarStats.saldoPendienteCobro)}</p>
                 </div>
               </div>
               <span className="text-2xl font-bold font-mono text-blue-300">{porcentajeCobranza}%</span>

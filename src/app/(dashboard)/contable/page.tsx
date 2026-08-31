@@ -15,8 +15,26 @@ export default async function ContablePage() {
     orderBy: { fecha: 'desc' }
   });
 
-  const facturasPendientes = await prisma.factura.findMany({
-    where: { estatus: 'PENDIENTE' }
+  const facturasCobrar = await prisma.factura.findMany({
+    where: {
+      estatus: { in: ['PENDIENTE', 'PAGADA_PARCIALMENTE', 'VENCIDA'] }
+    },
+    include: {
+      cliente: { select: { id: true, nombre: true, empresa: true } },
+      pagos_parciales: true
+    },
+    orderBy: { fecha_vencimiento: 'asc' }
+  });
+
+  const cuentasPorPagar = await prisma.cuentaPorPagar.findMany({
+    where: {
+      estatus: { in: ['PENDIENTE', 'PAGADA_PARCIALMENTE', 'VENCIDA'] }
+    },
+    include: {
+      proveedor: { select: { id: true, nombre: true, empresa: true } },
+      pagos_parciales: true
+    },
+    orderBy: { fecha_vencimiento: 'asc' }
   });
 
   // Calculate first day of the current month
@@ -78,7 +96,9 @@ export default async function ContablePage() {
       egresosMes={egresosMes} 
       balanceTotal={balanceTotal}
       rawMovimientos={dbMovimientos}
-      facturasPendientes={facturasPendientes}
+      facturasPendientes={facturasCobrar}
+      facturasCobrar={facturasCobrar}
+      cuentasPorPagar={cuentasPorPagar}
       oportunidadesMes={oportunidadesMes}
       lineasProducto={lineasProducto}
       proyectos={proyectos}
