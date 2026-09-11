@@ -9,6 +9,7 @@ import EditarTareaModal from '../../tareas/EditarTareaModal';
 import EliminarTareaModal from '../../tareas/EliminarTareaModal';
 import WeeklySprintNavigator from './WeeklySprintNavigator';
 import POExecutiveDigest from './POExecutiveDigest';
+import AISprintPlannerModal from './AISprintPlannerModal';
 import { useRouter } from 'next/navigation';
 
 interface Encargado {
@@ -156,11 +157,44 @@ export default function ProyectoKanbanBoard({ proyecto, initialTareas, encargado
           <POExecutiveDigest proyecto={proyecto} onRefresh={handleRefresh} />
         </div>
       ) : (
-        <div className="flex-1 flex h-full gap-6 overflow-x-auto pb-4 items-start">
-          {COLUMNS.map((col) => {
-            const columnTasks = filteredTareas
-              .filter(t => t.estatus === col.id)
-              .sort((a, b) => a.orden - b.orden);
+        <div className="flex-1 flex flex-col min-h-0 space-y-4">
+          {proyecto.sprints.length === 0 && tareas.length === 0 && (
+            <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 border border-indigo-200/80 rounded-2xl p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xs shrink-0 animate-in fade-in duration-300">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/20">
+                  <Sparkles className="w-6 h-6 animate-pulse text-amber-300" />
+                </div>
+                <div>
+                  <h3 className="text-sm md:text-base font-bold text-slate-900">
+                    Construye el Plan de Sprints con Gemini
+                  </h3>
+                  <p className="text-xs text-slate-600 mt-0.5 max-w-2xl">
+                    Este proyecto aún no tiene sprints ni tareas. Abre el builder, pega el resumen de Gemini y el sistema creará automáticamente los sprints, tarjetas y subtareas.
+                  </p>
+                </div>
+              </div>
+              <AISprintPlannerModal
+                proyectoId={proyecto.id}
+                proyectoNombre={proyecto.nombre}
+                descripcionActual={proyecto.descripcion}
+                horasDiaActual={proyecto.horas_dia}
+                diasSemanaActual={proyecto.dias_semana}
+                onSuccess={handleRefresh}
+                triggerButton={
+                  <button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-md shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all whitespace-nowrap">
+                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    Pegar Plan de Gemini
+                  </button>
+                }
+              />
+            </div>
+          )}
+
+          <div className="flex-1 flex h-full gap-6 overflow-x-auto pb-4 items-start">
+            {COLUMNS.map((col) => {
+              const columnTasks = filteredTareas
+                .filter(t => t.estatus === col.id)
+                .sort((a, b) => a.orden - b.orden);
 
             return (
               <div
@@ -308,7 +342,8 @@ export default function ProyectoKanbanBoard({ proyecto, initialTareas, encargado
             );
           })}
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </div>
+);
 }

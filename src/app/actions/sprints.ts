@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { SprintEstatus, TareaStatus, Prioridad, CategoriaTarea } from "@prisma/client"
+import { parseSprintPlan } from "@/lib/sprintPlanParser"
 
 export async function generateAISprints({
   proyectoId,
@@ -30,7 +31,10 @@ export async function generateAISprints({
     // Horas totales por sprint (capacidad semanal por dev)
     const horasPorSprint = horasDia * diasSemana
 
-    // Estructuras de Sprints basadas en IA según palabras clave o alcance
+    // 1. Intentar parsear el alcance con el motor inteligente de Gemini / LLMs
+    const parsedPlan = parseSprintPlan(alcance, horasPorSprint)
+
+    // Estructuras de Sprints basadas en IA según palabras clave o alcance (Fallback)
     const esPortalAlumno = alcance.toLowerCase().includes('alumno') || alcance.toLowerCase().includes('les rois') || proyecto.nombre.toLowerCase().includes('alumno')
 
     let sprintTemplates: Array<{
@@ -44,10 +48,14 @@ export async function generateAISprints({
         categoria: CategoriaTarea
         horas_estimadas: number
         estatus: TareaStatus
+        subtareas?: string[]
       }>
     }> = []
 
-    if (esPortalAlumno) {
+    if (parsedPlan && parsedPlan.length > 0) {
+      sprintTemplates = parsedPlan
+      semanas = parsedPlan.length
+    } else if (esPortalAlumno) {
       sprintTemplates = [
         {
           numero: 1,
@@ -220,7 +228,15 @@ export async function generateAISprints({
       }
     }
 
-    // Limpiar sprints existentes si es un reemplazo completo
+    // 1. Limpiar tareas anteriores vinculadas a sprints del proyecto para evitar tarjetas huérfanas
+    await prisma.tarea.deleteMany({
+      where: {
+        proyecto_id: proyectoId,
+        sprint_id: { not: null }
+      }
+    })
+
+    // 2. Limpiar sprints existentes si es un reemplazo completo
     await prisma.sprint.deleteMany({
       where: { proyecto_id: proyectoId }
     })
@@ -251,7 +267,10 @@ export async function generateAISprints({
       encargadoIds = [dev1.id, dev2.id, dev3.id]
     }
 
-    // Insertar Sprints y sus Tareas
+    let totalTareasCreadas = 0
+    let totalSubtareasCreadas = 0
+
+    // Insertar Sprints y sus Tareas con Subtareas
     for (let idx = 0; idx < sprintTemplates.length; idx++) {
       const template = sprintTemplates[idx]
       const inicioSprint = new Date(fechaInicio.getTime() + idx * 7 * 24 * 60 * 60 * 1000)
@@ -261,7 +280,7 @@ export async function generateAISprints({
       const horasRealesIniciales = template.tareas.filter(t => t.estatus === 'COMPLETADA').reduce((sum, t) => sum + t.horas_estimadas, 0)
 
       const estatusSprint: SprintEstatus = idx === 0 
-        ? (horasRealesIniciales >= horasTotalSprint ? 'COMPLETADO' : 'EN_CURSO')
+        ? (horasRealesIniciales >= horasTotalSprint && horasTotalSprint > 0 ? 'COMPLETADO' : 'EN_CURSO')
         : (idx === 1 ? 'EN_CURSO' : 'PLANIFICADO')
 
       const sprintCreated = await prisma.sprint.create({
@@ -276,14 +295,15 @@ export async function generateAISprints({
           horas_reales: horasRealesIniciales,
           estatus: estatusSprint,
           checkpoint_completado: estatusSprint === 'COMPLETADO',
-          notas_checkpoint: idx === 0 ? "Sprint 1 completado con éxito. Roles y auth aislados correctamente." : null
+          notas_checkpoint: idx === 0 ? `Sprint ${template.numero} iniciado correctamente.` : null
         }
       })
 
-      // Crear tareas ligadas a este sprint
+      // Crear tareas ligadas a este sprint junto con sus subtareas
       for (let tIdx = 0; tIdx < template.tareas.length; tIdx++) {
         const tareaTpl = template.tareas[tIdx]
         const assignedEncargado = encargadoIds[(idx + tIdx) % encargadoIds.length]
+        const subtareasList = tareaTpl.subtareas || []
 
         await prisma.tarea.create({
           data: {
@@ -300,11 +320,21 @@ export async function generateAISprints({
             fecha_limite: finSprint,
             orden: tIdx,
             is_focus: tareaTpl.prioridad === 'URGENTE',
-            encargados: {
+            encargados: assignedEncargado ? {
               connect: [{ id: assignedEncargado }]
-            }
+            } : undefined,
+            subtareas: subtareasList.length > 0 ? {
+              create: subtareasList.map((subTexto, sIdx) => ({
+                texto: typeof subTexto === 'string' ? subTexto : (subTexto as any).texto,
+                completada: false,
+                orden: sIdx
+              }))
+            } : undefined
           }
         })
+
+        totalTareasCreadas++
+        totalSubtareasCreadas += subtareasList.length
       }
     }
 
@@ -313,7 +343,12 @@ export async function generateAISprints({
 
     return {
       success: true,
-      message: `Plan de ${sprintTemplates.length} sprints generado exitosamente con capacidad de ${horasPorSprint * sprintTemplates.length} hrs totales.`
+      message: `¡Plan generado con éxito! ${sprintTemplates.length} Sprints, ${totalTareasCreadas} Tareas y ${totalSubtareasCreadas} Subtareas listas en el Kanban.`,
+      metrics: {
+        sprints: sprintTemplates.length,
+        tareas: totalTareasCreadas,
+        subtareas: totalSubtareasCreadas
+      }
     }
   } catch (error: any) {
     console.error("Error generating AI sprints:", error)

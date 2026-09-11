@@ -7,6 +7,15 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [1.9.0] — 2026-09-11
+
+### Added
+- **Proyectos / Sprints**: Generador inteligente de sprints con motor de parsing para Gemini y LLMs (`sprintPlanParser.ts`). Extrae y persiste automáticamente Sprints, Objetivos, Tareas con horas proporcionales y checklists de Subtareas completos en la base de datos.
+- **Proyectos / UI**: Previsualización interactiva con acordeón en `AISprintPlannerModal`, detección en tiempo real de métricas (`X Sprints • Y Tareas • Z Subtareas`), auto-sincronización de semanas y plantilla de prueba WMS Giving Out.
+- **Kanban**: Banner de estado inicial amigable en `ProyectoKanbanBoard` para proyectos nuevos sin sprints ni tareas.
+
+---
+
 ## [1.8.1] — 2026-07-30
 
 ### Fixed
