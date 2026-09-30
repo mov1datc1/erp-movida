@@ -157,6 +157,22 @@
 - Reset de contraseña desde modal de edición
 - Integraciones (Facturapi, etc.)
 
+### 10. Soporte LexLatin (`/soporte-lexlatin`)
+- Conexión segura con Jira Cloud mediante correo y token API cifrado
+- Conciliación mensual de casos creados, resueltos, actualizados y backlog
+- Validaciones de tiempo trabajado, antigüedad y fecha estimada de término
+- Exportación del detalle a Excel y generación del informe PowerPoint
+- Aprobación operativa asignada a Edgar y aprobación de entrega asignada a Jonathan
+
+Para conectarlo:
+
+1. Genera un token en `https://id.atlassian.com/manage-profile/security/api-tokens`.
+2. Abre **Configuración → Jira / LexLatin** y captura el sitio, correo, token y clave del proyecto (`MDS` según los archivos actuales).
+3. Guarda, activa la integración y usa **Probar y detectar campos** para mapear `Tiempo Trabajado` y `Fecha estimada de término`.
+4. Abre **Soporte LexLatin**, selecciona el mes y sincroniza Jira.
+
+La contraseña normal de Atlassian no se almacena ni se utiliza. El token se cifra con `INTEGRATIONS_ENCRYPTION_KEY` y nunca se devuelve al navegador.
+
 ---
 
 ## Modelo de Datos (Prisma)
@@ -217,6 +233,7 @@ Supabase Auth (SSR)
 | **Resend** | Envío de correos (recordatorios) | API Key en `.env` → `RESEND_API_KEY` |
 | **n8n** | Webhooks de leads (Meta/Google Ads) | Self-hosted, ver `GUIA_HOSTING_N8N.md` |
 | **Supabase** | Auth + PostgreSQL | URLs y keys en `.env.local` |
+| **Jira Cloud** | Tickets y reportes mensuales de LexLatin | Token API cifrado en Configuración → Jira / LexLatin |
 
 ---
 
@@ -295,6 +312,7 @@ Vercel (auto-deploy)
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key de Supabase |
 | `FACTURAPI_API_KEY` | API key de Facturapi (CFDI) |
 | `RESEND_API_KEY` | API key de Resend (emails) |
+| `OPENAI_API_KEY` / `API_OPENAI_ERP` | API key de proyecto de OpenAI; se usa exclusivamente del lado servidor (`OPENAI_API_KEY` es el nombre estándar recomendado) |
 | `INTEGRATIONS_ENCRYPTION_KEY` | Secreto privado de al menos 32 caracteres para cifrar credenciales SMTP/IMAP y API keys configuradas en el ERP |
 
 ---

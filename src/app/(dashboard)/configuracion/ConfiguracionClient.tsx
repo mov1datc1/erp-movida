@@ -8,6 +8,8 @@ import TabCorreos from './components/TabCorreos';
 import type { EmailAccountView } from '@/types/emailAccounts';
 import TabOpenAI from './components/TabOpenAI';
 import type { OpenAIConfigView } from '@/types/openAIConfig';
+import TabJiraLexLatin from './components/TabJiraLexLatin';
+import type { JiraLexLatinConfigView } from '@/types/jiraLexLatin';
 
 interface ConfiguracionClientProps {
   initialRoles: any[];
@@ -15,10 +17,11 @@ interface ConfiguracionClientProps {
   initialIntegraciones: any[];
   initialEmailAccounts: EmailAccountView[];
   initialOpenAIConfig: OpenAIConfigView | null;
+  initialJiraLexLatinConfig: JiraLexLatinConfigView | null;
 }
 
-export default function ConfiguracionClient({ initialRoles, initialUsuarios, initialIntegraciones, initialEmailAccounts, initialOpenAIConfig }: ConfiguracionClientProps) {
-  const [activeTab, setActiveTab] = useState<'roles' | 'usuarios' | 'correos' | 'openai' | 'integraciones'>('roles');
+export default function ConfiguracionClient({ initialRoles, initialUsuarios, initialIntegraciones, initialEmailAccounts, initialOpenAIConfig, initialJiraLexLatinConfig }: ConfiguracionClientProps) {
+  const [activeTab, setActiveTab] = useState<'roles' | 'usuarios' | 'correos' | 'openai' | 'jira' | 'integraciones'>('roles');
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
@@ -62,6 +65,14 @@ export default function ConfiguracionClient({ initialRoles, initialUsuarios, ini
           OpenAI
         </button>
         <button
+          onClick={() => setActiveTab('jira')}
+          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+            activeTab === 'jira' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+          }`}
+        >
+          Jira / LexLatin
+        </button>
+        <button
           onClick={() => setActiveTab('integraciones')}
           className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'integraciones' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
@@ -77,6 +88,7 @@ export default function ConfiguracionClient({ initialRoles, initialUsuarios, ini
         {activeTab === 'usuarios' && <TabUsuarios initialUsuarios={initialUsuarios} roles={initialRoles} />}
         {activeTab === 'correos' && <TabCorreos initialAccounts={initialEmailAccounts} />}
         {activeTab === 'openai' && <TabOpenAI initialConfig={initialOpenAIConfig} />}
+        {activeTab === 'jira' && <TabJiraLexLatin initialConfig={initialJiraLexLatinConfig} />}
         {activeTab === 'integraciones' && <TabIntegraciones initialIntegraciones={initialIntegraciones} />}
       </div>
     </div>

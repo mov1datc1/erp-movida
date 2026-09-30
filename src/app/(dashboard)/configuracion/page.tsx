@@ -1,6 +1,6 @@
 import React from "react";
 import ConfiguracionClient from "./ConfiguracionClient";
-import { getAppRoles, getUsuarios, getIntegraciones, getEmailAccounts, getOpenAIConfiguration } from "./actions";
+import { getAppRoles, getUsuarios, getIntegraciones, getEmailAccounts, getJiraLexLatinConfiguration, getOpenAIConfiguration } from "./actions";
 import { createClient } from "@/utils/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { hasPermission, isSuperAdmin } from "@/lib/rbac";
@@ -21,12 +21,13 @@ export default async function ConfiguracionPage() {
     redirect('/');
   }
 
-  const [rolesRes, usuariosRes, integracionesRes, emailAccountsRes, openAIRes] = await Promise.all([
+  const [rolesRes, usuariosRes, integracionesRes, emailAccountsRes, openAIRes, jiraLexLatinRes] = await Promise.all([
     getAppRoles(),
     getUsuarios(),
     getIntegraciones(),
     getEmailAccounts(),
     getOpenAIConfiguration(),
+    getJiraLexLatinConfiguration(),
   ]);
 
   const roles = (rolesRes.success && rolesRes.data) ? rolesRes.data : [];
@@ -34,6 +35,7 @@ export default async function ConfiguracionPage() {
   const integraciones = (integracionesRes.success && integracionesRes.data) ? integracionesRes.data : [];
   const emailAccounts = (emailAccountsRes.success && emailAccountsRes.data) ? emailAccountsRes.data : [];
   const openAIConfig = (openAIRes.success && openAIRes.data) ? openAIRes.data : null;
+  const jiraLexLatinConfig = (jiraLexLatinRes.success && jiraLexLatinRes.data) ? jiraLexLatinRes.data : null;
 
   return (
     <ConfiguracionClient 
@@ -42,6 +44,7 @@ export default async function ConfiguracionPage() {
       initialIntegraciones={integraciones} 
       initialEmailAccounts={emailAccounts}
       initialOpenAIConfig={openAIConfig}
+      initialJiraLexLatinConfig={jiraLexLatinConfig}
     />
   );
 }

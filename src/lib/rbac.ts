@@ -12,6 +12,7 @@ export const ALL_MODULES = [
   { id: 'dashboard', label: 'Dashboard', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },
   { id: 'tareas', label: 'Tareas', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },
   { id: 'recordatorios', label: 'Recordatorios', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },
+  { id: 'soporte-lexlatin', label: 'Soporte LexLatin', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },
   { id: 'proyectos', label: 'Proyectos', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },
   { id: 'contable', label: 'Contable', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },
   { id: 'crm', label: 'CRM / Clientes', defaultPerms: { ver: false, crear: false, editar: false, eliminar: false } },

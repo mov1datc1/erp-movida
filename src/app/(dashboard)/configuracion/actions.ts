@@ -9,8 +9,20 @@ import { decryptSecret, encryptSecret } from '@/lib/secretEncryption';
 import type { EmailAccountInput, EmailAccountPurpose, EmailAccountView } from '@/types/emailAccounts';
 import nodemailer from 'nodemailer';
 import { randomUUID } from 'node:crypto';
-import { getOpenAIClient, getStoredOpenAIConfig, type StoredOpenAIConfig } from '@/lib/openaiClient';
+import {
+  getEnvironmentOpenAIApiKey,
+  getOpenAIClient,
+  getStoredOpenAIConfig,
+  type StoredOpenAIConfig,
+} from '@/lib/openaiClient';
 import type { OpenAIConfigInput, OpenAIConfigView } from '@/types/openAIConfig';
+import type { JiraLexLatinConfigInput } from '@/types/jiraLexLatin';
+import {
+  getStoredJiraLexLatinConfig,
+  testJiraConnection,
+  toJiraConfigView,
+  type StoredJiraLexLatinConfig,
+} from '@/lib/jiraClient';
 
 type StoredEmailAccount = Omit<EmailAccountView, 'tienePassword' | 'updatedAt'> & {
   passwordEncrypted: string;
@@ -59,10 +71,11 @@ function validateEmailAccount(input: EmailAccountInput) {
 }
 
 function toOpenAIConfigView(config: StoredOpenAIConfig | null): OpenAIConfigView {
+  const environmentApiKey = getEnvironmentOpenAIApiKey();
   return {
-    activa: config?.activa ?? false,
-    apiKeyConfigurada: Boolean(config?.apiKeyEncrypted),
-    apiKeyUltimos4: config?.apiKeyUltimos4,
+    activa: config?.activa ?? Boolean(environmentApiKey),
+    apiKeyConfigurada: Boolean(environmentApiKey || config?.apiKeyEncrypted),
+    apiKeyUltimos4: environmentApiKey?.slice(-4) || config?.apiKeyUltimos4,
     organizationId: config?.organizationId || '',
     projectId: config?.projectId || '',
     modeloRapido: config?.modeloRapido || 'gpt-6-luna',
@@ -253,7 +266,9 @@ export async function getIntegraciones() {
   try {
     await requireConfigurationAdmin();
     const integraciones = await prisma.integracion.findMany();
-    const safeIntegraciones = integraciones.map((integracion) => {
+    const safeIntegraciones = integraciones
+      .filter((integracion) => !['EMAIL_ACCOUNTS', 'OPENAI', 'JIRA_LEXLATIN'].includes(integracion.proveedor))
+      .map((integracion) => {
       if (integracion.proveedor !== 'SMTP_CORREO') return integracion;
 
       const config = (integracion.config || {}) as Record<string, unknown>;
@@ -265,7 +280,7 @@ export async function getIntegraciones() {
           tienePassword: Boolean(_pass),
         },
       };
-    });
+      });
     return { success: true, data: safeIntegraciones };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -401,13 +416,14 @@ export async function saveOpenAIConfiguration(input: OpenAIConfigInput) {
   try {
     await requireConfigurationAdmin();
     const existing = await getStoredOpenAIConfig();
+    const environmentApiKey = getEnvironmentOpenAIApiKey();
     const newApiKey = input.apiKey?.trim();
     const apiKeyEncrypted = newApiKey
       ? encryptSecret(newApiKey)
-      : existing?.apiKeyEncrypted;
+      : existing?.apiKeyEncrypted || '';
 
-    if (!apiKeyEncrypted) {
-      return { success: false, error: 'Captura una API key de proyecto de OpenAI.' };
+    if (!environmentApiKey && !apiKeyEncrypted) {
+      return { success: false, error: 'Configura OPENAI_API_KEY o API_OPENAI_ERP en el servidor, o captura una API key de proyecto.' };
     }
     if (!input.modeloRapido.trim() || !input.modeloEquilibrado.trim() || !input.modeloComplejo.trim()) {
       return { success: false, error: 'Configura los tres perfiles de modelo.' };
@@ -419,7 +435,9 @@ export async function saveOpenAIConfiguration(input: OpenAIConfigInput) {
     const stored: StoredOpenAIConfig = {
       activa: input.activa,
       apiKeyEncrypted,
-      apiKeyUltimos4: newApiKey ? newApiKey.slice(-4) : existing?.apiKeyUltimos4,
+      apiKeyUltimos4: newApiKey
+        ? newApiKey.slice(-4)
+        : environmentApiKey?.slice(-4) || existing?.apiKeyUltimos4,
       organizationId: input.organizationId.trim(),
       projectId: input.projectId.trim(),
       modeloRapido: input.modeloRapido.trim(),
@@ -470,6 +488,86 @@ export async function testOpenAIConfiguration() {
   } catch (error: any) {
     console.error('[OpenAI config] Connection test failed:', error);
     return { success: false, error: error.message || 'No fue posible conectar con OpenAI.' };
+  }
+}
+
+export async function getJiraLexLatinConfiguration() {
+  try {
+    await requireConfigurationAdmin();
+    return { success: true, data: toJiraConfigView(await getStoredJiraLexLatinConfig()) };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+function validateJiraConfig(input: JiraLexLatinConfigInput) {
+  let url: URL;
+  try {
+    url = new URL(input.siteUrl);
+  } catch {
+    throw new Error('Captura una URL válida para el sitio de Jira.');
+  }
+  if (url.protocol !== 'https:') throw new Error('La URL de Jira debe usar HTTPS.');
+  if (!url.hostname.endsWith('.atlassian.net')) throw new Error('La URL debe corresponder al sitio *.atlassian.net.');
+  if (!/^\S+@\S+\.\S+$/.test(input.accountEmail)) throw new Error('Captura el correo de la cuenta técnica de Jira.');
+  if (!/^[A-Z][A-Z0-9_]+$/.test(input.projectKey.trim().toUpperCase())) throw new Error('La clave de proyecto de Jira no es válida.');
+  if (!/^\S+@\S+\.\S+$/.test(input.approverOperationsEmail)) throw new Error('El correo del aprobador operativo no es válido.');
+  if (!/^\S+@\S+\.\S+$/.test(input.approverDeliveryEmail)) throw new Error('El correo del aprobador de envío no es válido.');
+  if (!/^\S+@\S+\.\S+$/.test(input.recipientTo)) throw new Error('El destinatario principal no es válido.');
+  if (!Number.isInteger(input.cutoffStartDay) || !Number.isInteger(input.cutoffEndDay)
+    || input.cutoffStartDay < 1 || input.cutoffEndDay > 28 || input.cutoffStartDay > input.cutoffEndDay) {
+    throw new Error('La ventana de corte debe estar entre los días 1 y 28.');
+  }
+}
+
+export async function saveJiraLexLatinConfiguration(input: JiraLexLatinConfigInput) {
+  try {
+    await requireConfigurationAdmin();
+    validateJiraConfig(input);
+    const existing = await getStoredJiraLexLatinConfig();
+    const newToken = input.apiToken?.trim();
+    const apiTokenEncrypted = newToken ? encryptSecret(newToken) : existing?.apiTokenEncrypted;
+    if (!apiTokenEncrypted) return { success: false, error: 'Captura un token API de Atlassian.' };
+
+    const stored: StoredJiraLexLatinConfig = {
+      activa: input.activa,
+      siteUrl: input.siteUrl.trim().replace(/\/+$/, ''),
+      accountEmail: input.accountEmail.trim().toLowerCase(),
+      apiTokenEncrypted,
+      tokenLast4: newToken ? newToken.slice(-4) : existing?.tokenLast4,
+      projectKey: input.projectKey.trim().toUpperCase(),
+      timeWorkedFieldId: input.timeWorkedFieldId.trim(),
+      targetDateFieldId: input.targetDateFieldId.trim(),
+      approverOperationsEmail: input.approverOperationsEmail.trim().toLowerCase(),
+      approverDeliveryEmail: input.approverDeliveryEmail.trim().toLowerCase(),
+      recipientTo: input.recipientTo.trim().toLowerCase(),
+      recipientCc: input.recipientCc.trim(),
+      cutoffStartDay: input.cutoffStartDay,
+      cutoffEndDay: input.cutoffEndDay,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await prisma.integracion.upsert({
+      where: { proveedor: 'JIRA_LEXLATIN' },
+      update: { config: JSON.parse(JSON.stringify(stored)), activa: stored.activa },
+      create: { proveedor: 'JIRA_LEXLATIN', config: JSON.parse(JSON.stringify(stored)), activa: stored.activa },
+    });
+    revalidatePath('/configuracion');
+    revalidatePath('/soporte-lexlatin');
+    return { success: true, data: toJiraConfigView(stored) };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function testJiraLexLatinConfiguration() {
+  try {
+    await requireConfigurationAdmin();
+    const result = await testJiraConnection();
+    return { success: true, data: result };
+  } catch (error: any) {
+    console.error('[Jira LexLatin] Connection test failed:', error);
+    return { success: false, error: error.message || 'No fue posible conectar con Jira.' };
   }
 }
 

@@ -15,7 +15,8 @@ import {
   Target,
   PackageSearch,
   TrendingUp,
-  Bell
+  Bell,
+  Headset
 } from "lucide-react";
 
 export default async function Sidebar() {
@@ -39,6 +40,7 @@ export default async function Sidebar() {
     'dashboard': { name: "Dashboard", icon: <TrendingUp className="w-5 h-5" />, path: "/dashboard" },
     'tareas': { name: "Tareas", icon: <CheckSquare className="w-5 h-5" />, path: "/tareas" },
     'recordatorios': { name: "Recordatorios", icon: <Bell className="w-5 h-5" />, path: "/recordatorios" },
+    'soporte-lexlatin': { name: "Soporte LexLatin", icon: <Headset className="w-5 h-5" />, path: "/soporte-lexlatin" },
     'proyectos': { name: "Proyectos", icon: <Briefcase className="w-5 h-5" />, path: "/proyectos" },
     'contable': { name: "Contable", icon: <DollarSign className="w-5 h-5" />, path: "/contable" },
     'crm': { name: "CRM / Clientes", icon: <PieChart className="w-5 h-5" />, path: "/crm/clientes" },
