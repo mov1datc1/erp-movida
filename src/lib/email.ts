@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { prisma } from '@/lib/prisma';
 import { TareaStatus } from '@prisma/client';
+import { decryptSecret } from '@/lib/secretEncryption';
 
 export interface TaskStatusNotificationParams {
   taskTitle: string;
@@ -21,17 +22,38 @@ const statusLabels: Record<string, { label: string; bg: string; text: string }> 
 };
 
 /**
- * Retrieves the active SMTP configuration from Database (Integracion)
- * or falls back to process.env and default credentials provided by user.
+ * Retrieves the active notifications account or falls back to the legacy
+ * SMTP integration/environment variables during migration.
  */
 export async function getSMTPConfig() {
   const defaultHost = process.env.SMTP_HOST || 'mail.movidatci.com';
   const defaultPort = parseInt(process.env.SMTP_PORT || '465', 10);
-  const defaultUser = process.env.SMTP_USER || 'info@movidatci.com';
-  const defaultPass = process.env.SMTP_PASS || 'DragonDorado2024-';
+  const defaultUser = process.env.SMTP_USER || '';
+  const defaultPass = process.env.SMTP_PASS || '';
   const defaultRecipients = process.env.SMTP_NOTIFY_EMAILS || 'info@movidatci.com';
 
   try {
+    const emailAccountsIntegration = await prisma.integracion.findUnique({
+      where: { proveedor: 'EMAIL_ACCOUNTS' },
+    });
+    const accountsConfig = emailAccountsIntegration?.config as { accounts?: Array<Record<string, unknown>> } | null;
+    const accounts = Array.isArray(accountsConfig?.accounts) ? accountsConfig.accounts : [];
+    const selected = accounts.find((account) => account.activa === true && account.proposito === 'NOTIFICACIONES')
+      || accounts.find((account) => account.activa === true);
+
+    if (selected && typeof selected.passwordEncrypted === 'string') {
+      return {
+        host: String(selected.smtpHost || defaultHost),
+        port: Number(selected.smtpPort || defaultPort),
+        user: String(selected.usuario || selected.email || defaultUser),
+        pass: decryptSecret(selected.passwordEncrypted),
+        recipients: defaultRecipients,
+        activa: true,
+        secure: selected.smtpSeguro !== false,
+        fromName: String(selected.nombreRemitente || 'Movida ERP Notificaciones'),
+      };
+    }
+
     const dbIntegration = await prisma.integracion.findUnique({
       where: { proveedor: 'SMTP_CORREO' },
     });
@@ -45,6 +67,8 @@ export async function getSMTPConfig() {
         pass: cfg.pass || defaultPass,
         recipients: cfg.recipients || cfg.destinatarios || defaultRecipients,
         activa: dbIntegration.activa !== false,
+        secure: parseInt(cfg.port || `${defaultPort}`, 10) === 465,
+        fromName: 'Movida ERP Notificaciones',
       };
     }
   } catch (error) {
@@ -57,7 +81,9 @@ export async function getSMTPConfig() {
     user: defaultUser,
     pass: defaultPass,
     recipients: defaultRecipients,
-    activa: true,
+    activa: Boolean(defaultUser && defaultPass),
+    secure: defaultPort === 465,
+    fromName: 'Movida ERP Notificaciones',
   };
 }
 
@@ -66,18 +92,16 @@ export async function getSMTPConfig() {
  */
 export async function getMailTransporter() {
   const config = await getSMTPConfig();
-  const isSecure = config.port === 465;
-
   const transporter = nodemailer.createTransport({
     host: config.host,
     port: config.port,
-    secure: isSecure, // true for port 465, false for 587/25
+    secure: config.secure,
     auth: {
       user: config.user,
       pass: config.pass,
     },
     tls: {
-      rejectUnauthorized: false, // Prevents self-signed cert issues
+      rejectUnauthorized: true,
     },
   });
 
@@ -239,7 +263,7 @@ export async function sendTaskStatusNotification(params: TaskStatusNotificationP
     `;
 
     const info = await transporter.sendMail({
-      from: `"Movida ERP Notificaciones" <${config.user}>`,
+      from: `"${config.fromName.replaceAll('"', '')}" <${config.user}>`,
       to: recipientsList,
       subject,
       html: htmlBody,
@@ -439,7 +463,7 @@ export async function sendSubtaskUpdateNotification(params: SubtaskNotificationP
     `;
 
     const info = await transporter.sendMail({
-      from: `"Movida ERP Notificaciones" <${config.user}>`,
+      from: `"${config.fromName.replaceAll('"', '')}" <${config.user}>`,
       to: recipientsList,
       subject,
       html: htmlBody,
@@ -462,7 +486,7 @@ export async function sendTestEmail(targetEmail?: string) {
     const recipient = targetEmail || config.recipients.split(/[,;\n]/)[0] || config.user;
 
     const info = await transporter.sendMail({
-      from: `"Movida ERP" <${config.user}>`,
+      from: `"${config.fromName.replaceAll('"', '')}" <${config.user}>`,
       to: recipient,
       subject: '[Movida ERP] Prueba de Conexión SMTP Exitosa',
       html: `

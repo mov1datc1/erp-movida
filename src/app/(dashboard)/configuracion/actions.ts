@@ -3,11 +3,83 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/utils/supabase/admin';
+import { createClient } from '@/utils/supabase/server';
+import { hasPermission, isSuperAdmin } from '@/lib/rbac';
+import { decryptSecret, encryptSecret } from '@/lib/secretEncryption';
+import type { EmailAccountInput, EmailAccountPurpose, EmailAccountView } from '@/types/emailAccounts';
+import nodemailer from 'nodemailer';
+import { randomUUID } from 'node:crypto';
+import { getOpenAIClient, getStoredOpenAIConfig, type StoredOpenAIConfig } from '@/lib/openaiClient';
+import type { OpenAIConfigInput, OpenAIConfigView } from '@/types/openAIConfig';
+
+type StoredEmailAccount = Omit<EmailAccountView, 'tienePassword' | 'updatedAt'> & {
+  passwordEncrypted: string;
+  updatedAt: string;
+};
+
+async function requireConfigurationAdmin() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('No autenticado.');
+
+  const profile = await prisma.profile.findUnique({
+    where: { auth_id: user.id },
+    include: { app_role: true },
+  });
+
+  if (!isSuperAdmin(profile) && !hasPermission(profile, 'configuracion', 'editar')) {
+    throw new Error('No tienes permiso para administrar la configuración.');
+  }
+}
+
+function getStoredEmailAccounts(config: unknown): StoredEmailAccount[] {
+  if (!config || typeof config !== 'object' || Array.isArray(config)) return [];
+  const accounts = (config as { accounts?: unknown }).accounts;
+  if (!Array.isArray(accounts)) return [];
+  return accounts as StoredEmailAccount[];
+}
+
+function toEmailAccountView(account: StoredEmailAccount): EmailAccountView {
+  const { passwordEncrypted, ...safeAccount } = account;
+  return {
+    ...safeAccount,
+    tienePassword: Boolean(passwordEncrypted),
+  };
+}
+
+function validateEmailAccount(input: EmailAccountInput) {
+  if (!input.nombre.trim()) throw new Error('El nombre de la cuenta es obligatorio.');
+  if (!/^\S+@\S+\.\S+$/.test(input.email)) throw new Error('Captura un correo electrónico válido.');
+  if (!input.nombreRemitente.trim()) throw new Error('El nombre del remitente es obligatorio.');
+  if (!input.usuario.trim()) throw new Error('El usuario del servidor es obligatorio.');
+  if (!input.smtpHost.trim() || !input.imapHost.trim()) throw new Error('Los servidores SMTP e IMAP son obligatorios.');
+  if (!Number.isInteger(input.smtpPort) || input.smtpPort < 1 || input.smtpPort > 65535) throw new Error('Puerto SMTP inválido.');
+  if (!Number.isInteger(input.imapPort) || input.imapPort < 1 || input.imapPort > 65535) throw new Error('Puerto IMAP inválido.');
+}
+
+function toOpenAIConfigView(config: StoredOpenAIConfig | null): OpenAIConfigView {
+  return {
+    activa: config?.activa ?? false,
+    apiKeyConfigurada: Boolean(config?.apiKeyEncrypted),
+    apiKeyUltimos4: config?.apiKeyUltimos4,
+    organizationId: config?.organizationId || '',
+    projectId: config?.projectId || '',
+    modeloRapido: config?.modeloRapido || 'gpt-6-luna',
+    modeloEquilibrado: config?.modeloEquilibrado || 'gpt-6.1-sol',
+    modeloComplejo: config?.modeloComplejo || 'gpt-6-astra',
+    limiteMensualUsd: config?.limiteMensualUsd ?? 100,
+    limitePorEjecucionUsd: config?.limitePorEjecucionUsd ?? 2,
+    fechaRotacion: config?.fechaRotacion,
+    updatedAt: config?.updatedAt,
+  };
+}
 
 // --- ROLES (AppRole) ---
 
 export async function getAppRoles() {
   try {
+    await requireConfigurationAdmin();
     const roles = await prisma.appRole.findMany({
       orderBy: { createdAt: 'desc' }
     });
@@ -19,6 +91,7 @@ export async function getAppRoles() {
 
 export async function createAppRole(data: { nombre: string; descripcion?: string; permisos: any }) {
   try {
+    await requireConfigurationAdmin();
     const role = await prisma.appRole.create({
       data: {
         nombre: data.nombre,
@@ -35,6 +108,7 @@ export async function createAppRole(data: { nombre: string; descripcion?: string
 
 export async function updateAppRole(id: string, data: { nombre: string; descripcion?: string; permisos: any }) {
   try {
+    await requireConfigurationAdmin();
     const existing = await prisma.appRole.findUnique({ where: { id } });
     if (existing?.nombre === 'Admin' || existing?.nombre === 'Super Admin') {
       if (data.nombre !== existing.nombre) {
@@ -59,6 +133,7 @@ export async function updateAppRole(id: string, data: { nombre: string; descripc
 
 export async function deleteAppRole(id: string) {
   try {
+    await requireConfigurationAdmin();
     const existing = await prisma.appRole.findUnique({ where: { id } });
     if (existing?.nombre === 'Admin' || existing?.nombre === 'Super Admin') {
       return { success: false, error: 'No puedes eliminar un rol reservado del sistema.' };
@@ -76,6 +151,7 @@ export async function deleteAppRole(id: string) {
 
 export async function getUsuarios() {
   try {
+    await requireConfigurationAdmin();
     const profiles = await prisma.profile.findMany({
       include: {
         app_role: true
@@ -90,6 +166,7 @@ export async function getUsuarios() {
 
 export async function createUserWithRole(data: { email: string; nombre: string; app_role_id: string; password?: string }) {
   try {
+    await requireConfigurationAdmin();
     const supabaseAdmin = createAdminClient();
     
     // 1. Crear el usuario en Supabase Auth
@@ -142,6 +219,7 @@ export async function createUserWithRole(data: { email: string; nombre: string; 
 
 export async function updateUserRole(profileId: string, data: { nombre: string, app_role_id: string | null, password?: string }) {
   try {
+    await requireConfigurationAdmin();
     const existing = await prisma.profile.findUnique({ where: { id: profileId } });
     if (existing?.rol === 'SUPERADMIN' && data.app_role_id !== existing.app_role_id) {
       return { success: false, error: 'No puedes cambiar el rol de un SUPER ADMIN.' };
@@ -173,10 +251,225 @@ export async function updateUserRole(profileId: string, data: { nombre: string, 
 
 export async function getIntegraciones() {
   try {
+    await requireConfigurationAdmin();
     const integraciones = await prisma.integracion.findMany();
-    return { success: true, data: integraciones };
+    const safeIntegraciones = integraciones.map((integracion) => {
+      if (integracion.proveedor !== 'SMTP_CORREO') return integracion;
+
+      const config = (integracion.config || {}) as Record<string, unknown>;
+      const { pass: _pass, ...safeConfig } = config;
+      return {
+        ...integracion,
+        config: {
+          ...safeConfig,
+          tienePassword: Boolean(_pass),
+        },
+      };
+    });
+    return { success: true, data: safeIntegraciones };
   } catch (error: any) {
     return { success: false, error: error.message };
+  }
+}
+
+export async function getEmailAccounts() {
+  try {
+    await requireConfigurationAdmin();
+    const integration = await prisma.integracion.findUnique({
+      where: { proveedor: 'EMAIL_ACCOUNTS' },
+    });
+    const accounts = getStoredEmailAccounts(integration?.config).map(toEmailAccountView);
+    return { success: true, data: accounts };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function saveEmailAccount(input: EmailAccountInput) {
+  try {
+    await requireConfigurationAdmin();
+    validateEmailAccount(input);
+
+    const integration = await prisma.integracion.findUnique({
+      where: { proveedor: 'EMAIL_ACCOUNTS' },
+    });
+    const accounts = getStoredEmailAccounts(integration?.config);
+    const id = input.id || randomUUID();
+    const existing = accounts.find((account) => account.id === id);
+    const newPassword = input.password?.trim();
+    const passwordEncrypted = newPassword
+      ? encryptSecret(newPassword)
+      : existing?.passwordEncrypted;
+
+    if (!passwordEncrypted) {
+      return { success: false, error: 'Captura la contraseña para crear esta cuenta.' };
+    }
+
+    const allowedPurposes: EmailAccountPurpose[] = ['FACTURACION', 'CONCILIACION', 'NOTIFICACIONES', 'GENERAL'];
+    if (!allowedPurposes.includes(input.proposito)) {
+      return { success: false, error: 'El propósito seleccionado no es válido.' };
+    }
+
+    const storedAccount: StoredEmailAccount = {
+      id,
+      nombre: input.nombre.trim(),
+      proposito: input.proposito,
+      nombreRemitente: input.nombreRemitente.trim(),
+      email: input.email.trim().toLowerCase(),
+      usuario: input.usuario.trim(),
+      smtpHost: input.smtpHost.trim(),
+      smtpPort: input.smtpPort,
+      smtpSeguro: input.smtpSeguro,
+      imapHost: input.imapHost.trim(),
+      imapPort: input.imapPort,
+      imapSeguro: input.imapSeguro,
+      activa: input.activa,
+      passwordEncrypted,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const updatedAccounts = existing
+      ? accounts.map((account) => account.id === id ? storedAccount : account)
+      : [...accounts, storedAccount];
+
+    await prisma.integracion.upsert({
+      where: { proveedor: 'EMAIL_ACCOUNTS' },
+      update: {
+        config: JSON.parse(JSON.stringify({ accounts: updatedAccounts })),
+        activa: updatedAccounts.some((account) => account.activa),
+      },
+      create: {
+        proveedor: 'EMAIL_ACCOUNTS',
+        config: JSON.parse(JSON.stringify({ accounts: updatedAccounts })),
+        activa: updatedAccounts.some((account) => account.activa),
+      },
+    });
+
+    revalidatePath('/configuracion');
+    return { success: true, data: updatedAccounts.map(toEmailAccountView) };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function testEmailAccount(accountId: string) {
+  try {
+    await requireConfigurationAdmin();
+    const integration = await prisma.integracion.findUnique({
+      where: { proveedor: 'EMAIL_ACCOUNTS' },
+    });
+    const account = getStoredEmailAccounts(integration?.config).find(({ id }) => id === accountId);
+
+    if (!account) return { success: false, error: 'Cuenta de correo no encontrada.' };
+    if (!account.activa) return { success: false, error: 'Activa la cuenta antes de probarla.' };
+
+    const transporter = nodemailer.createTransport({
+      host: account.smtpHost,
+      port: account.smtpPort,
+      secure: account.smtpSeguro,
+      auth: {
+        user: account.usuario,
+        pass: decryptSecret(account.passwordEncrypted),
+      },
+    });
+
+    await transporter.verify();
+    const result = await transporter.sendMail({
+      from: `"${account.nombreRemitente.replaceAll('"', '')}" <${account.email}>`,
+      to: account.email,
+      subject: '[Movida ERP] Prueba de cuenta de correo',
+      text: `La cuenta ${account.nombre} quedó conectada correctamente al ERP Movida.`,
+    });
+
+    return { success: true, message: `Prueba enviada a ${account.email}.`, messageId: result.messageId };
+  } catch (error: any) {
+    console.error('[Email accounts] Test failed:', error);
+    return { success: false, error: error.message || 'No fue posible conectar con el servidor SMTP.' };
+  }
+}
+
+export async function getOpenAIConfiguration() {
+  try {
+    await requireConfigurationAdmin();
+    return { success: true, data: toOpenAIConfigView(await getStoredOpenAIConfig()) };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function saveOpenAIConfiguration(input: OpenAIConfigInput) {
+  try {
+    await requireConfigurationAdmin();
+    const existing = await getStoredOpenAIConfig();
+    const newApiKey = input.apiKey?.trim();
+    const apiKeyEncrypted = newApiKey
+      ? encryptSecret(newApiKey)
+      : existing?.apiKeyEncrypted;
+
+    if (!apiKeyEncrypted) {
+      return { success: false, error: 'Captura una API key de proyecto de OpenAI.' };
+    }
+    if (!input.modeloRapido.trim() || !input.modeloEquilibrado.trim() || !input.modeloComplejo.trim()) {
+      return { success: false, error: 'Configura los tres perfiles de modelo.' };
+    }
+    if (input.limiteMensualUsd < 0 || input.limitePorEjecucionUsd < 0) {
+      return { success: false, error: 'Los límites de gasto no pueden ser negativos.' };
+    }
+
+    const stored: StoredOpenAIConfig = {
+      activa: input.activa,
+      apiKeyEncrypted,
+      apiKeyUltimos4: newApiKey ? newApiKey.slice(-4) : existing?.apiKeyUltimos4,
+      organizationId: input.organizationId.trim(),
+      projectId: input.projectId.trim(),
+      modeloRapido: input.modeloRapido.trim(),
+      modeloEquilibrado: input.modeloEquilibrado.trim(),
+      modeloComplejo: input.modeloComplejo.trim(),
+      limiteMensualUsd: input.limiteMensualUsd,
+      limitePorEjecucionUsd: input.limitePorEjecucionUsd,
+      fechaRotacion: input.fechaRotacion || undefined,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await prisma.integracion.upsert({
+      where: { proveedor: 'OPENAI' },
+      update: {
+        config: JSON.parse(JSON.stringify(stored)),
+        activa: stored.activa,
+      },
+      create: {
+        proveedor: 'OPENAI',
+        config: JSON.parse(JSON.stringify(stored)),
+        activa: stored.activa,
+      },
+    });
+
+    revalidatePath('/configuracion');
+    return { success: true, data: toOpenAIConfigView(stored) };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function testOpenAIConfiguration() {
+  try {
+    await requireConfigurationAdmin();
+    const { client, config } = await getOpenAIClient();
+    const response = await client.responses.create({
+      model: config.modeloEquilibrado,
+      input: 'Responde solamente con la palabra OK.',
+      max_output_tokens: 64,
+      store: false,
+    });
+
+    return {
+      success: true,
+      message: `Conexión exitosa con ${config.modeloEquilibrado}.`,
+      output: response.output_text,
+    };
+  } catch (error: any) {
+    console.error('[OpenAI config] Connection test failed:', error);
+    return { success: false, error: error.message || 'No fue posible conectar con OpenAI.' };
   }
 }
 
@@ -184,6 +477,7 @@ import { sendTestEmail } from '@/lib/email';
 
 export async function saveIntegracion(proveedor: string, config: any, activa: boolean) {
   try {
+    await requireConfigurationAdmin();
     const intg = await prisma.integracion.upsert({
       where: { proveedor },
       update: {
@@ -205,6 +499,7 @@ export async function saveIntegracion(proveedor: string, config: any, activa: bo
 
 export async function sendTestSMTPEmailAction(emailToTest?: string) {
   try {
+    await requireConfigurationAdmin();
     const res = await sendTestEmail(emailToTest);
     return res;
   } catch (error: any) {

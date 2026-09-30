@@ -4,15 +4,21 @@ import React, { useState } from 'react';
 import TabRoles from './components/TabRoles';
 import TabUsuarios from './components/TabUsuarios';
 import TabIntegraciones from './components/TabIntegraciones';
+import TabCorreos from './components/TabCorreos';
+import type { EmailAccountView } from '@/types/emailAccounts';
+import TabOpenAI from './components/TabOpenAI';
+import type { OpenAIConfigView } from '@/types/openAIConfig';
 
 interface ConfiguracionClientProps {
   initialRoles: any[];
   initialUsuarios: any[];
   initialIntegraciones: any[];
+  initialEmailAccounts: EmailAccountView[];
+  initialOpenAIConfig: OpenAIConfigView | null;
 }
 
-export default function ConfiguracionClient({ initialRoles, initialUsuarios, initialIntegraciones }: ConfiguracionClientProps) {
-  const [activeTab, setActiveTab] = useState<'roles' | 'usuarios' | 'integraciones'>('roles');
+export default function ConfiguracionClient({ initialRoles, initialUsuarios, initialIntegraciones, initialEmailAccounts, initialOpenAIConfig }: ConfiguracionClientProps) {
+  const [activeTab, setActiveTab] = useState<'roles' | 'usuarios' | 'correos' | 'openai' | 'integraciones'>('roles');
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
@@ -22,7 +28,7 @@ export default function ConfiguracionClient({ initialRoles, initialUsuarios, ini
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200">
+      <div className="flex overflow-x-auto border-b border-slate-200">
         <button
           onClick={() => setActiveTab('roles')}
           className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
@@ -40,6 +46,22 @@ export default function ConfiguracionClient({ initialRoles, initialUsuarios, ini
           Control de Usuarios
         </button>
         <button
+          onClick={() => setActiveTab('correos')}
+          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'correos' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+          }`}
+        >
+          Cuentas de correo
+        </button>
+        <button
+          onClick={() => setActiveTab('openai')}
+          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'openai' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+          }`}
+        >
+          OpenAI
+        </button>
+        <button
           onClick={() => setActiveTab('integraciones')}
           className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'integraciones' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
@@ -53,6 +75,8 @@ export default function ConfiguracionClient({ initialRoles, initialUsuarios, ini
       <div className="pt-2">
         {activeTab === 'roles' && <TabRoles initialRoles={initialRoles} />}
         {activeTab === 'usuarios' && <TabUsuarios initialUsuarios={initialUsuarios} roles={initialRoles} />}
+        {activeTab === 'correos' && <TabCorreos initialAccounts={initialEmailAccounts} />}
+        {activeTab === 'openai' && <TabOpenAI initialConfig={initialOpenAIConfig} />}
         {activeTab === 'integraciones' && <TabIntegraciones initialIntegraciones={initialIntegraciones} />}
       </div>
     </div>

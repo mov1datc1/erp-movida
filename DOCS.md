@@ -295,6 +295,7 @@ Vercel (auto-deploy)
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key de Supabase |
 | `FACTURAPI_API_KEY` | API key de Facturapi (CFDI) |
 | `RESEND_API_KEY` | API key de Resend (emails) |
+| `INTEGRATIONS_ENCRYPTION_KEY` | Secreto privado de al menos 32 caracteres para cifrar credenciales SMTP/IMAP y API keys configuradas en el ERP |
 
 ---
 
