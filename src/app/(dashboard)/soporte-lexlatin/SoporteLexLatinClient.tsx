@@ -329,7 +329,26 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
               <div><h3 className="flex items-center gap-2 font-bold text-blue-950"><MailCheck className="h-5 w-5" /> Prueba controlada con Edgar</h3><p className="mt-1 max-w-3xl text-sm text-blue-900/70">Envía por correo las omisiones detectadas. La respuesta se recibe por IMAP y se muestra aquí; durante esta prueba el agente no modificará Jira.</p></div>
               <div className="flex flex-wrap gap-2"><button onClick={sendValidationTest} disabled={Boolean(agentBusy)} className="rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">{agentBusy === 'send' ? 'Enviando…' : 'Enviar prueba a Edgar'}</button><button onClick={checkReplies} disabled={Boolean(agentBusy)} className="rounded-xl border border-blue-300 bg-white px-4 py-2.5 text-sm font-bold text-blue-800 disabled:opacity-50">{agentBusy === 'check' ? 'Revisando…' : 'Revisar respuestas'}</button></div>
             </div>
-            {agentRequests.length > 0 && <div className="mt-4 space-y-3">{agentRequests.slice(0, 5).map((request) => <article key={request.id} className="rounded-xl border border-blue-100 bg-white p-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-bold text-slate-900">{request.folio}</p><p className="text-xs text-slate-500">Enviado {new Date(request.sentAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })} a {request.recipient}</p></div><span className={`rounded-full px-3 py-1 text-xs font-bold ${request.status === 'RESPONDED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{request.status === 'RESPONDED' ? 'Respuesta recibida' : 'Esperando respuesta'}</span></div>{request.responseText && <div className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{request.responseText}</div>}</article>)}</div>}
+            {agentRequests.length > 0 && <div className="mt-4 space-y-3">{agentRequests.slice(0, 5).map((request) => {
+              const smtpRejected = request.smtpRejected || [];
+              const smtpAccepted = request.smtpAccepted || [];
+              const acceptedBySmtp = Boolean(request.messageId) && smtpRejected.length === 0;
+              return <article key={request.id} className="rounded-xl border border-blue-100 bg-white p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div><p className="font-bold text-slate-900">{request.folio}</p><p className="text-xs text-slate-500">Enviado {new Date(request.sentAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })} a {request.recipient}</p></div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${request.status === 'RESPONDED' ? 'bg-emerald-100 text-emerald-800' : acceptedBySmtp ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'}`}>{request.status === 'RESPONDED' ? 'Respuesta recibida' : acceptedBySmtp ? 'Aceptado por SMTP' : 'Esperando evidencia SMTP'}</span>
+                </div>
+                <dl className="mt-3 grid gap-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600 sm:grid-cols-2">
+                  <div><dt className="font-bold text-slate-700">Remitente</dt><dd>{request.sender || 'Cuenta del agente configurada'}</dd></div>
+                  <div><dt className="font-bold text-slate-700">Aceptado para</dt><dd>{smtpAccepted.length ? smtpAccepted.join(', ') : request.recipient}</dd></div>
+                  <div className="sm:col-span-2"><dt className="font-bold text-slate-700">Message-ID</dt><dd className="break-all font-mono">{request.messageId || 'No registrado'}</dd></div>
+                  {request.smtpResponse && <div className="sm:col-span-2"><dt className="font-bold text-slate-700">Respuesta SMTP</dt><dd className="break-words font-mono">{request.smtpResponse}</dd></div>}
+                  {smtpRejected.length > 0 && <div className="sm:col-span-2 text-red-700"><dt className="font-bold">Rechazado para</dt><dd>{smtpRejected.join(', ')}</dd></div>}
+                </dl>
+                <p className="mt-2 text-xs text-slate-500">La aceptación SMTP confirma que el servidor recibió el mensaje; la entrega final depende del servidor destinatario y sus filtros de spam.</p>
+                {request.responseText && <div className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{request.responseText}</div>}
+              </article>;
+            })}</div>}
           </section>
         </>
       )}

@@ -150,13 +150,27 @@ export async function sendLexLatinValidationEmail(report: LexLatinReportData, re
     status: 'SENT',
     mode,
     recipient: recipient.toLowerCase(),
+    sender: account.email.toLowerCase(),
     subject,
     sentAt: new Date().toISOString(),
     messageId: result.messageId,
+    smtpAccepted: result.accepted.map(String),
+    smtpRejected: result.rejected.map(String),
+    smtpPending: result.pending.map(String),
+    smtpResponse: result.response,
     issueKeys: getIssueKeys(report),
     warnings: report.qualityWarnings,
   };
   await saveRequests([request, ...requests]);
+  console.info('[LexLatin agent] Validation email accepted by SMTP', {
+    folio,
+    sender: request.sender,
+    recipient: request.recipient,
+    messageId: request.messageId,
+    accepted: request.smtpAccepted,
+    rejected: request.smtpRejected,
+    response: request.smtpResponse,
+  });
   return request;
 }
 

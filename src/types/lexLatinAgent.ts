@@ -7,9 +7,14 @@ export interface LexLatinAgentRequestView {
   status: LexLatinAgentRequestStatus;
   mode: 'TEST' | 'LIVE';
   recipient: string;
+  sender?: string;
   subject: string;
   sentAt: string;
   messageId?: string;
+  smtpAccepted?: string[];
+  smtpRejected?: string[];
+  smtpPending?: string[];
+  smtpResponse?: string;
   responseAt?: string;
   responseFrom?: string;
   responseText?: string;
@@ -17,4 +22,3 @@ export interface LexLatinAgentRequestView {
   warnings: string[];
   error?: string;
 }
-
