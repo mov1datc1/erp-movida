@@ -42,9 +42,13 @@ El ERP ya sincroniza Jira, muestra el tablero mensual y genera Excel, PowerPoint
 - Tiempo promedio y mediana de resolución.
 - Horas mensuales y acumuladas claramente etiquetadas.
 - Distribución y detalle por complejidad.
+- Top 3 de tickets por horas trabajadas en el mes.
+- Cantidad de casos de alta dedicación, actualmente definida como más de 6 horas mensuales.
 - Backlog con antigüedad, estimación y fecha objetivo.
 - Excepciones o datos faltantes.
 - Excel de detalle, presentación y PDF.
+
+El último reporte sincronizado se conserva en el ERP y se restaura al regresar a la pantalla. Las solicitudes enviadas a Edgar y sus respuestas también son persistentes; cerrar el navegador no las elimina.
 
 ## Indicadores del agente
 

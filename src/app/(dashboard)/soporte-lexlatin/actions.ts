@@ -5,7 +5,7 @@ import { hasPermission, isSuperAdmin } from '@/lib/rbac';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/utils/supabase/server';
 import { getStoredJiraLexLatinConfig } from '@/lib/jiraClient';
-import { getLexLatinAgentRequests, pollLexLatinEmailReplies, sendLexLatinValidationEmail } from '@/lib/lexLatinAgent';
+import { getLatestLexLatinReportSnapshot, getLexLatinAgentRequests, pollLexLatinEmailReplies, saveLexLatinReportSnapshot, sendLexLatinValidationEmail } from '@/lib/lexLatinAgent';
 
 async function requireLexLatinAccess(action: 'ver' | 'editar' = 'ver') {
   const supabase = await createClient();
@@ -27,6 +27,15 @@ export async function loadLexLatinAgentRequests() {
     return { success: true, data: await getLexLatinAgentRequests() };
   } catch (error: unknown) {
     return { success: false, error: error instanceof Error ? error.message : 'No fue posible consultar las solicitudes.' };
+  }
+}
+
+export async function loadCachedLexLatinReport() {
+  try {
+    await requireLexLatinAccess();
+    return { success: true, data: await getLatestLexLatinReportSnapshot() };
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : 'No fue posible recuperar el último reporte.' };
   }
 }
 
@@ -61,6 +70,7 @@ export async function syncLexLatinMonthlyReport(period: string) {
   try {
     await requireLexLatinAccess();
     const data = await buildLexLatinMonthlyReport(period);
+    await saveLexLatinReportSnapshot(data);
     return { success: true, data };
   } catch (error: unknown) {
     console.error('[LexLatin report] Sync failed:', error);

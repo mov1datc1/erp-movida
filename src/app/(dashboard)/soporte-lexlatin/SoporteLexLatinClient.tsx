@@ -6,8 +6,8 @@ import {
   AlertTriangle, BarChart3, Bot, CalendarDays, CheckCircle2, Clock3,
   FileSpreadsheet, FileText, Loader2, MailCheck, Printer, RefreshCw, Send, Settings2, ShieldCheck, TicketCheck,
 } from 'lucide-react';
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { checkLexLatinValidationReplies, loadLexLatinAgentRequests, sendLexLatinValidationTest, syncLexLatinMonthlyReport } from './actions';
+import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { checkLexLatinValidationReplies, loadCachedLexLatinReport, loadLexLatinAgentRequests, sendLexLatinValidationTest, syncLexLatinMonthlyReport } from './actions';
 import type { JiraIssueSnapshot, JiraLexLatinConfigView, LexLatinReportData } from '@/types/jiraLexLatin';
 import type PptxGenJS from 'pptxgenjs';
 import type { LexLatinAgentRequestView } from '@/types/lexLatinAgent';
@@ -24,8 +24,13 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
   const ready = Boolean(initialConfig?.activa && initialConfig.tokenConfigured);
   useEffect(() => {
     let active = true;
-    loadLexLatinAgentRequests().then((result) => {
-      if (active && result.success && result.data) setAgentRequests(result.data);
+    Promise.all([loadLexLatinAgentRequests(), loadCachedLexLatinReport()]).then(([requestsResult, reportResult]) => {
+      if (!active) return;
+      if (requestsResult.success && requestsResult.data) setAgentRequests(requestsResult.data);
+      if (reportResult.success && reportResult.data) {
+        setReport(reportResult.data);
+        setPeriod(reportResult.data.period);
+      }
     });
     return () => { active = false; };
   }, []);
@@ -87,8 +92,7 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
         Resumen: issue.summary,
         'Creada (Ciudad de México)': formatDateTimeMexico(issue.createdAt),
         'Horas trabajadas en el mes': issue.timeWorkedHours,
-        'Horas acumuladas del ticket': issue.timeWorkedCumulativeHours,
-        Complejidad: complexityLabel(issue.timeWorkedCumulativeHours),
+        Complejidad: complexityLabel(issue.timeWorkedHours),
         Estado: issue.status,
         Resolución: issue.resolution || '',
         'Persona asignada': issue.assignee || '',
@@ -113,9 +117,9 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
         { Indicador: 'Casos resueltos', Valor: report.metrics.resolved },
         { Indicador: 'Backlog al cierre', Valor: report.metrics.backlog },
         { Indicador: 'Horas trabajadas en el mes', Valor: report.metrics.workedHours },
-        { Indicador: 'Horas acumuladas de tickets conciliados', Valor: report.metrics.workedHoursCumulative },
         { Indicador: 'Tickets con tiempo registrado', Valor: report.metrics.ticketsWithWorkedHours },
         { Indicador: 'Horas efectivas promedio por ticket', Valor: report.metrics.averageWorkedHoursPerTicket },
+        { Indicador: 'Casos de alta dedicación (>6 h)', Valor: handledIssues.filter((issue) => issue.timeWorkedHours > 6).length },
         { Indicador: 'Tiempo calendario promedio hasta cierre (h)', Valor: report.metrics.averageResolutionHours },
         { Indicador: 'Mediana calendario hasta cierre (h)', Valor: report.metrics.medianResolutionHours },
       ]);
@@ -126,11 +130,10 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
         Clave: issue.key,
         Título: issue.summary,
         'Horas del mes': issue.timeWorkedHours,
-        'Horas acumuladas': issue.timeWorkedCumulativeHours,
       })));
       const complexity = XLSX.utils.json_to_sheet(complexityRows);
-      complexity['!autofilter'] = { ref: complexity['!ref'] || 'A1:F1' };
-      complexity['!cols'] = [22, 18, 12, 65, 18, 20].map((wch) => ({ wch }));
+      complexity['!autofilter'] = { ref: complexity['!ref'] || 'A1:E1' };
+      complexity['!cols'] = [22, 18, 12, 65, 18].map((wch) => ({ wch }));
       XLSX.utils.book_append_sheet(workbook, complexity, 'Complejidad');
       XLSX.writeFile(workbook, `JIRA_LexLatin_${report.period}.xlsx`);
     } finally {
@@ -218,10 +221,10 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
       const buckets = hourBuckets(handledIssues);
       slide.addChart(pptx.ChartType.bar, [{ name: 'Horas del mes', labels: buckets.map((bucket) => bucket.label), values: buckets.map((bucket) => bucket.monthHours) }], { x: 0.75, y: 1.25, w: 7.2, h: 4.8, catAxisLabelFontSize: 11, valAxisLabelFontSize: 10, chartColors: [colors.blue], showValue: true, showLegend: false, showTitle: false });
       slide.addTable([
-        [{ text: 'Nivel' }, { text: 'Casos' }, { text: 'Mes' }, { text: 'Acum.' }],
-        ...buckets.map((bucket) => [bucket.label, bucket.cases, Number(bucket.monthHours.toFixed(2)), Number(bucket.cumulativeHours.toFixed(2))].map(tableCell)),
-        ['Total', buckets.reduce((sum, bucket) => sum + bucket.cases, 0), Number(buckets.reduce((sum, bucket) => sum + bucket.monthHours, 0).toFixed(2)), Number(buckets.reduce((sum, bucket) => sum + bucket.cumulativeHours, 0).toFixed(2))].map(tableCell),
-      ], { x: 8.05, y: 1.65, w: 4.7, h: 2.75, border: { color: 'CBD5E1', pt: 0.7 }, fill: { color: 'FFFFFF' }, color: colors.text, fontSize: 11, margin: 0.1, colW: [2.15, 0.7, 0.85, 0.9] });
+        [{ text: 'Nivel' }, { text: 'Casos' }, { text: 'Horas mes' }],
+        ...buckets.map((bucket) => [bucket.label, bucket.cases, Number(bucket.monthHours.toFixed(2))].map(tableCell)),
+        ['Total', buckets.reduce((sum, bucket) => sum + bucket.cases, 0), Number(buckets.reduce((sum, bucket) => sum + bucket.monthHours, 0).toFixed(2))].map(tableCell),
+      ], { x: 8.05, y: 1.65, w: 4.7, h: 2.75, border: { color: 'CBD5E1', pt: 0.7 }, fill: { color: 'FFFFFF' }, color: colors.text, fontSize: 11, margin: 0.1, colW: [2.7, 0.8, 1.2] });
       slide.addText('Nivel 1: hasta 2 h  •  Nivel 2: más de 2 y hasta 6 h  •  Nivel 3: más de 6 h', { x: 8.35, y: 4.55, w: 4.1, h: 0.75, fontSize: 12, color: '475569', fill: { color: 'F8FAFC' }, margin: 0.15 });
 
       const complexityRows = buckets.flatMap((bucket) => bucket.issues.map((issue) => ({ bucket, issue })));
@@ -231,9 +234,9 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
         slide = pptx.addSlide();
         addTitle(slide, `Detalle de tickets por complejidad${complexityRows.length > rowsPerSlide ? ` — ${Math.floor(index / rowsPerSlide) + 1}` : ''}`, 6 + Math.floor(index / rowsPerSlide));
         slide.addTable([
-          [{ text: 'Nivel' }, { text: 'Clave' }, { text: 'Título' }, { text: 'Horas mes' }, { text: 'Acumuladas' }],
-          ...pageRows.map(({ bucket, issue }) => [bucket.label, issue.key, issue.summary, issue.timeWorkedHours, issue.timeWorkedCumulativeHours].map(tableCell)),
-        ], { x: 0.55, y: 1.2, w: 12.25, h: 5.6, border: { color: 'CBD5E1', pt: 0.6 }, fill: { color: 'FFFFFF' }, color: colors.text, fontSize: 9.5, margin: 0.07, rowH: 0.35, colW: [1.75, 0.9, 7.3, 1.05, 1.1] });
+          [{ text: 'Nivel' }, { text: 'Clave' }, { text: 'Título' }, { text: 'Horas mes' }],
+          ...pageRows.map(({ bucket, issue }) => [bucket.label, issue.key, issue.summary, issue.timeWorkedHours].map(tableCell)),
+        ], { x: 0.55, y: 1.2, w: 12.25, h: 5.6, border: { color: 'CBD5E1', pt: 0.6 }, fill: { color: 'FFFFFF' }, color: colors.text, fontSize: 9.5, margin: 0.07, rowH: 0.35, colW: [1.9, 1, 8.1, 1.25] });
       }
 
       slide = pptx.addSlide();
@@ -285,16 +288,17 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
             </div>
           </section>
 
-          <section className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.5fr)]">
+          <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.5fr)]">
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <h3 className="font-bold text-slate-900">Creados vs. resueltos</h3>
               <p className="mt-1 text-xs text-slate-500">Cada punto es el día de creación o resolución; puede incluir cierres de casos iniciados en meses anteriores.</p>
               <div className="mt-5 h-80"><ResponsiveContainer width="100%" height="100%"><LineChart data={report.daily}><CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" /><XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" /><YAxis allowDecimals={false} tick={{ fontSize: 10 }} /><Tooltip /><Legend /><Line type="monotone" dataKey="created" name="Creados" stroke="#d14a9b" strokeWidth={3} /><Line type="monotone" dataKey="resolved" name="Resueltos" stroke="#16865b" strokeWidth={3} /></LineChart></ResponsiveContainer></div>
+              <TopWorkedCasesChart issues={handledIssues} />
             </div>
             <div className="space-y-4">
               <Insight label="Horas efectivas promedio por ticket" value={`${report.metrics.averageWorkedHoursPerTicket} h`} detail={`${report.metrics.workedHours} h del mes ÷ ${report.metrics.ticketsWithWorkedHours} ticket(s) con tiempo registrado`} />
               <Insight label="Tiempo calendario promedio hasta cierre" value={`${report.metrics.averageResolutionHours} h`} detail={`Desde creación hasta resolución · Mediana: ${report.metrics.medianResolutionHours} h`} />
-              <Insight label="Horas acumuladas" value={`${report.metrics.workedHoursCumulative} h`} detail="Total histórico de los tickets conciliados; no se suma como consumo mensual." />
+              <Insight label="Casos de alta dedicación" value={String(handledIssues.filter((issue) => issue.timeWorkedHours > 6).length)} detail="Tickets con más de 6 horas registradas durante el mes." warning={handledIssues.some((issue) => issue.timeWorkedHours > 6)} />
               <Insight label="Backlog mayor de 30 días" value={String(report.metrics.olderThan30Days)} detail="Requiere explicación y plan de cierre." warning={report.metrics.olderThan30Days > 0} />
               <Insight label="Sin estimación o fecha objetivo" value={String(report.metrics.backlogWithoutEstimate)} detail="Punto solicitado por Edith." warning={report.metrics.backlogWithoutEstimate > 0} />
             </div>
@@ -360,7 +364,7 @@ function ComplexityTable({ issues }: { issues: JiraIssueSnapshot[] }) {
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div>
         <h3 className="font-bold text-slate-900">Tickets por complejidad</h3>
-        <p className="mt-1 text-xs text-slate-500">La complejidad se determina por las horas acumuladas del ticket; las horas mensuales se muestran por separado.</p>
+        <p className="mt-1 text-xs text-slate-500">La complejidad se determina por las horas efectivamente registradas durante el mes.</p>
       </div>
       <div className="mt-5 space-y-5">
         {buckets.map((bucket) => (
@@ -370,14 +374,13 @@ function ComplexityTable({ issues }: { issues: JiraIssueSnapshot[] }) {
               <div className="flex gap-2 text-xs font-bold text-slate-600">
                 <span className="rounded-full bg-white px-3 py-1">{bucket.cases} caso(s)</span>
                 <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">{Number(bucket.monthHours.toFixed(2))} h del mes</span>
-                <span className="rounded-full bg-slate-200 px-3 py-1">{Number(bucket.cumulativeHours.toFixed(2))} h acumuladas</span>
               </div>
             </div>
             {bucket.issues.length ? (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
-                  <thead className="border-y border-slate-200 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-2">Clave</th><th className="px-4 py-2">Título</th><th className="px-4 py-2">Horas mes</th><th className="px-4 py-2">Acumuladas</th></tr></thead>
-                  <tbody className="divide-y divide-slate-100">{bucket.issues.map((issue) => <tr key={issue.key}><td className="px-4 py-2 font-bold text-blue-700"><a href={issue.url} target="_blank" rel="noreferrer">{issue.key}</a></td><td className="px-4 py-2 text-slate-800">{issue.summary}</td><td className="px-4 py-2 text-slate-600">{issue.timeWorkedHours} h</td><td className="px-4 py-2 text-slate-600">{issue.timeWorkedCumulativeHours} h</td></tr>)}</tbody>
+                  <thead className="border-y border-slate-200 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-2">Clave</th><th className="px-4 py-2">Título</th><th className="px-4 py-2">Horas mes</th></tr></thead>
+                  <tbody className="divide-y divide-slate-100">{bucket.issues.map((issue) => <tr key={issue.key}><td className="px-4 py-2 font-bold text-blue-700"><a href={issue.url} target="_blank" rel="noreferrer">{issue.key}</a></td><td className="px-4 py-2 text-slate-800">{issue.summary}</td><td className="px-4 py-2 text-slate-600">{issue.timeWorkedHours} h</td></tr>)}</tbody>
                 </table>
               </div>
             ) : <p className="px-4 py-3 text-sm text-slate-400">Sin tickets en este nivel.</p>}
@@ -400,6 +403,21 @@ function ImpactTable({ issues }: { issues: JiraIssueSnapshot[] }) {
       <p className="mt-1 text-xs text-slate-500">Impacto describe alcance o afectación; la complejidad se calcula separadamente con las horas trabajadas.</p>
       <div className="mt-4 overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-3 py-3">Impacto</th><th className="px-3 py-3">Cantidad</th><th className="px-3 py-3">Tickets</th><th className="px-3 py-3">Horas del mes</th></tr></thead><tbody className="divide-y divide-slate-100">{groups.map(([impact, group]) => <tr key={impact}><td className="px-3 py-3 font-semibold text-slate-800">{impact}</td><td className="px-3 py-3 text-slate-600">{group.length}</td><td className="px-3 py-3 text-blue-700">{group.map((issue) => issue.key).join(', ')}</td><td className="px-3 py-3 text-slate-600">{Number(group.reduce((sum, issue) => sum + issue.timeWorkedHours, 0).toFixed(2))} h</td></tr>)}</tbody></table></div>
     </section>
+  );
+}
+
+function TopWorkedCasesChart({ issues }: { issues: JiraIssueSnapshot[] }) {
+  const data = [...issues]
+    .filter((issue) => issue.timeWorkedHours > 0)
+    .sort((a, b) => b.timeWorkedHours - a.timeWorkedHours)
+    .slice(0, 3)
+    .map((issue) => ({ key: issue.key, hours: issue.timeWorkedHours, title: issue.summary }));
+  return (
+    <div className="mt-7 border-t border-slate-100 pt-5">
+      <h3 className="font-bold text-slate-900">Top 3 tickets por horas trabajadas</h3>
+      <p className="mt-1 text-xs text-slate-500">Casos que concentraron más esfuerzo efectivo durante el mes.</p>
+      {data.length ? <div className="mt-4 h-56"><ResponsiveContainer width="100%" height="100%"><BarChart data={data} layout="vertical" margin={{ left: 10, right: 20 }}><CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} /><XAxis type="number" unit=" h" tick={{ fontSize: 10 }} /><YAxis type="category" dataKey="key" width={75} tick={{ fontSize: 11, fontWeight: 700 }} /><Tooltip formatter={(value) => [`${value} h`, 'Horas del mes']} labelFormatter={(key) => data.find((item) => item.key === key)?.title || key} /><Bar dataKey="hours" name="Horas del mes" fill="#2563eb" radius={[0, 8, 8, 0]} /></BarChart></ResponsiveContainer></div> : <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No hay horas registradas para construir el ranking.</p>}
+    </div>
   );
 }
 
@@ -446,17 +464,16 @@ function complexityLabel(hours: number) {
 
 function hourBuckets(issues: JiraIssueSnapshot[]) {
   const buckets = [
-    { label: 'Nivel 1 (≤2 h)', cases: 0, monthHours: 0, cumulativeHours: 0, issues: [] as JiraIssueSnapshot[] },
-    { label: 'Nivel 2 (2–6 h)', cases: 0, monthHours: 0, cumulativeHours: 0, issues: [] as JiraIssueSnapshot[] },
-    { label: 'Nivel 3 (>6 h)', cases: 0, monthHours: 0, cumulativeHours: 0, issues: [] as JiraIssueSnapshot[] },
-    { label: 'Sin tiempo', cases: 0, monthHours: 0, cumulativeHours: 0, issues: [] as JiraIssueSnapshot[] },
+    { label: 'Nivel 1 (≤2 h)', cases: 0, monthHours: 0, issues: [] as JiraIssueSnapshot[] },
+    { label: 'Nivel 2 (2–6 h)', cases: 0, monthHours: 0, issues: [] as JiraIssueSnapshot[] },
+    { label: 'Nivel 3 (>6 h)', cases: 0, monthHours: 0, issues: [] as JiraIssueSnapshot[] },
+    { label: 'Sin tiempo', cases: 0, monthHours: 0, issues: [] as JiraIssueSnapshot[] },
   ];
   for (const issue of issues) {
-    const hours = issue.timeWorkedCumulativeHours;
+    const hours = issue.timeWorkedHours;
     const bucket = hours <= 0 ? buckets[3] : hours <= 2 ? buckets[0] : hours <= 6 ? buckets[1] : buckets[2];
     bucket.cases += 1;
     bucket.monthHours += issue.timeWorkedHours;
-    bucket.cumulativeHours += issue.timeWorkedCumulativeHours;
     bucket.issues.push(issue);
   }
   return buckets;

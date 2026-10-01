@@ -10,6 +10,7 @@ import type { LexLatinReportData } from '@/types/jiraLexLatin';
 import type { LexLatinAgentRequestView } from '@/types/lexLatinAgent';
 
 const PROVIDER = 'LEX_LATIN_AGENT_REQUESTS';
+const REPORT_CACHE_PROVIDER = 'LEX_LATIN_REPORT_CACHE';
 const MAX_REQUESTS = 100;
 
 type StoredEmailAccount = {
@@ -63,6 +64,28 @@ export async function getLexLatinAgentRequests() {
   const integration = await prisma.integracion.findUnique({ where: { proveedor: PROVIDER } });
   return requestsFromConfig(integration?.config)
     .sort((a, b) => Date.parse(b.sentAt) - Date.parse(a.sentAt));
+}
+
+export async function saveLexLatinReportSnapshot(report: LexLatinReportData) {
+  const integration = await prisma.integracion.findUnique({ where: { proveedor: REPORT_CACHE_PROVIDER } });
+  const current = integration?.config && typeof integration.config === 'object' && !Array.isArray(integration.config)
+    ? (integration.config as { reports?: LexLatinReportData[] }).reports || []
+    : [];
+  const reports = [report, ...current.filter((item) => item.period !== report.period)]
+    .sort((a, b) => b.period.localeCompare(a.period))
+    .slice(0, 12);
+  await prisma.integracion.upsert({
+    where: { proveedor: REPORT_CACHE_PROVIDER },
+    update: { activa: true, config: JSON.parse(JSON.stringify({ reports })) },
+    create: { proveedor: REPORT_CACHE_PROVIDER, activa: true, config: JSON.parse(JSON.stringify({ reports })) },
+  });
+}
+
+export async function getLatestLexLatinReportSnapshot() {
+  const integration = await prisma.integracion.findUnique({ where: { proveedor: REPORT_CACHE_PROVIDER } });
+  if (!integration?.config || typeof integration.config !== 'object' || Array.isArray(integration.config)) return null;
+  const reports = (integration.config as { reports?: LexLatinReportData[] }).reports;
+  return Array.isArray(reports) && reports.length ? reports[0] : null;
 }
 
 function getIssueKeys(report: LexLatinReportData) {

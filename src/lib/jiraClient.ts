@@ -155,12 +155,13 @@ function asNamedValue(value: unknown): string | null {
 }
 
 function parseHours(value: unknown): number {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'number' && Number.isFinite(value)) return value > 1_000 ? value / 3_600 : value;
   if (typeof value !== 'string') return 0;
   const normalized = value.toLowerCase().replace(',', '.');
   const number = Number.parseFloat(normalized);
   if (!Number.isFinite(number)) return 0;
   if (normalized.includes('min')) return number / 60;
+  if (normalized.includes('sec') || normalized.includes('seg') || number > 1_000) return number / 3_600;
   return number;
 }
 
