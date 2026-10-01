@@ -9,6 +9,7 @@ const purposeLabels: Record<EmailAccountPurpose, string> = {
   FACTURACION: 'Facturación',
   CONCILIACION: 'Conciliación',
   NOTIFICACIONES: 'Notificaciones',
+  AGENTES: 'Agentes operativos',
   GENERAL: 'Uso general',
 };
 

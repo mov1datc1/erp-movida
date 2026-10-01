@@ -2,6 +2,7 @@ export type EmailAccountPurpose =
   | 'FACTURACION'
   | 'CONCILIACION'
   | 'NOTIFICACIONES'
+  | 'AGENTES'
   | 'GENERAL';
 
 export interface EmailAccountView {

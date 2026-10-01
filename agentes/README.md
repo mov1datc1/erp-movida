@@ -15,6 +15,7 @@ Esta carpeta es el manual operativo versionado de los agentes del ERP. Cada arch
 | A14 | [Reporte mensual LexLatin](./14-reporte-lexlatin.md) | Parcialmente implementado |
 | A20 | [Conciliación financiera](./20-conciliacion-financiera.md) | Diseñado para una fase posterior |
 | — | [Canales de WhatsApp](./CANALES_WHATSAPP.md) | Arquitectura propuesta |
+| — | [Alta futura de WhatsApp](./ALTA_WHATSAPP.md) | Pendiente de adquirir línea |
 
 ## Reglas comunes
 

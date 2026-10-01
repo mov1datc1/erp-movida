@@ -320,7 +320,7 @@ export async function saveEmailAccount(input: EmailAccountInput) {
       return { success: false, error: 'Captura la contraseña para crear esta cuenta.' };
     }
 
-    const allowedPurposes: EmailAccountPurpose[] = ['FACTURACION', 'CONCILIACION', 'NOTIFICACIONES', 'GENERAL'];
+    const allowedPurposes: EmailAccountPurpose[] = ['FACTURACION', 'CONCILIACION', 'NOTIFICACIONES', 'AGENTES', 'GENERAL'];
     if (!allowedPurposes.includes(input.proposito)) {
       return { success: false, error: 'El propósito seleccionado no es válido.' };
     }

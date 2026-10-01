@@ -1,15 +1,16 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle, BarChart3, Bot, CalendarDays, CheckCircle2, Clock3,
-  FileSpreadsheet, FileText, Loader2, Printer, RefreshCw, Send, Settings2, ShieldCheck, TicketCheck,
+  FileSpreadsheet, FileText, Loader2, MailCheck, Printer, RefreshCw, Send, Settings2, ShieldCheck, TicketCheck,
 } from 'lucide-react';
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { syncLexLatinMonthlyReport } from './actions';
+import { checkLexLatinValidationReplies, loadLexLatinAgentRequests, sendLexLatinValidationTest, syncLexLatinMonthlyReport } from './actions';
 import type { JiraIssueSnapshot, JiraLexLatinConfigView, LexLatinReportData } from '@/types/jiraLexLatin';
 import type PptxGenJS from 'pptxgenjs';
+import type { LexLatinAgentRequestView } from '@/types/lexLatinAgent';
 
 export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: { initialConfig: JiraLexLatinConfigView | null; defaultPeriod: string }) {
   const [period, setPeriod] = useState(defaultPeriod);
@@ -17,8 +18,17 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
   const [syncing, setSyncing] = useState(false);
   const [exporting, setExporting] = useState<'xlsx' | 'pptx' | null>(null);
   const [feedback, setFeedback] = useState<{ success: boolean; message: string } | null>(null);
+  const [agentRequests, setAgentRequests] = useState<LexLatinAgentRequestView[]>([]);
+  const [agentBusy, setAgentBusy] = useState<'send' | 'check' | null>(null);
 
   const ready = Boolean(initialConfig?.activa && initialConfig.tokenConfigured);
+  useEffect(() => {
+    let active = true;
+    loadLexLatinAgentRequests().then((result) => {
+      if (active && result.success && result.data) setAgentRequests(result.data);
+    });
+    return () => { active = false; };
+  }, []);
   const handledIssues = useMemo(() => report?.issues.filter((issue) => {
     const month = report.period;
     return dateKeyInMexico(issue.updatedAt)?.startsWith(month)
@@ -37,6 +47,33 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
     }
     setReport(result.data);
     setFeedback({ success: true, message: `Sincronización terminada: ${result.data.issues.length} tickets conciliados.` });
+  };
+
+  const sendValidationTest = async () => {
+    if (!report) return;
+    setAgentBusy('send');
+    setFeedback(null);
+    const result = await sendLexLatinValidationTest(period);
+    setAgentBusy(null);
+    if (!result.success || !result.data) {
+      setFeedback({ success: false, message: result.error || 'No fue posible enviar la solicitud.' });
+      return;
+    }
+    setAgentRequests((current) => [result.data, ...current]);
+    setFeedback({ success: true, message: `Prueba ${result.data.folio} enviada a Edgar. No se modificará Jira.` });
+  };
+
+  const checkReplies = async () => {
+    setAgentBusy('check');
+    setFeedback(null);
+    const result = await checkLexLatinValidationReplies();
+    setAgentBusy(null);
+    if (!result.success || !result.data) {
+      setFeedback({ success: false, message: result.error || 'No fue posible revisar el correo.' });
+      return;
+    }
+    setAgentRequests(result.data.requests);
+    setFeedback({ success: true, message: result.data.matched ? `Se procesaron ${result.data.matched} respuesta(s) de Edgar.` : 'Aún no hay una respuesta nueva de Edgar.' });
   };
 
   const exportExcel = async () => {
@@ -273,8 +310,16 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
           </section>
 
           <section className="grid gap-4 md:grid-cols-2 print:hidden">
-            <ApprovalCard icon={<ShieldCheck />} title="Aprobación operativa" email={initialConfig?.approverOperationsEmail || 'edgar.jaen@movidatci.com'} detail="Autoriza comentarios, horas y cambios de estado en Jira." status="Pendiente de activar cola de cambios" />
+            <ApprovalCard icon={<ShieldCheck />} title="Aprobación operativa" email={initialConfig?.approverOperationsEmail || 'edgar.jaen@movidatci.com'} detail="Autoriza comentarios, horas y cambios de estado en Jira." status="Prueba de correo disponible" />
             <ApprovalCard icon={<Send />} title="Aprobación de entrega" email={initialConfig?.approverDeliveryEmail || 'jonathan@movidatci.com'} detail={`Autoriza el correo final para ${initialConfig?.recipientTo || 'Edith'}.`} status="Disponible después de la aprobación operativa" />
+          </section>
+
+          <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5 print:hidden">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div><h3 className="flex items-center gap-2 font-bold text-blue-950"><MailCheck className="h-5 w-5" /> Prueba controlada con Edgar</h3><p className="mt-1 max-w-3xl text-sm text-blue-900/70">Envía por correo las omisiones detectadas. La respuesta se recibe por IMAP y se muestra aquí; durante esta prueba el agente no modificará Jira.</p></div>
+              <div className="flex flex-wrap gap-2"><button onClick={sendValidationTest} disabled={Boolean(agentBusy)} className="rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">{agentBusy === 'send' ? 'Enviando…' : 'Enviar prueba a Edgar'}</button><button onClick={checkReplies} disabled={Boolean(agentBusy)} className="rounded-xl border border-blue-300 bg-white px-4 py-2.5 text-sm font-bold text-blue-800 disabled:opacity-50">{agentBusy === 'check' ? 'Revisando…' : 'Revisar respuestas'}</button></div>
+            </div>
+            {agentRequests.length > 0 && <div className="mt-4 space-y-3">{agentRequests.slice(0, 5).map((request) => <article key={request.id} className="rounded-xl border border-blue-100 bg-white p-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-bold text-slate-900">{request.folio}</p><p className="text-xs text-slate-500">Enviado {new Date(request.sentAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })} a {request.recipient}</p></div><span className={`rounded-full px-3 py-1 text-xs font-bold ${request.status === 'RESPONDED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{request.status === 'RESPONDED' ? 'Respuesta recibida' : 'Esperando respuesta'}</span></div>{request.responseText && <div className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{request.responseText}</div>}</article>)}</div>}
           </section>
         </>
       )}

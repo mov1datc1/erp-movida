@@ -38,7 +38,8 @@ export async function getSMTPConfig() {
     });
     const accountsConfig = emailAccountsIntegration?.config as { accounts?: Array<Record<string, unknown>> } | null;
     const accounts = Array.isArray(accountsConfig?.accounts) ? accountsConfig.accounts : [];
-    const selected = accounts.find((account) => account.activa === true && account.proposito === 'NOTIFICACIONES')
+    const selected = accounts.find((account) => account.activa === true && account.proposito === 'AGENTES')
+      || accounts.find((account) => account.activa === true && account.proposito === 'NOTIFICACIONES')
       || accounts.find((account) => account.activa === true);
 
     if (selected && typeof selected.passwordEncrypted === 'string') {
