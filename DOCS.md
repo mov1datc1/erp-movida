@@ -9,6 +9,7 @@
 
 ## Índice
 
+0. [Agentes operativos](./agentes/README.md)
 1. [Stack Tecnológico](#stack-tecnológico)
 2. [Arquitectura del Sistema](#arquitectura-del-sistema)
 3. [Módulos del Sistema](#módulos-del-sistema)
@@ -20,6 +21,12 @@
 9. [Scripts Utilitarios](#scripts-utilitarios)
 10. [Convenciones de Desarrollo](#convenciones-de-desarrollo)
 11. [Historial de Versiones](#historial-de-versiones)
+
+---
+
+## Agentes operativos
+
+Los roles, pasos, aprobaciones, canales y métricas de los agentes se mantienen en el [manual de agentes](./agentes/README.md). Esta documentación debe actualizarse antes de cambiar el comportamiento operativo de un agente.
 
 ---
 
