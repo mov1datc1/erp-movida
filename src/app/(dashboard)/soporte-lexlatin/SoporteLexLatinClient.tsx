@@ -21,7 +21,9 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
   const ready = Boolean(initialConfig?.activa && initialConfig.tokenConfigured);
   const handledIssues = useMemo(() => report?.issues.filter((issue) => {
     const month = report.period;
-    return issue.updatedAt.startsWith(month) || issue.createdAt.startsWith(month) || issue.resolvedAt?.startsWith(month);
+    return dateKeyInMexico(issue.updatedAt)?.startsWith(month)
+      || dateKeyInMexico(issue.createdAt)?.startsWith(month)
+      || (issue.resolvedAt && dateKeyInMexico(issue.resolvedAt)?.startsWith(month));
   }) || [], [report]);
 
   const sync = async () => {
@@ -46,35 +48,50 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
         'Tipo de incidencia': issue.issueType,
         Clave: issue.key,
         Resumen: issue.summary,
-        Creada: issue.createdAt,
-        'Tiempo trabajado (horas)': issue.timeWorkedHours,
+        'Creada (Ciudad de México)': formatDateTimeMexico(issue.createdAt),
+        'Horas trabajadas en el mes': issue.timeWorkedHours,
+        'Horas acumuladas del ticket': issue.timeWorkedCumulativeHours,
+        Complejidad: complexityLabel(issue.timeWorkedCumulativeHours),
         Estado: issue.status,
         Resolución: issue.resolution || '',
         'Persona asignada': issue.assignee || '',
         Informador: issue.reporter || '',
         Prioridad: issue.priority || '',
-        Actualizada: issue.updatedAt,
-        'Fecha de resolución': issue.resolvedAt || '',
+        'Actualizada (Ciudad de México)': formatDateTimeMexico(issue.updatedAt),
+        'Fecha de resolución (Ciudad de México)': issue.resolvedAt ? formatDateTimeMexico(issue.resolvedAt) : '',
         'Tiempo total de resolución (horas)': issue.resolutionHours ?? '',
         'Estimación original (horas)': issue.originalEstimateHours ?? '',
-        'Fecha estimada de término': issue.targetDate || '',
+        'Fecha estimada de término': issue.targetDate ? formatDate(issue.targetDate) : '',
         'Incidencias enlazadas': issue.linkedIssueKeys.join('; '),
         Enlace: issue.url,
       }));
       const workbook = XLSX.utils.book_new();
       const sheet = XLSX.utils.json_to_sheet(rows);
       sheet['!autofilter'] = { ref: sheet['!ref'] || 'A1:Q1' };
-      sheet['!cols'] = [18, 12, 55, 22, 20, 16, 16, 22, 28, 12, 22, 22, 24, 22, 24, 22, 42].map((wch) => ({ wch }));
+      sheet['!cols'] = [18, 12, 55, 24, 20, 22, 18, 16, 16, 22, 28, 12, 24, 26, 24, 22, 24, 22, 42].map((wch) => ({ wch }));
       XLSX.utils.book_append_sheet(workbook, sheet, 'Tickets conciliados');
       const summary = XLSX.utils.json_to_sheet([
         { Indicador: 'Casos creados', Valor: report.metrics.created },
         { Indicador: 'Casos resueltos', Valor: report.metrics.resolved },
         { Indicador: 'Backlog al cierre', Valor: report.metrics.backlog },
-        { Indicador: 'Horas trabajadas', Valor: report.metrics.workedHours },
+        { Indicador: 'Horas trabajadas en el mes', Valor: report.metrics.workedHours },
+        { Indicador: 'Horas acumuladas de tickets conciliados', Valor: report.metrics.workedHoursCumulative },
         { Indicador: 'Promedio de resolución (h)', Valor: report.metrics.averageResolutionHours },
         { Indicador: 'Mediana de resolución (h)', Valor: report.metrics.medianResolutionHours },
       ]);
       XLSX.utils.book_append_sheet(workbook, summary, 'Resumen');
+      const complexityRows = hourBuckets(handledIssues).flatMap((bucket) => bucket.issues.map((issue) => ({
+        Nivel: bucket.label,
+        'Cantidad del nivel': bucket.cases,
+        Clave: issue.key,
+        Título: issue.summary,
+        'Horas del mes': issue.timeWorkedHours,
+        'Horas acumuladas': issue.timeWorkedCumulativeHours,
+      })));
+      const complexity = XLSX.utils.json_to_sheet(complexityRows);
+      complexity['!autofilter'] = { ref: complexity['!ref'] || 'A1:F1' };
+      complexity['!cols'] = [22, 18, 12, 65, 18, 20].map((wch) => ({ wch }));
+      XLSX.utils.book_append_sheet(workbook, complexity, 'Complejidad');
       XLSX.writeFile(workbook, `JIRA_LexLatin_${report.period}.xlsx`);
     } finally {
       setExporting(null);
@@ -123,7 +140,7 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
       addTitle(slide, `Resumen ejecutivo — ${report.periodLabel}`, 2);
       const cards: Array<[string, string | number, string]> = [
         ['Creados', report.metrics.created, colors.pink], ['Resueltos', report.metrics.resolved, colors.green],
-        ['Backlog', report.metrics.backlog, colors.amber], ['Horas trabajadas', report.metrics.workedHours, colors.blue],
+        ['Backlog', report.metrics.backlog, colors.amber], ['Horas del mes', report.metrics.workedHours, colors.blue],
       ];
       cards.forEach(([label, value, color], index) => {
         const x = 0.75 + index * 3.08;
@@ -137,7 +154,7 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
         { text: 'Tiempo de resolución', options: { bold: true } }, { text: ' = tiempo calendario desde la apertura hasta el cierre.\n' },
         { text: 'Backlog', options: { bold: true } }, { text: ' = casos que seguían pendientes al terminar el mes.' },
       ], { x: 0.8, y: 3.52, w: 5.8, h: 1.5, fontSize: 15, breakLine: false, color: colors.text, valign: 'middle', margin: 0.08 });
-      slide.addText(`Promedio de resolución: ${report.metrics.averageResolutionHours} h\nMediana de resolución: ${report.metrics.medianResolutionHours} h\nBacklog >30 días: ${report.metrics.olderThan30Days}`, { x: 7.15, y: 3.35, w: 4.8, h: 1.45, fontSize: 18, bold: true, color: colors.navy, fill: { color: 'EEF5FF' }, margin: 0.25, breakLine: true });
+      slide.addText(`Promedio de resolución: ${report.metrics.averageResolutionHours} h\nMediana de resolución: ${report.metrics.medianResolutionHours} h\nHoras acumuladas: ${report.metrics.workedHoursCumulative} h\nBacklog >30 días: ${report.metrics.olderThan30Days}`, { x: 7.15, y: 3.25, w: 4.8, h: 1.75, fontSize: 17, bold: true, color: colors.navy, fill: { color: 'EEF5FF' }, margin: 0.25, breakLine: true });
 
       slide = pptx.addSlide();
       addTitle(slide, 'Casos creados vs. resueltos', 3);
@@ -159,16 +176,28 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
       slide = pptx.addSlide();
       addTitle(slide, 'Horas invertidas por complejidad', 5);
       const buckets = hourBuckets(handledIssues);
-      slide.addChart(pptx.ChartType.bar, [{ name: 'Horas', labels: buckets.map((bucket) => bucket.label), values: buckets.map((bucket) => bucket.hours) }], { x: 0.75, y: 1.25, w: 7.2, h: 4.8, catAxisLabelFontSize: 11, valAxisLabelFontSize: 10, chartColors: [colors.blue], showValue: true, showLegend: false, showTitle: false });
+      slide.addChart(pptx.ChartType.bar, [{ name: 'Horas del mes', labels: buckets.map((bucket) => bucket.label), values: buckets.map((bucket) => bucket.monthHours) }], { x: 0.75, y: 1.25, w: 7.2, h: 4.8, catAxisLabelFontSize: 11, valAxisLabelFontSize: 10, chartColors: [colors.blue], showValue: true, showLegend: false, showTitle: false });
       slide.addTable([
-        [{ text: 'Nivel' }, { text: 'Casos' }, { text: 'Horas' }],
-        ...buckets.map((bucket) => [bucket.label, bucket.cases, Number(bucket.hours.toFixed(2))].map(tableCell)),
-        ['Total', buckets.reduce((sum, bucket) => sum + bucket.cases, 0), Number(buckets.reduce((sum, bucket) => sum + bucket.hours, 0).toFixed(2))].map(tableCell),
-      ], { x: 8.35, y: 1.65, w: 4.1, h: 2.55, border: { color: 'CBD5E1', pt: 0.7 }, fill: { color: 'FFFFFF' }, color: colors.text, fontSize: 13, margin: 0.12, colW: [2.2, 0.8, 0.9] });
+        [{ text: 'Nivel' }, { text: 'Casos' }, { text: 'Mes' }, { text: 'Acum.' }],
+        ...buckets.map((bucket) => [bucket.label, bucket.cases, Number(bucket.monthHours.toFixed(2)), Number(bucket.cumulativeHours.toFixed(2))].map(tableCell)),
+        ['Total', buckets.reduce((sum, bucket) => sum + bucket.cases, 0), Number(buckets.reduce((sum, bucket) => sum + bucket.monthHours, 0).toFixed(2)), Number(buckets.reduce((sum, bucket) => sum + bucket.cumulativeHours, 0).toFixed(2))].map(tableCell),
+      ], { x: 8.05, y: 1.65, w: 4.7, h: 2.75, border: { color: 'CBD5E1', pt: 0.7 }, fill: { color: 'FFFFFF' }, color: colors.text, fontSize: 11, margin: 0.1, colW: [2.15, 0.7, 0.85, 0.9] });
       slide.addText('Nivel 1: hasta 2 h  •  Nivel 2: más de 2 y hasta 6 h  •  Nivel 3: más de 6 h', { x: 8.35, y: 4.55, w: 4.1, h: 0.75, fontSize: 12, color: '475569', fill: { color: 'F8FAFC' }, margin: 0.15 });
 
+      const complexityRows = buckets.flatMap((bucket) => bucket.issues.map((issue) => ({ bucket, issue })));
+      const rowsPerSlide = 13;
+      for (let index = 0; index < complexityRows.length; index += rowsPerSlide) {
+        const pageRows = complexityRows.slice(index, index + rowsPerSlide);
+        slide = pptx.addSlide();
+        addTitle(slide, `Detalle de tickets por complejidad${complexityRows.length > rowsPerSlide ? ` — ${Math.floor(index / rowsPerSlide) + 1}` : ''}`, 6 + Math.floor(index / rowsPerSlide));
+        slide.addTable([
+          [{ text: 'Nivel' }, { text: 'Clave' }, { text: 'Título' }, { text: 'Horas mes' }, { text: 'Acumuladas' }],
+          ...pageRows.map(({ bucket, issue }) => [bucket.label, issue.key, issue.summary, issue.timeWorkedHours, issue.timeWorkedCumulativeHours].map(tableCell)),
+        ], { x: 0.55, y: 1.2, w: 12.25, h: 5.6, border: { color: 'CBD5E1', pt: 0.6 }, fill: { color: 'FFFFFF' }, color: colors.text, fontSize: 9.5, margin: 0.07, rowH: 0.35, colW: [1.75, 0.9, 7.3, 1.05, 1.1] });
+      }
+
       slide = pptx.addSlide();
-      addTitle(slide, 'Calidad de datos y próximos pasos', 6);
+      addTitle(slide, 'Calidad de datos y próximos pasos', 6 + Math.max(1, Math.ceil(complexityRows.length / rowsPerSlide)));
       const warnings = report.qualityWarnings.length ? report.qualityWarnings : ['No se detectaron omisiones críticas para el periodo.'];
       slide.addText(warnings.map((warning) => ({ text: `• ${warning}\n`, options: { bullet: false, breakLine: true } })), { x: 0.85, y: 1.35, w: 5.8, h: 2.6, fontSize: 17, color: colors.text, margin: 0.1, valign: 'top' });
       slide.addText('Flujo de aprobación', { x: 7.05, y: 1.35, w: 4.8, h: 0.35, fontSize: 19, bold: true, color: colors.navy });
@@ -207,12 +236,12 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
       {!report ? <EmptyState configured={ready} /> : (
         <>
           <section className="rounded-3xl bg-gradient-to-br from-slate-900 to-blue-950 p-7 text-white shadow-xl print:bg-white print:p-0 print:text-slate-900 print:shadow-none">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">Informe mensual</p><h2 className="mt-1 text-2xl font-black capitalize">{report.periodLabel}</h2></div><p className="text-xs text-slate-300">Generado {new Date(report.generatedAt).toLocaleString('es-MX')}</p></div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">Informe mensual</p><h2 className="mt-1 text-2xl font-black capitalize">{report.periodLabel}</h2></div><p className="text-xs text-slate-300">Generado {new Date(report.generatedAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })} · CDMX</p></div>
             <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <Metric label="Creados" value={report.metrics.created} icon={<TicketCheck />} color="pink" />
               <Metric label="Resueltos" value={report.metrics.resolved} icon={<CheckCircle2 />} color="green" />
               <Metric label="Backlog al cierre" value={report.metrics.backlog} icon={<Clock3 />} color="amber" />
-              <Metric label="Horas trabajadas" value={report.metrics.workedHours} icon={<BarChart3 />} color="blue" />
+              <Metric label="Horas trabajadas en el mes" value={report.metrics.workedHours} icon={<BarChart3 />} color="blue" />
             </div>
           </section>
 
@@ -224,6 +253,7 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
             </div>
             <div className="space-y-4">
               <Insight label="Tiempo promedio de resolución" value={`${report.metrics.averageResolutionHours} h`} detail={`Mediana: ${report.metrics.medianResolutionHours} h`} />
+              <Insight label="Horas acumuladas" value={`${report.metrics.workedHoursCumulative} h`} detail="Total histórico de los tickets conciliados; no se suma como consumo mensual." />
               <Insight label="Backlog mayor de 30 días" value={String(report.metrics.olderThan30Days)} detail="Requiere explicación y plan de cierre." warning={report.metrics.olderThan30Days > 0} />
               <Insight label="Sin estimación o fecha objetivo" value={String(report.metrics.backlogWithoutEstimate)} detail="Punto solicitado por Edith." warning={report.metrics.backlogWithoutEstimate > 0} />
             </div>
@@ -233,6 +263,8 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="font-bold text-slate-900">Backlog al cierre</h3><p className="mt-1 text-xs text-slate-500">Casos pendientes al último día del periodo, con antigüedad y expectativa de terminación.</p></div><span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">{report.backlog.length} casos</span></div>
             <IssueTable issues={report.backlog} endDate={report.endDate} />
           </section>
+
+          <ComplexityTable issues={handledIssues} />
 
           {report.qualityWarnings.length > 0 && <section className="rounded-2xl border border-orange-200 bg-orange-50 p-5"><h3 className="flex items-center gap-2 font-bold text-orange-900"><AlertTriangle className="h-5 w-5" /> Validaciones antes de aprobar</h3><ul className="mt-3 space-y-2 text-sm text-orange-900/80">{report.qualityWarnings.map((warning) => <li key={warning}>• {warning}</li>)}</ul></section>}
 
@@ -271,6 +303,40 @@ function IssueTable({ issues, endDate }: { issues: JiraIssueSnapshot[]; endDate:
   return <div className="mt-4 overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-3 py-3">Clave</th><th className="px-3 py-3">Resumen</th><th className="px-3 py-3">Estado</th><th className="px-3 py-3">Antigüedad</th><th className="px-3 py-3">Estimación</th><th className="px-3 py-3">Fecha objetivo</th></tr></thead><tbody className="divide-y divide-slate-100">{issues.map((issue) => <tr key={issue.key} className="align-top"><td className="px-3 py-3 font-bold text-blue-700"><a href={issue.url} target="_blank" rel="noreferrer">{issue.key}</a></td><td className="max-w-lg px-3 py-3 font-medium text-slate-800">{issue.summary}</td><td className="px-3 py-3 text-slate-600">{issue.status}</td><td className="px-3 py-3 text-slate-600">{ageDays(issue, endDate)} días</td><td className="px-3 py-3 text-slate-600">{issue.originalEstimateHours ? `${issue.originalEstimateHours} h` : 'Sin horas'}</td><td className={`px-3 py-3 ${issue.targetDate ? 'text-slate-600' : 'font-bold text-orange-700'}`}>{issue.targetDate ? formatDate(issue.targetDate) : 'Sin fecha'}</td></tr>)}</tbody></table></div>;
 }
 
+function ComplexityTable({ issues }: { issues: JiraIssueSnapshot[] }) {
+  const buckets = hourBuckets(issues);
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div>
+        <h3 className="font-bold text-slate-900">Tickets por complejidad</h3>
+        <p className="mt-1 text-xs text-slate-500">La complejidad se determina por las horas acumuladas del ticket; las horas mensuales se muestran por separado.</p>
+      </div>
+      <div className="mt-5 space-y-5">
+        {buckets.map((bucket) => (
+          <div key={bucket.label} className="overflow-hidden rounded-xl border border-slate-200">
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-4 py-3">
+              <h4 className="font-bold text-slate-800">{bucket.label}</h4>
+              <div className="flex gap-2 text-xs font-bold text-slate-600">
+                <span className="rounded-full bg-white px-3 py-1">{bucket.cases} caso(s)</span>
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">{Number(bucket.monthHours.toFixed(2))} h del mes</span>
+                <span className="rounded-full bg-slate-200 px-3 py-1">{Number(bucket.cumulativeHours.toFixed(2))} h acumuladas</span>
+              </div>
+            </div>
+            {bucket.issues.length ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="border-y border-slate-200 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-2">Clave</th><th className="px-4 py-2">Título</th><th className="px-4 py-2">Horas mes</th><th className="px-4 py-2">Acumuladas</th></tr></thead>
+                  <tbody className="divide-y divide-slate-100">{bucket.issues.map((issue) => <tr key={issue.key}><td className="px-4 py-2 font-bold text-blue-700"><a href={issue.url} target="_blank" rel="noreferrer">{issue.key}</a></td><td className="px-4 py-2 text-slate-800">{issue.summary}</td><td className="px-4 py-2 text-slate-600">{issue.timeWorkedHours} h</td><td className="px-4 py-2 text-slate-600">{issue.timeWorkedCumulativeHours} h</td></tr>)}</tbody>
+                </table>
+              </div>
+            ) : <p className="px-4 py-3 text-sm text-slate-400">Sin tickets en este nivel.</p>}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function EmptyState({ configured }: { configured: boolean }) {
   return <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center print:hidden"><CalendarDays className="mx-auto h-12 w-12 text-slate-300" /><h2 className="mt-4 text-xl font-bold text-slate-800">{configured ? 'Selecciona el mes y sincroniza Jira' : 'Configura Jira para iniciar'}</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">El agente conciliará tickets creados, resueltos, horas trabajadas y backlog antes de preparar los archivos.</p></div>;
 }
@@ -280,25 +346,52 @@ function ApprovalCard({ icon, title, email, detail, status }: { icon: ReactNode;
 }
 
 function ageDays(issue: JiraIssueSnapshot, endDate: string) {
-  return Math.max(0, Math.floor((Date.parse(endDate) - Date.parse(issue.createdAt)) / 86_400_000));
+  const createdKey = dateKeyInMexico(issue.createdAt);
+  if (!createdKey) return 0;
+  return Math.max(0, Math.floor((Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${createdKey}T00:00:00Z`)) / 86_400_000));
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(value));
+  return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeZone: 'America/Mexico_City' }).format(new Date(value));
+}
+
+function formatDateTimeMexico(value: string) {
+  return new Intl.DateTimeFormat('es-MX', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'America/Mexico_City',
+  }).format(new Date(value));
+}
+
+function dateKeyInMexico(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value;
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
+function complexityLabel(hours: number) {
+  if (hours <= 0) return 'Sin tiempo';
+  if (hours <= 2) return 'Nivel 1 (≤2 h)';
+  if (hours <= 6) return 'Nivel 2 (2–6 h)';
+  return 'Nivel 3 (>6 h)';
 }
 
 function hourBuckets(issues: JiraIssueSnapshot[]) {
   const buckets = [
-    { label: 'Nivel 1 (≤2 h)', cases: 0, hours: 0 },
-    { label: 'Nivel 2 (2–6 h)', cases: 0, hours: 0 },
-    { label: 'Nivel 3 (>6 h)', cases: 0, hours: 0 },
-    { label: 'Sin tiempo', cases: 0, hours: 0 },
+    { label: 'Nivel 1 (≤2 h)', cases: 0, monthHours: 0, cumulativeHours: 0, issues: [] as JiraIssueSnapshot[] },
+    { label: 'Nivel 2 (2–6 h)', cases: 0, monthHours: 0, cumulativeHours: 0, issues: [] as JiraIssueSnapshot[] },
+    { label: 'Nivel 3 (>6 h)', cases: 0, monthHours: 0, cumulativeHours: 0, issues: [] as JiraIssueSnapshot[] },
+    { label: 'Sin tiempo', cases: 0, monthHours: 0, cumulativeHours: 0, issues: [] as JiraIssueSnapshot[] },
   ];
   for (const issue of issues) {
-    const hours = issue.timeWorkedHours;
+    const hours = issue.timeWorkedCumulativeHours;
     const bucket = hours <= 0 ? buckets[3] : hours <= 2 ? buckets[0] : hours <= 6 ? buckets[1] : buckets[2];
     bucket.cases += 1;
-    bucket.hours += hours;
+    bucket.monthHours += issue.timeWorkedHours;
+    bucket.cumulativeHours += issue.timeWorkedCumulativeHours;
+    bucket.issues.push(issue);
   }
   return buckets;
 }

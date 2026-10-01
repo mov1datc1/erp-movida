@@ -42,7 +42,10 @@ export interface JiraIssueSnapshot {
   resolvedAt: string | null;
   dueDate: string | null;
   targetDate: string | null;
+  /** Horas registradas en worklogs cuya fecha cae dentro del periodo del reporte. */
   timeWorkedHours: number;
+  /** Total histórico registrado en Jira para el ticket. */
+  timeWorkedCumulativeHours: number;
   originalEstimateHours: number | null;
   resolutionHours: number | null;
   linkedIssueKeys: string[];
@@ -55,6 +58,7 @@ export interface LexLatinReportMetrics {
   updated: number;
   backlog: number;
   workedHours: number;
+  workedHoursCumulative: number;
   averageResolutionHours: number;
   medianResolutionHours: number;
   missingWorkedTime: number;

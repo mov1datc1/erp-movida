@@ -160,8 +160,12 @@
 ### 10. Soporte LexLatin (`/soporte-lexlatin`)
 - Conexión segura con Jira Cloud mediante correo y token API cifrado
 - Conciliación mensual de casos creados, resueltos, actualizados y backlog
+- Exclusión de tickets cancelados o resueltos como duplicados
+- Corte contable y operativo en zona horaria `America/Mexico_City`
+- Separación de horas registradas en worklogs durante el mes y horas históricas acumuladas por ticket
 - Validaciones de tiempo trabajado, antigüedad y fecha estimada de término
-- Exportación del detalle a Excel y generación del informe PowerPoint
+- Clasificación por complejidad con cantidad, claves, títulos y horas por nivel
+- Exportación del detalle a Excel, PowerPoint y PDF imprimible
 - Aprobación operativa asignada a Edgar y aprobación de entrega asignada a Jonathan
 
 Para conectarlo:

@@ -8,8 +8,14 @@ import SoporteLexLatinClient from './SoporteLexLatinClient';
 export const dynamic = 'force-dynamic';
 
 function getDefaultReportPeriod() {
-  const today = new Date();
-  return new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Mexico_City',
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(new Date());
+  const year = Number(parts.find((part) => part.type === 'year')?.value);
+  const month = Number(parts.find((part) => part.type === 'month')?.value);
+  return new Date(Date.UTC(year, month - 2, 1)).toISOString().slice(0, 7);
 }
 
 export default async function SoporteLexLatinPage() {

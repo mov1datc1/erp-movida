@@ -16,6 +16,8 @@ export interface StoredJiraLexLatinConfig extends Omit<JiraLexLatinConfigView, '
 
 type JiraFields = Record<string, unknown>;
 
+const REPORT_TIME_ZONE = 'America/Mexico_City';
+
 interface JiraIssueResponse {
   id: string;
   key: string;
@@ -160,6 +162,38 @@ function parseDateValue(value: unknown): string | null {
   return null;
 }
 
+function dateKeyInReportTimeZone(value: string | Date): string | null {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: REPORT_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value;
+  const year = get('year');
+  const month = get('month');
+  const day = get('day');
+  return year && month && day ? `${year}-${month}-${day}` : null;
+}
+
+function dateInPeriod(value: string | null, startDate: string, endDate: string) {
+  if (!value) return false;
+  const key = dateKeyInReportTimeZone(value);
+  return Boolean(key && key >= startDate && key < endDate);
+}
+
+function normalizedText(value: string | null) {
+  return (value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function isCancelledOrDuplicate(issue: JiraIssueSnapshot) {
+  const status = normalizedText(issue.status);
+  const resolution = normalizedText(issue.resolution);
+  return status.includes('cancel') || resolution.includes('duplic');
+}
+
 function mapIssue(config: StoredJiraLexLatinConfig, issue: JiraIssueResponse): JiraIssueSnapshot {
   const fields = issue.fields;
   const createdAt = String(fields.created || '');
@@ -190,7 +224,8 @@ function mapIssue(config: StoredJiraLexLatinConfig, issue: JiraIssueResponse): J
     resolvedAt,
     dueDate: parseDateValue(fields.duedate),
     targetDate: parseDateValue(targetValue) || parseDateValue(fields.duedate),
-    timeWorkedHours: customWorked === undefined || customWorked === null
+    timeWorkedHours: 0,
+    timeWorkedCumulativeHours: customWorked === undefined || customWorked === null
       ? (Number.isFinite(standardSeconds) ? standardSeconds / 3600 : 0)
       : parseHours(customWorked),
     originalEstimateHours: Number.isFinite(Number(timetracking.originalEstimateSeconds))
@@ -208,12 +243,6 @@ function mapIssue(config: StoredJiraLexLatinConfig, issue: JiraIssueResponse): J
     }),
     url: `${normalizeSiteUrl(config.siteUrl)}/browse/${issue.key}`,
   };
-}
-
-function dateInRange(value: string | null, startMs: number, endMs: number) {
-  if (!value) return false;
-  const time = Date.parse(value);
-  return Number.isFinite(time) && time >= startMs && time < endMs;
 }
 
 function median(values: number[]) {
@@ -240,11 +269,55 @@ function buildDailyPoints(start: Date, end: Date, issues: JiraIssueSnapshot[]): 
     points.push({
       date: key,
       label: formatter.format(cursor),
-      created: issues.filter((issue) => issue.createdAt.slice(0, 10) === key).length,
-      resolved: issues.filter((issue) => issue.resolvedAt?.slice(0, 10) === key).length,
+      created: issues.filter((issue) => dateKeyInReportTimeZone(issue.createdAt) === key).length,
+      resolved: issues.filter((issue) => issue.resolvedAt && dateKeyInReportTimeZone(issue.resolvedAt) === key).length,
     });
   }
   return points;
+}
+
+async function getIssueWorklogs(config: StoredJiraLexLatinConfig, issueKey: string) {
+  const worklogs: Array<{ started?: string; timeSpentSeconds?: number }> = [];
+  let startAt = 0;
+  const maxResults = 100;
+  let total = 0;
+
+  do {
+    const page = await jiraRequest<{
+      startAt?: number;
+      maxResults?: number;
+      total?: number;
+      worklogs?: Array<{ started?: string; timeSpentSeconds?: number }>;
+    }>(config, `/rest/api/3/issue/${encodeURIComponent(issueKey)}/worklog?startAt=${startAt}&maxResults=${maxResults}`);
+    worklogs.push(...(page.worklogs || []));
+    total = page.total || worklogs.length;
+    startAt += page.maxResults || maxResults;
+  } while (worklogs.length < total);
+
+  return worklogs;
+}
+
+async function addMonthlyWorklogHours(
+  config: StoredJiraLexLatinConfig,
+  issues: JiraIssueSnapshot[],
+  startDate: string,
+  endDate: string,
+) {
+  const enriched: JiraIssueSnapshot[] = [];
+  const batchSize = 6;
+  for (let index = 0; index < issues.length; index += batchSize) {
+    const batch = issues.slice(index, index + batchSize);
+    const results = await Promise.all(batch.map(async (issue) => {
+      const worklogs = await getIssueWorklogs(config, issue.key);
+      const seconds = worklogs.reduce((sum, worklog) => {
+        if (!worklog.started || !dateInPeriod(worklog.started, startDate, endDate)) return sum;
+        return sum + (Number(worklog.timeSpentSeconds) || 0);
+      }, 0);
+      return { ...issue, timeWorkedHours: Number((seconds / 3600).toFixed(2)) };
+    }));
+    enriched.push(...results);
+  }
+  return enriched;
 }
 
 export async function buildLexLatinMonthlyReport(period: string): Promise<LexLatinReportData> {
@@ -261,22 +334,32 @@ export async function buildLexLatinMonthlyReport(period: string): Promise<LexLat
   ];
   const jql = `project = ${config.projectKey} AND (created < "${endDate}" OR updated >= "${startDate}") ORDER BY created DESC`;
   const rawIssues = await searchAllIssues(config, jql, requestedFields);
-  const issues = rawIssues.map((issue) => mapIssue(config, issue));
-  const startMs = start.getTime();
-  const endMs = end.getTime();
-  const created = issues.filter((issue) => dateInRange(issue.createdAt, startMs, endMs));
-  const resolved = issues.filter((issue) => dateInRange(issue.resolvedAt, startMs, endMs));
-  const updated = issues.filter((issue) => dateInRange(issue.updatedAt, startMs, endMs));
-  const backlog = issues.filter((issue) => {
-    const createdTime = Date.parse(issue.createdAt);
-    const resolvedTime = issue.resolvedAt ? Date.parse(issue.resolvedAt) : Number.POSITIVE_INFINITY;
-    return createdTime < endMs && resolvedTime >= endMs;
+  const issues = rawIssues
+    .map((issue) => mapIssue(config, issue))
+    .filter((issue) => !isCancelledOrDuplicate(issue));
+  const createdBase = issues.filter((issue) => dateInPeriod(issue.createdAt, startDate, endDate));
+  const resolvedBase = issues.filter((issue) => dateInPeriod(issue.resolvedAt, startDate, endDate));
+  const updatedBase = issues.filter((issue) => dateInPeriod(issue.updatedAt, startDate, endDate));
+  const backlogBase = issues.filter((issue) => {
+    const createdKey = dateKeyInReportTimeZone(issue.createdAt);
+    const resolvedKey = issue.resolvedAt ? dateKeyInReportTimeZone(issue.resolvedAt) : null;
+    return Boolean(createdKey && createdKey < endDate && (!resolvedKey || resolvedKey >= endDate));
   });
-  const relevant = Array.from(new Map([...created, ...resolved, ...updated, ...backlog].map((issue) => [issue.key, issue])).values());
+  const relevantBase = Array.from(new Map([...createdBase, ...resolvedBase, ...updatedBase, ...backlogBase].map((issue) => [issue.key, issue])).values());
+  const relevant = await addMonthlyWorklogHours(config, relevantBase, startDate, endDate);
+  const relevantByKey = new Map(relevant.map((issue) => [issue.key, issue]));
+  const created = createdBase.map((issue) => relevantByKey.get(issue.key) || issue);
+  const resolved = resolvedBase.map((issue) => relevantByKey.get(issue.key) || issue);
+  const updated = updatedBase.map((issue) => relevantByKey.get(issue.key) || issue);
+  const backlog = backlogBase.map((issue) => relevantByKey.get(issue.key) || issue);
   const resolutionHours = resolved.map((issue) => issue.resolutionHours).filter((hours): hours is number => hours !== null);
-  const missingWorkedTime = resolved.filter((issue) => issue.timeWorkedHours <= 0).length;
+  const missingWorkedTime = resolved.filter((issue) => issue.timeWorkedCumulativeHours <= 0).length;
   const backlogWithoutEstimate = backlog.filter((issue) => !issue.targetDate && !issue.originalEstimateHours).length;
-  const olderThan30Days = backlog.filter((issue) => (endMs - Date.parse(issue.createdAt)) / 86_400_000 > 30).length;
+  const endDayMs = Date.parse(`${endDate}T00:00:00Z`);
+  const olderThan30Days = backlog.filter((issue) => {
+    const createdKey = dateKeyInReportTimeZone(issue.createdAt);
+    return createdKey ? (endDayMs - Date.parse(`${createdKey}T00:00:00Z`)) / 86_400_000 > 30 : false;
+  }).length;
   const periodLabel = new Intl.DateTimeFormat('es-MX', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(start);
   const qualityWarnings: string[] = [];
   if (missingWorkedTime) qualityWarnings.push(`${missingWorkedTime} caso(s) resuelto(s) no tienen tiempo trabajado.`);
@@ -296,6 +379,7 @@ export async function buildLexLatinMonthlyReport(period: string): Promise<LexLat
       updated: updated.length,
       backlog: backlog.length,
       workedHours: Number(updated.reduce((sum, issue) => sum + issue.timeWorkedHours, 0).toFixed(2)),
+      workedHoursCumulative: Number(relevant.reduce((sum, issue) => sum + issue.timeWorkedCumulativeHours, 0).toFixed(2)),
       averageResolutionHours: resolutionHours.length
         ? Number((resolutionHours.reduce((sum, hours) => sum + hours, 0) / resolutionHours.length).toFixed(2))
         : 0,
