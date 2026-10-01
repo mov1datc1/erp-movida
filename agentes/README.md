@@ -7,6 +7,7 @@ Esta carpeta es el manual operativo versionado de los agentes del ERP. Cada arch
 | Código | Agente | Estado |
 |---|---|---|
 | A00 | [Orquestador Movida](./00-orquestador-movida.md) | Diseñado |
+| A01 | [Buzón y enrutador de WhatsApp](./01-buzon-whatsapp.md) | Diseñado |
 | A10 | [Supervisor de Mesa de Servicio](./10-supervisor-mesa-servicio.md) | Diseñado |
 | A11 | [Gestor de seguimiento Jira](./11-seguimiento-jira.md) | Diseñado |
 | A12 | [Detector de duplicados Jira](./12-detector-duplicados-jira.md) | Diseñado |
@@ -41,4 +42,3 @@ Todo cambio de comportamiento comienza actualizando su archivo en esta carpeta. 
 - fecha efectiva;
 - campos, plantillas o integraciones afectadas;
 - prueba con la que se validará el resultado.
-

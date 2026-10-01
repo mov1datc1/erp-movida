@@ -6,9 +6,9 @@ Convertir comprobantes y mensajes de pagos en movimientos estructurados, concili
 
 Este agente queda documentado para una fase posterior; no forma parte todavía del agente LexLatin.
 
-## Fuente WhatsApp “Gastos”
+## Fuente WhatsApp
 
-En el grupo actual, Ricardo y Jonathan comparten capturas del banco, Binance u otros medios con monto, divisa y contexto. La API oficial no debe darse por capaz de leer automáticamente ese grupo existente; las alternativas autorizadas están en [CANALES_WHATSAPP.md](./CANALES_WHATSAPP.md).
+Ricardo y Jonathan reenvían al número técnico de Movida las capturas del banco, Binance u otros medios con monto, divisa y contexto. El [buzón transversal](./01-buzon-whatsapp.md) las clasifica y entrega a este agente. Los grupos quedan fuera de la integración.
 
 ## Datos que debe extraer
 
@@ -60,4 +60,3 @@ Detecté: Deproing · USD 2,400 · Cube · 30/sep · Wells Fargo.
 - Falsos positivos y duplicados evitados.
 - Monto pendiente por cliente/proveedor.
 - Tiempo entre comprobante, confirmación y registro.
-

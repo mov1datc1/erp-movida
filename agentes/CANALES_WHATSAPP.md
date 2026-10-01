@@ -4,24 +4,20 @@
 
 Movida debe integrar WhatsApp mediante WhatsApp Business Platform Cloud API, con un número dedicado, webhooks verificados y trazabilidad dentro del ERP. No se utilizarán robots que controlen WhatsApp Web ni librerías no oficiales: son frágiles y pueden comprometer la sesión o el número.
 
-## Limitación de los grupos actuales
+## Decisión sobre grupos
 
-No se debe asumir que la API oficial puede incorporar un bot y leer libremente los grupos ordinarios existentes “Soporte” y “Gastos”. El acceso oficial a grupos es restringido, tiene requisitos de elegibilidad y está pensado para grupos gestionados mediante la API. Por ello, la primera versión operará con conversaciones individuales autorizadas y mantendrá correo en paralelo.
-
-Si Movida obtiene acceso oficial a Groups API, se evaluará crear grupos nuevos administrados por la API y migrar el proceso. La migración no debe realizarse hasta verificar elegibilidad, límites de participantes, consentimiento y compatibilidad del número.
+Los agentes no leerán grupos de WhatsApp. Las personas reenviarán las capturas, documentos o mensajes necesarios al número técnico de Movida. Este número funciona como un buzón transversal para soporte, gastos, ingresos, marketing y futuros procesos.
 
 ## Primera versión recomendada
 
 1. Crear un número técnico exclusivo para el agente Movida.
-2. Registrar consentimiento y lista blanca de Edgar, Mayra, Jonathan y Ricardo.
-3. El ERP crea una solicitud con identificador único.
-4. Envía el mismo requerimiento por WhatsApp individual y correo.
-5. El webhook recibe respuestas y las relaciona por solicitud, persona y contexto.
-6. El agente interpreta la respuesta y muestra la acción propuesta.
+2. Registrar consentimiento, lista blanca y rol de cada persona autorizada.
+3. El webhook recibe texto, capturas y documentos reenviados al número.
+4. El [agente de buzón](./01-buzon-whatsapp.md) clasifica el área y crea una solicitud con identificador único.
+5. La solicitud pasa al agente especializado de soporte, gastos, ingresos o marketing.
+6. Cuando haga falta información, el agente pregunta por WhatsApp y, si la regla lo exige, por correo en paralelo.
 7. El aprobador autoriza en el ERP o mediante una respuesta inequívoca habilitada para su rol.
 8. El sistema ejecuta, verifica y registra el resultado.
-
-Mientras se mantienen los grupos actuales, una persona puede reenviar al número técnico un mensaje o comprobante relevante. El agente lo procesa, pero exige confirmar cliente/proyecto y autorización antes de modificar el ERP.
 
 ## Datos de configuración necesarios
 
@@ -67,17 +63,17 @@ Mientras se mantienen los grupos actuales, una persona puede reenviar al número
 - Respuestas cortas estructuradas y correlacionadas con Jira.
 - Aprobación previa antes de cambiar Jira o escribir al cliente.
 
-### Fase 2 — Gastos
+### Fase 2 — Gastos e ingresos
 
-- Recepción individual o reenvío autorizado de comprobantes del grupo “Gastos”.
+- Recepción de comprobantes reenviados al número técnico.
 - OCR, clasificación y confirmación con Ricardo/Jonathan.
-- Registro de borradores y conciliación con aprobación.
+- Registro de borradores de egresos o ingresos y conciliación con aprobación.
 
-### Fase 3 — Grupos oficiales
+### Fase 3 — Marketing y más departamentos
 
-- Solicitar y verificar acceso a Groups API.
-- Crear grupos gestionados por la API si Movida cumple los requisitos.
-- Ejecutar un piloto pequeño antes de migrar “Soporte” o “Gastos”.
+- Clasificación de leads, campañas, piezas y solicitudes.
+- Enrutamiento a los agentes y responsables del área.
+- Incorporación progresiva de nuevos procesos manteniendo el mismo número técnico.
 
 ## Criterios de aceptación
 
@@ -86,4 +82,3 @@ Mientras se mantienen los grupos actuales, una persona puede reenviar al número
 - El correo paralelo se cierra al recibir una respuesta válida por WhatsApp.
 - Toda acción externa muestra quién respondió y quién aprobó.
 - La caída de WhatsApp no detiene el proceso: correo y bandeja del ERP siguen disponibles.
-
