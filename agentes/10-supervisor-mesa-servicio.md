@@ -6,7 +6,7 @@ Vigilar continuamente la cola `MDS` de Jira y evitar que un caso nuevo permanezc
 
 ## Responsables humanos
 
-- Operación técnica: Edgar Jaén.
+- Operación técnica: Edgar Reyes.
 - Atención al cliente: Mayra García.
 - Supervisión: Jonathan Palacios.
 
@@ -53,4 +53,3 @@ Responde: 1 En curso | 2 Espera cliente | 3 Duplicado de MDS-____ | 4 Otro: ____
 - Tickets que superaron 4 horas.
 - Tiempo de Edgar para responder consultas del agente.
 - Alertas repetidas, falsas alarmas y casos escalados.
-

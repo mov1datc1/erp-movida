@@ -12,7 +12,7 @@ El ERP ya sincroniza Jira, muestra el tablero mensual y genera Excel, PowerPoint
 
 - Ejecución: primeros 5 días del mes siguiente.
 - Zona horaria: `America/Mexico_City`.
-- Aprobación de datos y cambios en Jira: Edgar Jaén.
+- Aprobación de datos y cambios en Jira: Edgar Reyes.
 - Aprobación del informe y correo final: Jonathan Palacios.
 - Destinataria principal: Edith Santos.
 

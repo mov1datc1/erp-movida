@@ -17,6 +17,8 @@ export interface StoredJiraLexLatinConfig extends Omit<JiraLexLatinConfigView, '
 type JiraFields = Record<string, unknown>;
 
 const REPORT_TIME_ZONE = 'America/Mexico_City';
+const LEGACY_APPROVER_EMAIL = 'edgar.jaen@movidatci.com';
+const CURRENT_APPROVER_EMAIL = 'edgar.reyes@movidatci.com';
 
 interface JiraIssueResponse {
   id: string;
@@ -33,7 +35,25 @@ export async function getStoredJiraLexLatinConfig(): Promise<StoredJiraLexLatinC
     return null;
   }
 
-  return integration.config as unknown as StoredJiraLexLatinConfig;
+  const config = integration.config as unknown as StoredJiraLexLatinConfig;
+  if (config.approverOperationsEmail?.trim().toLowerCase() !== LEGACY_APPROVER_EMAIL) {
+    return config;
+  }
+
+  const corrected = {
+    ...config,
+    approverOperationsEmail: CURRENT_APPROVER_EMAIL,
+    updatedAt: new Date().toISOString(),
+  };
+  await prisma.integracion.update({
+    where: { proveedor: 'JIRA_LEXLATIN' },
+    data: { config: JSON.parse(JSON.stringify(corrected)) },
+  });
+  console.info('[Jira LexLatin] Corrected legacy approver email', {
+    from: LEGACY_APPROVER_EMAIL,
+    to: CURRENT_APPROVER_EMAIL,
+  });
+  return corrected;
 }
 
 export function toJiraConfigView(config: StoredJiraLexLatinConfig | null): JiraLexLatinConfigView | null {

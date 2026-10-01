@@ -320,7 +320,7 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
           </section>
 
           <section className="grid gap-4 md:grid-cols-2 print:hidden">
-            <ApprovalCard icon={<ShieldCheck />} title="Aprobación operativa" email={initialConfig?.approverOperationsEmail || 'edgar.jaen@movidatci.com'} detail="Autoriza comentarios, horas y cambios de estado en Jira." status="Prueba de correo disponible" />
+            <ApprovalCard icon={<ShieldCheck />} title="Aprobación operativa" email={initialConfig?.approverOperationsEmail || 'edgar.reyes@movidatci.com'} detail="Autoriza comentarios, horas y cambios de estado en Jira." status="Prueba de correo disponible" />
             <ApprovalCard icon={<Send />} title="Aprobación de entrega" email={initialConfig?.approverDeliveryEmail || 'jonathan@movidatci.com'} detail={`Autoriza el correo final para ${initialConfig?.recipientTo || 'Edith'}.`} status="Disponible después de la aprobación operativa" />
           </section>
 

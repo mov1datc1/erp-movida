@@ -14,7 +14,7 @@ const defaultConfig: JiraLexLatinConfigView = {
   timeWorkedFieldId: '',
   targetDateFieldId: '',
   impactFieldId: 'customfield_10004',
-  approverOperationsEmail: 'edgar.jaen@movidatci.com',
+  approverOperationsEmail: 'edgar.reyes@movidatci.com',
   approverDeliveryEmail: 'jonathan@movidatci.com',
   recipientTo: 'edith.santos@lexlatin.com',
   recipientCc: 'ricardo@movidatci.com, jonathan@movidatci.com',
