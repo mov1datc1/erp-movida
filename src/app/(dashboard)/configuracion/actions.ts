@@ -569,6 +569,7 @@ export async function saveJiraLexLatinConfiguration(input: JiraLexLatinConfigInp
       projectKey: input.projectKey.trim().toUpperCase(),
       timeWorkedFieldId: input.timeWorkedFieldId.trim(),
       targetDateFieldId: input.targetDateFieldId.trim(),
+      impactFieldId: input.impactFieldId.trim(),
       approverOperationsEmail: input.approverOperationsEmail.trim().toLowerCase(),
       approverDeliveryEmail: input.approverDeliveryEmail.trim().toLowerCase(),
       recipientTo: input.recipientTo.trim().toLowerCase(),

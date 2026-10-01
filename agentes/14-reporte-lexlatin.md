@@ -25,13 +25,14 @@ El ERP ya sincroniza Jira, muestra el tablero mensual y genera Excel, PowerPoint
    - backlog al cierre;
    - horas registradas durante el mes;
    - horas históricas acumuladas del ticket.
-4. Calcula tiempo de resolución, mediana, antigüedad y nivel de complejidad.
-5. Genera la tabla de complejidad con nivel, cantidad, claves, títulos y horas.
-6. Ejecuta las validaciones de calidad y solicita a Edgar la información faltante.
-7. Regenera los archivos después de las correcciones.
-8. Solicita la aprobación operativa de Edgar.
-9. Presenta a Jonathan los entregables, alertas restantes y borrador del correo.
-10. Después de su aprobación, envía y registra destinatarios, adjuntos, fecha y resultado.
+4. Calcula por separado el esfuerzo promedio (`horas del mes ÷ tickets con tiempo registrado`) y el tiempo calendario entre creación y resolución.
+5. Lee el impacto informado en Jira como una dimensión independiente del esfuerzo o complejidad.
+6. Genera la tabla de complejidad con nivel, cantidad, claves, títulos y horas.
+7. Ejecuta las validaciones de calidad y solicita a Edgar la información faltante.
+8. Regenera los archivos después de las correcciones.
+9. Solicita la aprobación operativa de Edgar.
+10. Presenta a Jonathan los entregables, alertas restantes y borrador del correo.
+11. Después de su aprobación, envía y registra destinatarios, adjuntos, fecha y resultado.
 
 ## Entregables mínimos
 
@@ -52,4 +53,3 @@ El ERP ya sincroniza Jira, muestra el tablero mensual y genera Excel, PowerPoint
 - Tickets excluidos y razón.
 - Observaciones posteriores de Edith.
 - Número de regeneraciones antes de aprobación.
-

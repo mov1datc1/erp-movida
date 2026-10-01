@@ -39,7 +39,20 @@ export async function getStoredJiraLexLatinConfig(): Promise<StoredJiraLexLatinC
 export function toJiraConfigView(config: StoredJiraLexLatinConfig | null): JiraLexLatinConfigView | null {
   if (!config) return null;
   const { apiTokenEncrypted, ...safe } = config;
-  return { ...safe, tokenConfigured: Boolean(apiTokenEncrypted) };
+  return {
+    ...safe,
+    timeWorkedFieldId: isSlaFieldConfigured(safe.timeWorkedFieldId) ? '' : safe.timeWorkedFieldId,
+    impactFieldId: safe.impactFieldId || 'customfield_10004',
+    tokenConfigured: Boolean(apiTokenEncrypted),
+  };
+}
+
+function isSlaFieldConfigured(fieldId: string | undefined) {
+  return fieldId === 'customfield_10031';
+}
+
+function effectiveTimeWorkedFieldId(config: StoredJiraLexLatinConfig) {
+  return isSlaFieldConfigured(config.timeWorkedFieldId) ? '' : config.timeWorkedFieldId;
 }
 
 function normalizeSiteUrl(value: string) {
@@ -88,6 +101,7 @@ export async function testJiraConnection(config?: StoredJiraLexLatinConfig) {
     fields,
     suggestedTimeField: findSuggestedField(fields, ['tiempo trabajado', 'time worked', 'worked time']),
     suggestedTargetField: findSuggestedField(fields, ['fecha de terminación', 'fecha estimada', 'target date', 'due date']),
+    suggestedImpactField: findSuggestedField(fields, ['impacto', 'impact']),
   };
 }
 
@@ -203,8 +217,10 @@ function mapIssue(config: StoredJiraLexLatinConfig, issue: JiraIssueResponse): J
   const timetracking = (fields.timetracking || {}) as Record<string, unknown>;
   const links = Array.isArray(fields.issuelinks) ? fields.issuelinks : [];
   const standardSeconds = Number(fields.timespent || timetracking.timeSpentSeconds || 0);
-  const customWorked = config.timeWorkedFieldId ? fields[config.timeWorkedFieldId] : undefined;
+  const timeWorkedFieldId = effectiveTimeWorkedFieldId(config);
+  const customWorked = timeWorkedFieldId ? fields[timeWorkedFieldId] : undefined;
   const targetValue = config.targetDateFieldId ? fields[config.targetDateFieldId] : undefined;
+  const impactValue = config.impactFieldId ? fields[config.impactFieldId] : undefined;
   const createdMs = Date.parse(createdAt);
   const resolvedMs = resolvedAt ? Date.parse(resolvedAt) : Number.NaN;
 
@@ -217,6 +233,7 @@ function mapIssue(config: StoredJiraLexLatinConfig, issue: JiraIssueResponse): J
     statusCategory: asNamedValue(status.statusCategory) || String(statusCategory.key || ''),
     resolution: asNamedValue(fields.resolution),
     priority: asNamedValue(fields.priority),
+    impact: asNamedValue(impactValue),
     assignee: asNamedValue(fields.assignee),
     reporter: asNamedValue(fields.reporter),
     createdAt,
@@ -326,7 +343,7 @@ export async function buildLexLatinMonthlyReport(period: string): Promise<LexLat
   const { start, end } = monthRange(period);
   const startDate = start.toISOString().slice(0, 10);
   const endDate = end.toISOString().slice(0, 10);
-  const customFields = [config.timeWorkedFieldId, config.targetDateFieldId].filter(Boolean);
+  const customFields = [effectiveTimeWorkedFieldId(config), config.targetDateFieldId, config.impactFieldId].filter(Boolean);
   const requestedFields = [
     'summary', 'issuetype', 'status', 'resolution', 'priority', 'assignee', 'reporter',
     'created', 'updated', 'resolutiondate', 'duedate', 'timetracking', 'timespent', 'issuelinks',
@@ -366,6 +383,9 @@ export async function buildLexLatinMonthlyReport(period: string): Promise<LexLat
   if (backlogWithoutEstimate) qualityWarnings.push(`${backlogWithoutEstimate} caso(s) del backlog no tienen horas estimadas ni fecha objetivo.`);
   if (olderThan30Days) qualityWarnings.push(`${olderThan30Days} caso(s) del backlog tienen más de 30 días de antigüedad.`);
 
+  const workedHours = Number(relevant.reduce((sum, issue) => sum + issue.timeWorkedHours, 0).toFixed(2));
+  const ticketsWithWorkedHours = relevant.filter((issue) => issue.timeWorkedHours > 0).length;
+
   return {
     period,
     periodLabel,
@@ -378,8 +398,12 @@ export async function buildLexLatinMonthlyReport(period: string): Promise<LexLat
       resolved: resolved.length,
       updated: updated.length,
       backlog: backlog.length,
-      workedHours: Number(updated.reduce((sum, issue) => sum + issue.timeWorkedHours, 0).toFixed(2)),
+      workedHours,
       workedHoursCumulative: Number(relevant.reduce((sum, issue) => sum + issue.timeWorkedCumulativeHours, 0).toFixed(2)),
+      ticketsWithWorkedHours,
+      averageWorkedHoursPerTicket: ticketsWithWorkedHours
+        ? Number((workedHours / ticketsWithWorkedHours).toFixed(2))
+        : 0,
       averageResolutionHours: resolutionHours.length
         ? Number((resolutionHours.reduce((sum, hours) => sum + hours, 0) / resolutionHours.length).toFixed(2))
         : 0,

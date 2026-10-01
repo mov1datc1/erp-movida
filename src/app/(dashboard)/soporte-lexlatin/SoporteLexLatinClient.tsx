@@ -94,6 +94,7 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
         'Persona asignada': issue.assignee || '',
         Informador: issue.reporter || '',
         Prioridad: issue.priority || '',
+        Impacto: issue.impact || '',
         'Actualizada (Ciudad de México)': formatDateTimeMexico(issue.updatedAt),
         'Fecha de resolución (Ciudad de México)': issue.resolvedAt ? formatDateTimeMexico(issue.resolvedAt) : '',
         'Tiempo total de resolución (horas)': issue.resolutionHours ?? '',
@@ -113,8 +114,10 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
         { Indicador: 'Backlog al cierre', Valor: report.metrics.backlog },
         { Indicador: 'Horas trabajadas en el mes', Valor: report.metrics.workedHours },
         { Indicador: 'Horas acumuladas de tickets conciliados', Valor: report.metrics.workedHoursCumulative },
-        { Indicador: 'Promedio de resolución (h)', Valor: report.metrics.averageResolutionHours },
-        { Indicador: 'Mediana de resolución (h)', Valor: report.metrics.medianResolutionHours },
+        { Indicador: 'Tickets con tiempo registrado', Valor: report.metrics.ticketsWithWorkedHours },
+        { Indicador: 'Horas efectivas promedio por ticket', Valor: report.metrics.averageWorkedHoursPerTicket },
+        { Indicador: 'Tiempo calendario promedio hasta cierre (h)', Valor: report.metrics.averageResolutionHours },
+        { Indicador: 'Mediana calendario hasta cierre (h)', Valor: report.metrics.medianResolutionHours },
       ]);
       XLSX.utils.book_append_sheet(workbook, summary, 'Resumen');
       const complexityRows = hourBuckets(handledIssues).flatMap((bucket) => bucket.issues.map((issue) => ({
@@ -191,7 +194,7 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
         { text: 'Tiempo de resolución', options: { bold: true } }, { text: ' = tiempo calendario desde la apertura hasta el cierre.\n' },
         { text: 'Backlog', options: { bold: true } }, { text: ' = casos que seguían pendientes al terminar el mes.' },
       ], { x: 0.8, y: 3.52, w: 5.8, h: 1.5, fontSize: 15, breakLine: false, color: colors.text, valign: 'middle', margin: 0.08 });
-      slide.addText(`Promedio de resolución: ${report.metrics.averageResolutionHours} h\nMediana de resolución: ${report.metrics.medianResolutionHours} h\nHoras acumuladas: ${report.metrics.workedHoursCumulative} h\nBacklog >30 días: ${report.metrics.olderThan30Days}`, { x: 7.15, y: 3.25, w: 4.8, h: 1.75, fontSize: 17, bold: true, color: colors.navy, fill: { color: 'EEF5FF' }, margin: 0.25, breakLine: true });
+      slide.addText(`Esfuerzo promedio: ${report.metrics.averageWorkedHoursPerTicket} h/ticket (${report.metrics.ticketsWithWorkedHours} con tiempo)\nTiempo calendario promedio: ${report.metrics.averageResolutionHours} h\nMediana calendario: ${report.metrics.medianResolutionHours} h\nBacklog >30 días: ${report.metrics.olderThan30Days}`, { x: 7.15, y: 3.25, w: 4.8, h: 1.75, fontSize: 16, bold: true, color: colors.navy, fill: { color: 'EEF5FF' }, margin: 0.25, breakLine: true });
 
       slide = pptx.addSlide();
       addTitle(slide, 'Casos creados vs. resueltos', 3);
@@ -289,7 +292,8 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
               <div className="mt-5 h-80"><ResponsiveContainer width="100%" height="100%"><LineChart data={report.daily}><CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" /><XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" /><YAxis allowDecimals={false} tick={{ fontSize: 10 }} /><Tooltip /><Legend /><Line type="monotone" dataKey="created" name="Creados" stroke="#d14a9b" strokeWidth={3} /><Line type="monotone" dataKey="resolved" name="Resueltos" stroke="#16865b" strokeWidth={3} /></LineChart></ResponsiveContainer></div>
             </div>
             <div className="space-y-4">
-              <Insight label="Tiempo promedio de resolución" value={`${report.metrics.averageResolutionHours} h`} detail={`Mediana: ${report.metrics.medianResolutionHours} h`} />
+              <Insight label="Horas efectivas promedio por ticket" value={`${report.metrics.averageWorkedHoursPerTicket} h`} detail={`${report.metrics.workedHours} h del mes ÷ ${report.metrics.ticketsWithWorkedHours} ticket(s) con tiempo registrado`} />
+              <Insight label="Tiempo calendario promedio hasta cierre" value={`${report.metrics.averageResolutionHours} h`} detail={`Desde creación hasta resolución · Mediana: ${report.metrics.medianResolutionHours} h`} />
               <Insight label="Horas acumuladas" value={`${report.metrics.workedHoursCumulative} h`} detail="Total histórico de los tickets conciliados; no se suma como consumo mensual." />
               <Insight label="Backlog mayor de 30 días" value={String(report.metrics.olderThan30Days)} detail="Requiere explicación y plan de cierre." warning={report.metrics.olderThan30Days > 0} />
               <Insight label="Sin estimación o fecha objetivo" value={String(report.metrics.backlogWithoutEstimate)} detail="Punto solicitado por Edith." warning={report.metrics.backlogWithoutEstimate > 0} />
@@ -302,6 +306,8 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
           </section>
 
           <ComplexityTable issues={handledIssues} />
+
+          <ImpactTable issues={handledIssues} />
 
           {report.qualityWarnings.length > 0 && <section className="rounded-2xl border border-orange-200 bg-orange-50 p-5"><h3 className="flex items-center gap-2 font-bold text-orange-900"><AlertTriangle className="h-5 w-5" /> Validaciones antes de aprobar</h3><ul className="mt-3 space-y-2 text-sm text-orange-900/80">{report.qualityWarnings.map((warning) => <li key={warning}>• {warning}</li>)}</ul></section>}
 
@@ -378,6 +384,21 @@ function ComplexityTable({ issues }: { issues: JiraIssueSnapshot[] }) {
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+function ImpactTable({ issues }: { issues: JiraIssueSnapshot[] }) {
+  const groups = Object.entries(issues.reduce<Record<string, JiraIssueSnapshot[]>>((result, issue) => {
+    const key = issue.impact || 'Sin impacto registrado';
+    (result[key] ||= []).push(issue);
+    return result;
+  }, {})).sort((a, b) => b[1].length - a[1].length);
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 className="font-bold text-slate-900">Impacto reportado en Jira</h3>
+      <p className="mt-1 text-xs text-slate-500">Impacto describe alcance o afectación; la complejidad se calcula separadamente con las horas trabajadas.</p>
+      <div className="mt-4 overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-3 py-3">Impacto</th><th className="px-3 py-3">Cantidad</th><th className="px-3 py-3">Tickets</th><th className="px-3 py-3">Horas del mes</th></tr></thead><tbody className="divide-y divide-slate-100">{groups.map(([impact, group]) => <tr key={impact}><td className="px-3 py-3 font-semibold text-slate-800">{impact}</td><td className="px-3 py-3 text-slate-600">{group.length}</td><td className="px-3 py-3 text-blue-700">{group.map((issue) => issue.key).join(', ')}</td><td className="px-3 py-3 text-slate-600">{Number(group.reduce((sum, issue) => sum + issue.timeWorkedHours, 0).toFixed(2))} h</td></tr>)}</tbody></table></div>
     </section>
   );
 }

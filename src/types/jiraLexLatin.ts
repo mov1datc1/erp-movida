@@ -6,6 +6,7 @@ export interface JiraLexLatinConfigInput {
   projectKey: string;
   timeWorkedFieldId: string;
   targetDateFieldId: string;
+  impactFieldId: string;
   approverOperationsEmail: string;
   approverDeliveryEmail: string;
   recipientTo: string;
@@ -35,6 +36,7 @@ export interface JiraIssueSnapshot {
   statusCategory: string;
   resolution: string | null;
   priority: string | null;
+  impact: string | null;
   assignee: string | null;
   reporter: string | null;
   createdAt: string;
@@ -59,6 +61,8 @@ export interface LexLatinReportMetrics {
   backlog: number;
   workedHours: number;
   workedHoursCumulative: number;
+  ticketsWithWorkedHours: number;
+  averageWorkedHoursPerTicket: number;
   averageResolutionHours: number;
   medianResolutionHours: number;
   missingWorkedTime: number;

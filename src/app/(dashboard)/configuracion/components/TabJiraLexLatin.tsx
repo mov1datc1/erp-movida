@@ -13,6 +13,7 @@ const defaultConfig: JiraLexLatinConfigView = {
   projectKey: 'MDS',
   timeWorkedFieldId: '',
   targetDateFieldId: '',
+  impactFieldId: 'customfield_10004',
   approverOperationsEmail: 'edgar.jaen@movidatci.com',
   approverDeliveryEmail: 'jonathan@movidatci.com',
   recipientTo: 'edith.santos@lexlatin.com',
@@ -64,6 +65,7 @@ export default function TabJiraLexLatin({ initialConfig }: { initialConfig: Jira
     setFields(result.data.fields);
     if (!form.timeWorkedFieldId && result.data.suggestedTimeField) update('timeWorkedFieldId', result.data.suggestedTimeField.id);
     if (!form.targetDateFieldId && result.data.suggestedTargetField) update('targetDateFieldId', result.data.suggestedTargetField.id);
+    if (!form.impactFieldId && result.data.suggestedImpactField) update('impactFieldId', result.data.suggestedImpactField.id);
     setFeedback({
       success: true,
       message: `Conexión exitosa como ${result.data.user}. Proyecto ${result.data.project.key}: ${result.data.project.name}.`,
@@ -111,11 +113,14 @@ export default function TabJiraLexLatin({ initialConfig }: { initialConfig: Jira
         <section className="space-y-4 border-t border-slate-100 pt-5">
           <div><h3 className="font-bold text-slate-800">Mapeo de campos</h3><p className="mt-1 text-xs text-slate-500">Prueba la conexión para detectar automáticamente los campos disponibles.</p></div>
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Campo Tiempo Trabajado" hint="Si queda vacío se utilizará el tiempo registrado en worklogs.">
-              {customFields.length ? <select value={form.timeWorkedFieldId} onChange={(event) => update('timeWorkedFieldId', event.target.value)} className="input-jira"><option value="">Usar worklogs estándar</option>{customFields.map((field) => <option key={field.id} value={field.id}>{field.name} — {field.id}</option>)}</select> : <input value={form.timeWorkedFieldId} onChange={(event) => update('timeWorkedFieldId', event.target.value)} placeholder="customfield_12345" className="input-jira font-mono" />}
+            <Field label="Campo Tiempo Trabajado" hint="Para Seguimiento de tiempo → Registrado usa worklogs estándar. No selecciones el SLA Time to resolution.">
+              {customFields.length ? <select value={form.timeWorkedFieldId} onChange={(event) => update('timeWorkedFieldId', event.target.value)} className="input-jira"><option value="">Usar worklogs estándar (recomendado)</option>{customFields.map((field) => <option key={field.id} value={field.id}>{field.name} — {field.id}</option>)}</select> : <input value={form.timeWorkedFieldId} onChange={(event) => update('timeWorkedFieldId', event.target.value)} placeholder="Vacío para worklogs estándar" className="input-jira font-mono" />}
             </Field>
             <Field label="Campo Fecha estimada de término" hint="Si queda vacío se utilizará Due date y la estimación original.">
               {customFields.length ? <select value={form.targetDateFieldId} onChange={(event) => update('targetDateFieldId', event.target.value)} className="input-jira"><option value="">Usar Due date</option>{customFields.map((field) => <option key={field.id} value={field.id}>{field.name} — {field.id}</option>)}</select> : <input value={form.targetDateFieldId} onChange={(event) => update('targetDateFieldId', event.target.value)} placeholder="customfield_12346" className="input-jira font-mono" />}
+            </Field>
+            <Field label="Campo Impacto" hint="Se reporta separado de la complejidad basada en horas.">
+              {customFields.length ? <select value={form.impactFieldId} onChange={(event) => update('impactFieldId', event.target.value)} className="input-jira"><option value="">No reportar impacto</option>{customFields.map((field) => <option key={field.id} value={field.id}>{field.name} — {field.id}</option>)}</select> : <input value={form.impactFieldId} onChange={(event) => update('impactFieldId', event.target.value)} placeholder="customfield_10004" className="input-jira font-mono" />}
             </Field>
           </div>
         </section>
