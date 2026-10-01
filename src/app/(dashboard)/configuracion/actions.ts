@@ -8,6 +8,7 @@ import { hasPermission, isSuperAdmin } from '@/lib/rbac';
 import { decryptSecret, encryptSecret } from '@/lib/secretEncryption';
 import type { EmailAccountInput, EmailAccountPurpose, EmailAccountView } from '@/types/emailAccounts';
 import nodemailer from 'nodemailer';
+import { ImapFlow } from 'imapflow';
 import { randomUUID } from 'node:crypto';
 import {
   getEnvironmentOpenAIApiKey,
@@ -389,17 +390,47 @@ export async function testEmailAccount(accountId: string) {
     });
 
     await transporter.verify();
+
+    const imapClient = new ImapFlow({
+      host: account.imapHost,
+      port: account.imapPort,
+      secure: account.imapSeguro,
+      auth: {
+        user: account.usuario,
+        pass: decryptSecret(account.passwordEncrypted),
+      },
+      logger: false,
+    });
+    try {
+      await imapClient.connect();
+      await imapClient.mailboxOpen('INBOX', { readOnly: true });
+    } finally {
+      await imapClient.logout().catch(() => undefined);
+    }
+
     const result = await transporter.sendMail({
       from: `"${account.nombreRemitente.replaceAll('"', '')}" <${account.email}>`,
       to: account.email,
-      subject: '[Movida ERP] Prueba de cuenta de correo',
-      text: `La cuenta ${account.nombre} quedó conectada correctamente al ERP Movida.`,
+      subject: '[Movida ERP] Prueba SMTP e IMAP',
+      text: `La cuenta ${account.nombre} quedó conectada correctamente al ERP Movida para enviar por SMTP y recibir por IMAP.`,
     });
 
-    return { success: true, message: `Prueba enviada a ${account.email}.`, messageId: result.messageId };
+    return { success: true, message: `SMTP e IMAP correctos. Prueba enviada a ${account.email}.`, messageId: result.messageId };
   } catch (error: any) {
     console.error('[Email accounts] Test failed:', error);
-    return { success: false, error: error.message || 'No fue posible conectar con el servidor SMTP.' };
+    const code = String(error?.code || '').toUpperCase();
+    const responseCode = Number(error?.responseCode || 0);
+    const message = String(error?.message || '');
+    if (code === 'EAUTH' || responseCode === 535 || /535|authentication|invalid login/i.test(message)) {
+      return { success: false, error: 'SiteGround rechazó el usuario o la contraseña. Usa como usuario la dirección completa del buzón y la contraseña propia de esa cuenta de correo, no la contraseña del panel de SiteGround.' };
+    }
+    if (code === 'ETIMEDOUT' || /timed?out/i.test(message)) {
+      return { success: false, error: 'El servidor no respondió. Si mail.movidatci.com está detrás del proxy de Cloudflare, usa el hostname exacto mostrado por SiteGround en Mail Configuration, por ejemplo gvam1133.siteground.biz.' };
+    }
+    if (/certificate|self signed|hostname/i.test(message)) {
+      return { success: false, error: 'El certificado TLS no coincide con el servidor. Usa el hostname exacto indicado por SiteGround y mantén activada la conexión segura.' };
+    }
+    return { success: false, error: message || 'No fue posible validar SMTP e IMAP.' };
   }
 }
 

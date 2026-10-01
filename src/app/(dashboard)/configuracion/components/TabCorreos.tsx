@@ -135,7 +135,7 @@ export default function TabCorreos({ initialAccounts }: { initialAccounts: Email
               <div className="mt-5 flex gap-2">
                 <button onClick={() => openEdit(account)} className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Editar</button>
                 <button onClick={() => handleTest(account)} disabled={testingId === account.id} className="flex-1 rounded-xl bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50">
-                  {testingId === account.id ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : <span className="inline-flex items-center gap-1.5"><Send className="h-3.5 w-3.5" /> Probar SMTP</span>}
+                  {testingId === account.id ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : <span className="inline-flex items-center gap-1.5"><Send className="h-3.5 w-3.5" /> Probar correo</span>}
                 </button>
               </div>
             </article>
@@ -186,7 +186,7 @@ export default function TabCorreos({ initialAccounts }: { initialAccounts: Email
               <section>
                 <h4 className="mb-3 font-bold text-slate-800">Servidor de salida (SMTP)</h4>
                 <div className="grid gap-4 md:grid-cols-3">
-                  <Field label="Servidor"><input value={form.smtpHost} onChange={(e) => update('smtpHost', e.target.value)} required placeholder="mail.movidatci.com" className="input-email" /></Field>
+                  <Field label="Servidor" hint="En SiteGround usa el hostname exacto de Mail Configuration; evita dominios detrás del proxy de Cloudflare."><input value={form.smtpHost} onChange={(e) => update('smtpHost', e.target.value)} required placeholder="gvam1133.siteground.biz" className="input-email" /></Field>
                   <Field label="Puerto"><input type="number" value={form.smtpPort} onChange={(e) => update('smtpPort', Number(e.target.value))} required min={1} max={65535} className="input-email" /></Field>
                   <Toggle label="Conexión segura" checked={form.smtpSeguro} onChange={(checked) => update('smtpSeguro', checked)} />
                 </div>
@@ -195,7 +195,7 @@ export default function TabCorreos({ initialAccounts }: { initialAccounts: Email
               <section>
                 <h4 className="mb-3 font-bold text-slate-800">Servidor de entrada (IMAP)</h4>
                 <div className="grid gap-4 md:grid-cols-3">
-                  <Field label="Servidor"><input value={form.imapHost} onChange={(e) => update('imapHost', e.target.value)} required placeholder="mail.movidatci.com" className="input-email" /></Field>
+                  <Field label="Servidor"><input value={form.imapHost} onChange={(e) => update('imapHost', e.target.value)} required placeholder="gvam1133.siteground.biz" className="input-email" /></Field>
                   <Field label="Puerto"><input type="number" value={form.imapPort} onChange={(e) => update('imapPort', Number(e.target.value))} required min={1} max={65535} className="input-email" /></Field>
                   <Toggle label="Conexión segura" checked={form.imapSeguro} onChange={(checked) => update('imapSeguro', checked)} />
                 </div>

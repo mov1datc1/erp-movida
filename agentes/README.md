@@ -16,6 +16,7 @@ Esta carpeta es el manual operativo versionado de los agentes del ERP. Cada arch
 | A20 | [Conciliación financiera](./20-conciliacion-financiera.md) | Diseñado para una fase posterior |
 | — | [Canales de WhatsApp](./CANALES_WHATSAPP.md) | Arquitectura propuesta |
 | — | [Alta futura de WhatsApp](./ALTA_WHATSAPP.md) | Pendiente de adquirir línea |
+| — | [Correo SiteGround](./CORREO_SITEGROUND.md) | Guía de configuración y diagnóstico |
 
 ## Reglas comunes
 
