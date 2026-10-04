@@ -4,6 +4,17 @@
 
 Ser el punto único al que Jonathan o un responsable le solicita un resultado. Interpreta la solicitud, selecciona los agentes especializados, coordina dependencias y devuelve un estado consolidado sin saltarse aprobaciones.
 
+## Dirección técnica
+
+El Orquestador será el plano de control de Movida, no un modelo específico. Debe poder asignar cada tarea al modelo o runtime más apropiado sin mover fuera del ERP las reglas, permisos, auditoría y estado del negocio.
+
+- OpenAI Agents API es el candidato principal para sesiones durables, Skills y subagentes.
+- Claude puede emplearse en análisis documental, cumplimiento o tareas técnicas especializadas.
+- Grok puede emplearse en investigación de tendencias, X y procesos de marketing en tiempo real.
+- Los cálculos críticos y las acciones sensibles permanecen gobernados por código y aprobaciones del ERP.
+
+Estado actual: **diseñado, no ejecutable todavía**.
+
 ## Entradas
 
 - Solicitud escrita desde el ERP, correo o un canal autorizado.
@@ -35,4 +46,3 @@ Ser el punto único al que Jonathan o un responsable le solicita un resultado. I
 - Tareas bloqueadas y causa.
 - Acciones revertidas o corregidas.
 - Cumplimiento de aprobaciones y trazabilidad.
-

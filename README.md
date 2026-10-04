@@ -1,3 +1,20 @@
+# Movida ERP
+
+ERP operativo de Movida TCI con CRM, proyectos, tareas, facturación, contabilidad y una plataforma progresiva de agentes empresariales.
+
+## Continuidad del proyecto
+
+Antes de trabajar en los agentes o retomar una sesión anterior, leer:
+
+1. [Handoff actual](./docs/HANDOFF_ACTUAL.md)
+2. [Knowledge Items de agentes](./docs/KI_AGENTES_MOVIDA.md)
+3. [Índice de agentes](./agentes/README.md)
+4. [Changelog](./CHANGELOG.md)
+
+No guardar claves, tokens ni contraseñas en documentación o commits.
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

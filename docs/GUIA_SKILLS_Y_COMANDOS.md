@@ -1,5 +1,7 @@
 # Guía de Uso: Menciones (@), Comandos (/) y Skills de Movida Factory
 
+> **Estado del documento (2026-10-04):** esta guía conserva un catálogo conceptual creado para el entorno Antigravity. No se debe asumir que los comandos o Skills listados están instalados en la sesión actual. Para el estado vigente de los agentes y la transición a Skills ejecutables, consultar [`KI_AGENTES_MOVIDA.md`](./KI_AGENTES_MOVIDA.md) y [`HANDOFF_ACTUAL.md`](./HANDOFF_ACTUAL.md). Una Skill operativa debe existir como directorio con `SKILL.md`, herramientas conectadas y pruebas.
+
 Esta guía documenta cómo sacarle el máximo provecho al asistente de desarrollo con IA (Antigravity) en el entorno de **Movida ERP** y todos los proyectos de **Movida TCI**.
 
 ---

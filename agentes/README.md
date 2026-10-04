@@ -2,6 +2,11 @@
 
 Esta carpeta es el manual operativo versionado de los agentes del ERP. Cada archivo describe qué hace un agente, qué información necesita, qué puede ejecutar, qué requiere aprobación humana y cómo deja evidencia.
 
+Para retomar el proyecto en una sesión nueva, comenzar por:
+
+1. [`../docs/HANDOFF_ACTUAL.md`](../docs/HANDOFF_ACTUAL.md)
+2. [`../docs/KI_AGENTES_MOVIDA.md`](../docs/KI_AGENTES_MOVIDA.md)
+
 ## Índice
 
 | Código | Agente | Estado |
@@ -11,12 +16,14 @@ Esta carpeta es el manual operativo versionado de los agentes del ERP. Cada arch
 | A10 | [Supervisor de Mesa de Servicio](./10-supervisor-mesa-servicio.md) | Diseñado |
 | A11 | [Gestor de seguimiento Jira](./11-seguimiento-jira.md) | Diseñado |
 | A12 | [Detector de duplicados Jira](./12-detector-duplicados-jira.md) | Diseñado |
-| A13 | [Control de calidad Jira](./13-control-calidad-jira.md) | Parcialmente implementado |
-| A14 | [Reporte mensual LexLatin](./14-reporte-lexlatin.md) | Parcialmente implementado |
+| A13 | [Control de calidad Jira](./13-control-calidad-jira.md) | Implementado para lectura y alertas del reporte; escritura en Jira pendiente |
+| A14 | [Reporte mensual LexLatin](./14-reporte-lexlatin.md) | Piloto operativo; validación final del circuito de respuesta pendiente |
 | A20 | [Conciliación financiera](./20-conciliacion-financiera.md) | Diseñado para una fase posterior |
 | — | [Canales de WhatsApp](./CANALES_WHATSAPP.md) | Arquitectura propuesta |
 | — | [Alta futura de WhatsApp](./ALTA_WHATSAPP.md) | Pendiente de adquirir línea |
 | — | [Correo SiteGround](./CORREO_SITEGROUND.md) | Guía de configuración y diagnóstico |
+
+Los documentos de esta carpeta son manuales operativos. Solo deben marcarse como Skills ejecutables cuando tengan un `SKILL.md`, herramientas conectadas y pruebas de ejecución.
 
 ## Reglas comunes
 

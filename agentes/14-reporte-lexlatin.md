@@ -6,13 +6,16 @@ Conciliar Jira y generar el Excel, PowerPoint y PDF mensual para LexLatin, con m
 
 ## Estado actual
 
-El ERP ya sincroniza Jira, muestra el tablero mensual y genera Excel, PowerPoint y PDF. También separa horas del mes y acumuladas, usa la zona horaria de Ciudad de México, excluye cancelados/duplicados y presenta complejidad y backlog.
+El ERP ya sincroniza Jira, muestra el tablero mensual y genera Excel, PowerPoint y PDF. Separa esfuerzo efectivo y tiempo calendario, usa la zona horaria de Ciudad de México, excluye cancelados de indicadores y presenta complejidad, top de esfuerzo y backlog. El último reporte queda persistido.
+
+El circuito de validación por correo también está implementado: envía una solicitud con folio, conserva evidencia SMTP y consulta respuestas por IMAP. Falta confirmar de extremo a extremo la recepción y respuesta de Edgar Reyes antes de considerarlo cerrado.
 
 ## Corte y responsables
 
 - Ejecución: primeros 5 días del mes siguiente.
 - Zona horaria: `America/Mexico_City`.
 - Aprobación de datos y cambios en Jira: Edgar Reyes.
+- Correo operativo de Edgar: `edgar.reyes@movidatci.com`.
 - Aprobación del informe y correo final: Jonathan Palacios.
 - Destinataria principal: Edith Santos.
 
@@ -49,6 +52,15 @@ El ERP ya sincroniza Jira, muestra el tablero mensual y genera Excel, PowerPoint
 - Excel de detalle, presentación y PDF.
 
 El último reporte sincronizado se conserva en el ERP y se restaura al regresar a la pantalla. Las solicitudes enviadas a Edgar y sus respuestas también son persistentes; cerrar el navegador no las elimina.
+
+## Prueba de correo vigente
+
+- Remitente: `agente.soporte@movidatci.com`.
+- El correo `edgar.jaen@movidatci.com` no existe y nunca debe usarse para solicitudes nuevas.
+- Una prueba exitosa debe mostrar `Aceptado por SMTP`, `Message-ID` y cero destinatarios rechazados.
+- Edgar debe responder sin cambiar el asunto para conservar el folio.
+- Pulsar `Revisar respuestas` debe cambiar la solicitud a `Respuesta recibida`.
+- La aceptación SMTP prueba recepción por el servidor, no garantiza bandeja principal; revisar spam o cuarentena si fuera necesario.
 
 ## Indicadores del agente
 

@@ -7,6 +7,31 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [Unreleased] — 2026-10-04
+
+### Added
+- **Configuración de agentes**: credenciales cifradas para cuentas SMTP/IMAP y configuración de OpenAI desde el ERP.
+- **Jira / LexLatin**: integración configurable con Atlassian, mapeo de worklogs, fecha objetivo e impacto.
+- **Soporte LexLatin**: tablero mensual con creados, resueltos, backlog, horas trabajadas, tiempo calendario, complejidad, top de esfuerzo y controles de calidad.
+- **Entregables LexLatin**: generación de Excel, PowerPoint y PDF.
+- **Persistencia**: restauración del último reporte y conservación de solicitudes enviadas al aprobador.
+- **Validación operativa**: correo controlado a Edgar Reyes, folios correlacionados y lectura de respuestas por IMAP.
+- **Auditoría SMTP**: `Message-ID`, remitente, destinatarios aceptados/rechazados y respuesta del servidor.
+- **Documentación de agentes**: roles de soporte, Jira, duplicados, calidad, reporte, WhatsApp y conciliación financiera.
+- **Continuidad**: Knowledge Items y handoff técnico para retomar el proyecto entre sesiones.
+
+### Changed
+- **Métricas LexLatin**: esfuerzo efectivo y tiempo calendario de resolución se calculan y presentan por separado.
+- **Horas Jira**: se utilizan worklogs estándar; el SLA `Time to resolution` no representa tiempo trabajado.
+- **Reporte mensual**: se excluyen cancelados, se usa `America/Mexico_City` y se priorizan métricas mensuales y top de esfuerzo.
+- **Aprobador operativo**: correo corregido a `edgar.reyes@movidatci.com`, con migración automática de la configuración anterior.
+
+### Fixed
+- **SiteGround**: configuración operativa con `gvam1133.siteground.biz`, SMTP 465 e IMAP 993.
+- **Nodemailer**: tolerancia a campos SMTP opcionales ausentes, evitando el error `Cannot read properties of undefined (reading 'map')`.
+
+---
+
 ## [1.9.0] — 2026-09-11
 
 ### Added
