@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { updateTarea, deleteTarea, reorderTareas, toggleFocus } from '@/app/actions/tareas';
-import { GripVertical, MoreVertical, Search, CheckSquare, Clock, Edit2, Trash2, MessageSquare, Flame, ChevronUp, ChevronDown, LayoutGrid, List } from 'lucide-react';
+import { updateTarea, deleteTarea, reorderTareas, toggleFocus, resendTaskNotification } from '@/app/actions/tareas';
+import { GripVertical, MoreVertical, Search, CheckSquare, Clock, Edit2, Trash2, MessageSquare, Flame, ChevronUp, ChevronDown, LayoutGrid, List, Mail, Loader2, Check } from 'lucide-react';
 import { TareaStatus, Prioridad, CategoriaTarea } from '@prisma/client';
 import BitacoraModal from './BitacoraModal';
 import EditarTareaModal from './EditarTareaModal';
@@ -16,6 +16,7 @@ interface Cliente {
 interface Encargado {
   id: string;
   nombre: string;
+  email?: string | null;
 }
 
 interface Comentario {
@@ -63,6 +64,27 @@ export default function TareasDataGrid({ initialTareas, clientes, encargados }: 
   const [boardDraggedTareaId, setBoardDraggedTareaId] = useState<string | null>(null);
   const [tareaForBitacora, setTareaForBitacora] = useState<Tarea | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'board'>('table');
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
+  const [emailSentMap, setEmailSentMap] = useState<Record<string, boolean>>({});
+
+  const handleSendEmail = async (tareaId: string) => {
+    setSendingEmailId(tareaId);
+    try {
+      const res = await resendTaskNotification(tareaId);
+      if (res.success) {
+        setEmailSentMap(prev => ({ ...prev, [tareaId]: true }));
+        setTimeout(() => {
+          setEmailSentMap(prev => ({ ...prev, [tareaId]: false }));
+        }, 4000);
+      } else {
+        alert(res.error || 'Error al enviar correo por SMTP');
+      }
+    } catch (e: any) {
+      alert(e.message || 'Error de conexión');
+    } finally {
+      setSendingEmailId(null);
+    }
+  };
 
   const handleNewComentarioOptimistic = (tareaId: string, newComentario: Comentario) => {
     setTareas(prev => prev.map(t => {
@@ -360,6 +382,20 @@ export default function TareasDataGrid({ initialTareas, clientes, encargados }: 
              >
                <Flame className="w-3.5 h-3.5" fill={tarea.is_focus ? "currentColor" : "none"} />
              </button>
+             <button 
+               onClick={() => handleSendEmail(tarea.id)}
+               disabled={sendingEmailId === tarea.id}
+               className={`p-1.5 rounded-md transition-colors ${emailSentMap[tarea.id] ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
+               title={emailSentMap[tarea.id] ? "¡Notificación enviada por correo!" : "Enviar notificación por correo"}
+             >
+               {sendingEmailId === tarea.id ? (
+                 <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+               ) : emailSentMap[tarea.id] ? (
+                 <Check className="w-3.5 h-3.5 text-emerald-600" />
+               ) : (
+                 <Mail className="w-3.5 h-3.5" />
+               )}
+             </button>
              <EditarTareaModal 
                tareaToEdit={tarea} 
                clientes={clientes} 
@@ -587,6 +623,20 @@ export default function TareasDataGrid({ initialTareas, clientes, encargados }: 
                             title={tarea.is_focus ? "Quitar Focus" : "Marcar como Focus"}
                           >
                             <Flame className="w-4 h-4" fill={tarea.is_focus ? "currentColor" : "none"} />
+                          </button>
+                          <button 
+                            onClick={() => handleSendEmail(tarea.id)}
+                            disabled={sendingEmailId === tarea.id}
+                            className={`p-1.5 rounded-lg transition-colors ${emailSentMap[tarea.id] ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
+                            title={emailSentMap[tarea.id] ? "¡Notificación enviada por correo!" : "Enviar notificación por correo vía SMTP"}
+                          >
+                            {sendingEmailId === tarea.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+                            ) : emailSentMap[tarea.id] ? (
+                              <Check className="w-4 h-4 text-emerald-600" />
+                            ) : (
+                              <Mail className="w-4 h-4" />
+                            )}
                           </button>
                           <EditarTareaModal 
                             tareaToEdit={tarea} 

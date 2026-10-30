@@ -3,7 +3,12 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { Prioridad, CategoriaTarea, TareaStatus } from "@prisma/client"
-import { sendTaskStatusNotification, sendSubtaskUpdateNotification } from "@/lib/email"
+import { 
+  sendTaskStatusNotification, 
+  sendSubtaskUpdateNotification, 
+  sendTaskCreatedNotification, 
+  sendTaskNotificationById 
+} from "@/lib/email"
 
 export async function createTarea(formData: FormData) {
   try {
@@ -37,8 +42,29 @@ export async function createTarea(formData: FormData) {
         encargados: {
           connect: encargadosIds.map(id => ({ id }))
         }
+      },
+      include: {
+        cliente: { select: { nombre: true } },
+        proyecto: { select: { nombre: true } },
+        sprint: { select: { numero: true, nombre: true } },
+        encargados: { select: { id: true, nombre: true, email: true } },
       }
     })
+
+    // Disparar envío automático de correo SMTP
+    sendTaskCreatedNotification({
+      taskTitle: tarea.titulo,
+      descripcion: tarea.descripcion,
+      clienteNombre: tarea.cliente?.nombre,
+      proyectoNombre: tarea.proyecto?.nombre,
+      sprintNumero: tarea.sprint?.numero,
+      sprintNombre: tarea.sprint?.nombre,
+      encargadosNombres: tarea.encargados.map(e => e.nombre),
+      encargadosEmails: tarea.encargados.map(e => e.email).filter(Boolean) as string[],
+      prioridad: tarea.prioridad,
+      estatus: tarea.estatus,
+      fechaLimite: tarea.fecha_limite,
+    }).catch(err => console.error('[SMTP] Error enviando correo de tarea creada:', err));
 
     revalidatePath('/tareas')
     revalidatePath('/proyectos')
@@ -139,15 +165,18 @@ export async function reorderTareas(updates: { id: string, orden: number }[]) {
 
 export async function createEncargado(formData: FormData) {
   try {
-    // Ideally we would check auth here, but since auth is just assumed Admin for now:
     const nombre = formData.get('nombre') as string
+    const email = (formData.get('email') as string | null)?.trim() || null
     
     if (!nombre || nombre.trim() === '') {
       return { success: false, error: 'El nombre es obligatorio' }
     }
 
     const encargado = await prisma.encargado.create({
-      data: { nombre: nombre.trim() }
+      data: { 
+        nombre: nombre.trim(),
+        email: email || null,
+      }
     })
 
     revalidatePath('/tareas')
@@ -159,6 +188,31 @@ export async function createEncargado(formData: FormData) {
       return { success: false, error: 'Ya existe un encargado con ese nombre' }
     }
     return { success: false, error: 'Ocurrió un error al crear el encargado' }
+  }
+}
+
+export async function updateEncargadoEmail(id: string, email: string) {
+  try {
+    const encargado = await prisma.encargado.update({
+      where: { id },
+      data: { email: email.trim() || null }
+    })
+    revalidatePath('/tareas')
+    revalidatePath('/proyectos')
+    return { success: true, data: encargado }
+  } catch (error: any) {
+    console.error("Error updating encargado email:", error)
+    return { success: false, error: error.message || 'Ocurrió un error al actualizar el correo del encargado' }
+  }
+}
+
+export async function resendTaskNotification(tareaId: string, customEmail?: string) {
+  try {
+    const result = await sendTaskNotificationById(tareaId, customEmail)
+    return result
+  } catch (error: any) {
+    console.error("Error reenviando notificación de tarea:", error)
+    return { success: false, error: error.message || 'Error reenviando notificación' }
   }
 }
 

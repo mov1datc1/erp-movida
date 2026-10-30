@@ -6,6 +6,7 @@ import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import { prisma } from '@/lib/prisma';
 import { decryptSecret } from '@/lib/secretEncryption';
+import { enrichReportWithSubtasks } from '@/lib/jiraClient';
 import type { LexLatinReportData } from '@/types/jiraLexLatin';
 import type { LexLatinAgentRequestView } from '@/types/lexLatinAgent';
 
@@ -85,7 +86,8 @@ export async function getLatestLexLatinReportSnapshot() {
   const integration = await prisma.integracion.findUnique({ where: { proveedor: REPORT_CACHE_PROVIDER } });
   if (!integration?.config || typeof integration.config !== 'object' || Array.isArray(integration.config)) return null;
   const reports = (integration.config as { reports?: LexLatinReportData[] }).reports;
-  return Array.isArray(reports) && reports.length ? reports[0] : null;
+  if (!Array.isArray(reports) || !reports.length) return null;
+  return enrichReportWithSubtasks(reports[0]);
 }
 
 function getIssueKeys(report: LexLatinReportData) {
@@ -109,7 +111,7 @@ function buildIssueHtml(report: LexLatinReportData) {
   return rows.length ? `<ol>${rows.join('')}</ol>` : '<p>No se detectaron datos críticos faltantes. Esta solicitud valida solamente el circuito de correo.</p>';
 }
 
-export async function sendLexLatinValidationEmail(report: LexLatinReportData, recipient: string, mode: 'TEST' | 'LIVE' = 'TEST') {
+export async function sendLexLatinValidationEmail(report: LexLatinReportData, recipient: string, mode: 'TEST' | 'LIVE' = 'LIVE') {
   const account = await getAgentEmailAccount();
   const requests = await getLexLatinAgentRequests();
   const folio = `LEX-${report.period.replace('-', '')}-${randomBytes(3).toString('hex').toUpperCase()}`;
@@ -131,22 +133,25 @@ export async function sendLexLatinValidationEmail(report: LexLatinReportData, re
     text: [
       `Hola Edgar,`,
       '',
-      mode === 'TEST' ? 'Esta es una prueba controlada del agente de Soporte LexLatin. No modificará Jira.' : 'El agente encontró datos que requieren validación antes del cierre.',
+      mode === 'TEST' 
+        ? 'Esta es una prueba controlada del agente de Soporte LexLatin. No modificará Jira.' 
+        : `Como parte del cierre del periodo ${report.periodLabel}, el agente detectó casos que requieren validación de horas o estimación para cerrar el informe mensual.`,
       `Folio: ${folio}`,
       '',
       ...report.qualityWarnings.map((warning) => `- ${warning}`),
       '',
-      'Por favor responde este mismo correo sin cambiar el asunto. Puedes indicar horas, fecha objetivo, estado o cualquier corrección.',
-      'Ejemplo: MDS-1640: 2 horas. MDS-1627: fecha objetivo 4/oct.',
+      'Por favor responde este mismo correo sin cambiar el asunto. Puedes indicar horas trabajadas, fecha objetivo, estado o correcciones.',
+      'Ejemplo: MDS-1697: 3 horas. MDS-1696: fecha objetivo 5/nov.',
       '',
       'Movida ERP · Agente de Soporte LexLatin',
     ].join('\n'),
-    html: `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#1e293b;line-height:1.55"><div style="max-width:680px;margin:auto;border:1px solid #e2e8f0;border-radius:16px;padding:28px"><p style="font-size:12px;font-weight:bold;color:#2563eb;text-transform:uppercase">Movida ERP · Agente de Soporte LexLatin</p><h2>${mode === 'TEST' ? 'Prueba controlada de validación' : 'Validación operativa requerida'}</h2><p>Hola Edgar,</p><p>${mode === 'TEST' ? '<strong>Esta es una prueba y no modificará Jira.</strong> Queremos confirmar que el agente puede enviar la solicitud y recibir tu respuesta.' : 'Encontré datos que requieren validación antes del cierre.'}</p><p><strong>Folio:</strong> ${folio}</p>${buildIssueHtml(report)}<div style="background:#eff6ff;border-radius:12px;padding:16px;margin:20px 0"><strong>¿Cómo responder?</strong><br>Responde este mismo correo sin cambiar el asunto. Puedes escribir, por ejemplo:<br><em>MDS-1640: 2 horas. MDS-1627: fecha objetivo 4/oct.</em></div><p>Gracias.</p></div></body></html>`,
+    html: `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#1e293b;line-height:1.55"><div style="max-width:680px;margin:auto;border:1px solid #e2e8f0;border-radius:16px;padding:28px"><p style="font-size:12px;font-weight:bold;color:#2563eb;text-transform:uppercase">Movida ERP · Agente de Soporte LexLatin</p><h2>${mode === 'TEST' ? 'Prueba controlada de validación' : `Validación operativa requerida — ${report.periodLabel}`}</h2><p>Hola Edgar,</p><p>${mode === 'TEST' ? '<strong>Esta es una prueba y no modificará Jira.</strong> Queremos confirmar que el agente puede enviar la solicitud y recibir tu respuesta.' : `Se generó el corte mensual para <strong>${report.periodLabel}</strong>. Encontré datos que requieren validación u horas trabajadas para conciliar los tickets en el informe.`}</p><p><strong>Folio:</strong> ${folio}</p>${buildIssueHtml(report)}<div style="background:#eff6ff;border-radius:12px;padding:16px;margin:20px 0"><strong>¿Cómo responder?</strong><br>Responde este mismo correo sin cambiar el asunto. Puedes escribir, por ejemplo:<br><em>MDS-1697: 3 horas. MDS-1696: fecha objetivo 5/nov.</em></div><p>Gracias.</p></div></body></html>`,
   });
   const request: LexLatinAgentRequestView = {
     id: randomUUID(),
     folio,
     period: report.period,
+    type: 'OPERATIONS_VALIDATION',
     status: 'SENT',
     mode,
     recipient: recipient.toLowerCase(),
@@ -171,6 +176,261 @@ export async function sendLexLatinValidationEmail(report: LexLatinReportData, re
     rejected: request.smtpRejected,
     response: request.smtpResponse,
   });
+  return request;
+}
+
+export async function sendLexLatinDeliveryApprovalEmail(
+  report: LexLatinReportData,
+  recipient: string,
+  operationalResponseText?: string | null
+) {
+  const account = await getAgentEmailAccount();
+  const requests = await getLexLatinAgentRequests();
+  const folio = `LEX-ENTREGA-${report.period.replace('-', '')}-${randomBytes(3).toString('hex').toUpperCase()}`;
+  const subject = `[Movida LexLatin][${folio}] Solicitud de Aprobación de Entrega — Informe ${report.periodLabel}`;
+
+  const transporter = nodemailer.createTransport({
+    host: account.smtpHost,
+    port: account.smtpPort,
+    secure: account.smtpSeguro,
+    auth: { user: account.usuario, pass: decryptSecret(account.passwordEncrypted) },
+    tls: { rejectUnauthorized: true },
+  });
+  await transporter.verify();
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://erp-movida.vercel.app';
+
+  const operationalSectionHtml = operationalResponseText
+    ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;margin:20px 0">
+        <strong style="color:#166534">✅ Validación Operativa Recibida (Edgar Reyes):</strong>
+        <div style="font-size:13px;color:#1e293b;margin-top:8px;white-space:pre-wrap">${escapeHtml(operationalResponseText.slice(0, 500))}</div>
+       </div>`
+    : `<div style="background:#fffbeb;border:1px solid #fef3c7;border-radius:12px;padding:16px;margin:20px 0">
+        <strong style="color:#92400e">ℹ️ Validación Operativa:</strong>
+        <p style="margin:4px 0 0 0;font-size:13px;color:#78350f">Revisión automática de datos completada por el agente.</p>
+       </div>`;
+
+  const html = `<!doctype html>
+<html>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;background-color:#f8fafc;padding:24px 12px;margin:0">
+  <div style="max-width:640px;margin:auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05)">
+    <div style="padding:24px 28px;background:linear-gradient(135deg,#1e40af 0%,#3b82f6 100%);color:#ffffff">
+      <p style="font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin:0;opacity:0.85">Movida ERP · Dirección de Operaciones</p>
+      <h2 style="margin:8px 0 0 0;font-size:20px;font-weight:800;color:#ffffff">Aprobación de Entrega — Soporte LexLatin</h2>
+    </div>
+    <div style="padding:28px">
+      <p style="font-size:15px;color:#334155;margin:0 0 16px 0">Hola Jonathan,</p>
+      <p style="font-size:14px;color:#475569;line-height:1.6;margin:0 0 20px 0">
+        El informe mensual de Soporte LexLatin para <strong>${report.periodLabel}</strong> está conciliado y listo para autorizar el despacho final a <strong>Edith Santos</strong>.
+      </p>
+
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin-bottom:20px">
+        <h4 style="margin:0 0 12px 0;font-size:13px;text-transform:uppercase;color:#64748b;letter-spacing:0.5px">Métricas del Periodo (${report.periodLabel})</h4>
+        <table width="100%" cellpadding="6" cellspacing="0" style="font-size:13px;border-collapse:collapse">
+          <tr style="border-bottom:1px solid #e2e8f0"><td style="color:#64748b">Casos creados en el mes:</td><td align="right" style="font-weight:800;color:#0f172a">${report.metrics.created}</td></tr>
+          <tr style="border-bottom:1px solid #e2e8f0"><td style="color:#64748b">Casos resueltos:</td><td align="right" style="font-weight:800;color:#0f172a">${report.metrics.resolved}</td></tr>
+          <tr style="border-bottom:1px solid #e2e8f0"><td style="color:#64748b">Backlog al cierre:</td><td align="right" style="font-weight:800;color:#0f172a">${report.metrics.backlog}</td></tr>
+          <tr style="border-bottom:1px solid #e2e8f0"><td style="color:#64748b">Horas efectivas trabajadas:</td><td align="right" style="font-weight:800;color:#2563eb">${report.metrics.workedHours} h</td></tr>
+          <tr><td style="color:#64748b">Promedio de dedicación por ticket:</td><td align="right" style="font-weight:800;color:#0f172a">${report.metrics.averageWorkedHoursPerTicket} h</td></tr>
+        </table>
+      </div>
+
+      ${operationalSectionHtml}
+
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px;margin:20px 0">
+        <strong style="color:#1e40af;font-size:13px">Borrador para Edith Santos (edith.santos@lexlatin.com):</strong>
+        <p style="font-size:13px;color:#1e3a8a;margin:6px 0 0 0;line-height:1.5">
+          "Estimada Edith, compartimos el informe consolidado de servicio y soporte correspondiente a ${report.periodLabel}, incluyendo detalle de casos creados (${report.metrics.created}), cerrados (${report.metrics.resolved}), horas de esfuerzo (${report.metrics.workedHours} h) y estado de backlog..."
+        </p>
+      </div>
+
+      <div style="text-align:center;margin-top:28px">
+        <a href="${appUrl}/soporte-lexlatin" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:12px;font-size:14px;font-weight:700;box-shadow:0 4px 6px -1px rgba(37,99,235,0.25)">
+          Autorizar Entrega en Movida ERP ➔
+        </a>
+      </div>
+    </div>
+    <div style="padding:16px 28px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:11px;color:#64748b;text-align:center">
+      Folio: ${folio} · Movida ERP Agente de Soporte LexLatin
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const result = await transporter.sendMail({
+    from: `"${account.nombreRemitente.replaceAll('"', '')}" <${account.email}>`,
+    to: recipient,
+    replyTo: account.email,
+    subject,
+    text: [
+      `Hola Jonathan,`,
+      '',
+      `El informe mensual de Soporte LexLatin para ${report.periodLabel} está listo para su aprobación de entrega.`,
+      `Folio: ${folio}`,
+      '',
+      `Métricas principales:`,
+      `- Creados: ${report.metrics.created}`,
+      `- Resueltos: ${report.metrics.resolved}`,
+      `- Horas trabajadas: ${report.metrics.workedHours} h`,
+      `- Backlog: ${report.metrics.backlog}`,
+      '',
+      `Puedes revisarlo y autorizarlo directamente en: ${appUrl}/soporte-lexlatin`,
+      '',
+      `Movida ERP · Agente de Soporte LexLatin`,
+    ].join('\n'),
+    html,
+  });
+
+  const request: LexLatinAgentRequestView = {
+    id: randomUUID(),
+    folio,
+    period: report.period,
+    type: 'DELIVERY_APPROVAL',
+    status: 'SENT',
+    mode: 'LIVE',
+    recipient: recipient.toLowerCase(),
+    sender: account.email.toLowerCase(),
+    subject,
+    sentAt: new Date().toISOString(),
+    messageId: result.messageId,
+    smtpAccepted: Array.isArray(result.accepted) ? result.accepted.map(String) : [],
+    smtpRejected: Array.isArray(result.rejected) ? result.rejected.map(String) : [],
+    smtpPending: Array.isArray(result.pending) ? result.pending.map(String) : [],
+    smtpResponse: typeof result.response === 'string' ? result.response : undefined,
+    issueKeys: [],
+    warnings: report.qualityWarnings,
+  };
+
+  await saveRequests([request, ...requests]);
+  return request;
+}
+
+export async function sendLexLatinFinalDeliveryEmail(
+  report: LexLatinReportData,
+  recipientTo: string,
+  recipientCc: string
+) {
+  const account = await getAgentEmailAccount();
+  const requests = await getLexLatinAgentRequests();
+  const folio = `LEX-FINAL-${report.period.replace('-', '')}-${randomBytes(3).toString('hex').toUpperCase()}`;
+  const subject = `[Movida TCI] Informe Mensual de Servicio y Soporte LexLatin — ${report.periodLabel}`;
+
+  const transporter = nodemailer.createTransport({
+    host: account.smtpHost,
+    port: account.smtpPort,
+    secure: account.smtpSeguro,
+    auth: { user: account.usuario, pass: decryptSecret(account.passwordEncrypted) },
+    tls: { rejectUnauthorized: true },
+  });
+  await transporter.verify();
+
+  const ccList = recipientCc
+    .split(/[,;\n]/)
+    .map((e) => e.trim())
+    .filter(Boolean);
+
+  const html = `<!doctype html>
+<html>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;background-color:#f8fafc;padding:24px 12px;margin:0">
+  <div style="max-width:640px;margin:auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden">
+    <div style="padding:28px;background:linear-gradient(135deg,#059669 0%,#0d9488 100%);color:#ffffff">
+      <p style="font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin:0;opacity:0.85">Movida TCI · Mesa de Servicio</p>
+      <h2 style="margin:8px 0 0 0;font-size:22px;font-weight:800;color:#ffffff">Informe Mensual de Soporte y Desarrollo</h2>
+    </div>
+    <div style="padding:28px">
+      <p style="font-size:15px;color:#334155;margin:0 0 16px 0">Estimada Edith Santos,</p>
+      <p style="font-size:14px;color:#475569;line-height:1.6;margin:0 0 20px 0">
+        A continuación compartimos el resumen consolidado de las actividades de servicio, soporte y requerimientos atendidos por el equipo de Movida TCI durante el periodo de <strong>${report.periodLabel}</strong>.
+      </p>
+
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:20px">
+        <h3 style="margin:0 0 14px 0;font-size:14px;font-weight:800;color:#0f172a">Resumen Ejecutivo de Indicadores</h3>
+        <table width="100%" cellpadding="8" cellspacing="0" style="font-size:13px;border-collapse:collapse">
+          <tr style="border-bottom:1px solid #e2e8f0">
+            <td style="color:#64748b">Casos creados en el mes:</td>
+            <td align="right" style="font-weight:800;color:#0f172a">${report.metrics.created}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e2e8f0">
+            <td style="color:#64748b">Casos resueltos satisfactoriamente:</td>
+            <td align="right" style="font-weight:800;color:#059669">${report.metrics.resolved}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e2e8f0">
+            <td style="color:#64748b">Casos en backlog / seguimiento continuo:</td>
+            <td align="right" style="font-weight:800;color:#0f172a">${report.metrics.backlog}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e2e8f0">
+            <td style="color:#64748b">Total de horas efectivas dedicadas en el mes:</td>
+            <td align="right" style="font-weight:800;color:#2563eb">${report.metrics.workedHours} horas</td>
+          </tr>
+          <tr>
+            <td style="color:#64748b">Tiempo promedio de dedicación por ticket:</td>
+            <td align="right" style="font-weight:800;color:#0f172a">${report.metrics.averageWorkedHoursPerTicket} horas</td>
+          </tr>
+        </table>
+      </div>
+
+      <p style="font-size:13px;color:#475569;line-height:1.6">
+        Las memorias completas y planillas de conciliación han sido registradas y avaladas por la dirección de entrega de Movida TCI. Si requieres cualquier revisión puntual de los casos, quedamos a tu completa disposición.
+      </p>
+
+      <p style="margin-top:24px;font-size:14px;color:#334155;font-weight:600">
+        Atentamente,<br>
+        <span style="color:#0f172a;font-weight:800">Equipo Movida TCI</span>
+      </p>
+    </div>
+    <div style="padding:16px 28px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:11px;color:#64748b;text-align:center">
+      Folio de entrega: ${folio} · Generado automáticamente por Movida ERP
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const result = await transporter.sendMail({
+    from: `"${account.nombreRemitente.replaceAll('"', '')}" <${account.email}>`,
+    to: recipientTo,
+    cc: ccList,
+    replyTo: account.email,
+    subject,
+    text: [
+      `Estimada Edith Santos,`,
+      '',
+      `Compartimos el informe mensual de soporte y servicio de LexLatin para ${report.periodLabel}.`,
+      `Folio: ${folio}`,
+      '',
+      `- Casos creados: ${report.metrics.created}`,
+      `- Casos resueltos: ${report.metrics.resolved}`,
+      `- Backlog al cierre: ${report.metrics.backlog}`,
+      `- Horas dedicadas en el mes: ${report.metrics.workedHours} h`,
+      '',
+      `Quedamos a su disposición para cualquier duda.`,
+      '',
+      `Atentamente,`,
+      `Equipo Movida TCI`,
+    ].join('\n'),
+    html,
+  });
+
+  const request: LexLatinAgentRequestView = {
+    id: randomUUID(),
+    folio,
+    period: report.period,
+    type: 'FINAL_DELIVERY',
+    status: 'DELIVERED',
+    mode: 'LIVE',
+    recipient: recipientTo.toLowerCase(),
+    sender: account.email.toLowerCase(),
+    subject,
+    sentAt: new Date().toISOString(),
+    messageId: result.messageId,
+    smtpAccepted: Array.isArray(result.accepted) ? result.accepted.map(String) : [],
+    smtpRejected: Array.isArray(result.rejected) ? result.rejected.map(String) : [],
+    smtpPending: Array.isArray(result.pending) ? result.pending.map(String) : [],
+    smtpResponse: typeof result.response === 'string' ? result.response : undefined,
+    issueKeys: [],
+    warnings: [],
+  };
+
+  await saveRequests([request, ...requests]);
   return request;
 }
 

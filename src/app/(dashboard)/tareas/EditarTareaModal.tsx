@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Edit2, Loader2, Calendar, Trash2, Search, ChevronDown, CheckSquare, Plus } from 'lucide-react';
-import { updateTarea, createEncargado, deleteEncargado, createSubtarea, toggleSubtarea, deleteSubtarea } from '@/app/actions/tareas';
+import { X, Edit2, Loader2, Calendar, Trash2, Search, ChevronDown, CheckSquare, Plus, Mail, Check } from 'lucide-react';
+import { updateTarea, createEncargado, deleteEncargado, createSubtarea, toggleSubtarea, deleteSubtarea, resendTaskNotification } from '@/app/actions/tareas';
 import EliminarTareaModal from './EliminarTareaModal';
 
 interface Cliente {
@@ -14,6 +14,7 @@ interface Cliente {
 interface Encargado {
   id: string;
   nombre: string;
+  email?: string | null;
 }
 
 interface SprintItem {
@@ -42,6 +43,26 @@ export default function EditarTareaModal({ tareaToEdit, clientes, encargados, pr
   const [encargadoToDelete, setEncargadoToDelete] = useState<Encargado | null>(null);
   const [isDeletingEncargado, setIsDeletingEncargado] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleSendEmailNotification = async () => {
+    setIsSendingEmail(true);
+    setEmailStatus(null);
+    try {
+      const res = await resendTaskNotification(tareaToEdit.id);
+      if (res.success) {
+        setEmailStatus({ success: true, message: 'Correo enviado correctamente' });
+        setTimeout(() => setEmailStatus(null), 5000);
+      } else {
+        setEmailStatus({ success: false, message: res.error || 'Error al enviar correo' });
+      }
+    } catch (e: any) {
+      setEmailStatus({ success: false, message: e.message || 'Error de conexión' });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -518,28 +539,47 @@ export default function EditarTareaModal({ tareaToEdit, clientes, encargados, pr
                   </div>
                 </div>
 
-                <div className="pt-6 flex justify-between items-center border-t border-slate-100 mt-6">
-                  <EliminarTareaModal
-                    tareaId={tareaToEdit.id}
-                    tareaTitulo={tareaToEdit.titulo}
-                    onDeleted={() => setIsOpen(false)}
-                    triggerButton={
-                      <button
-                        type="button"
-                        className="px-4 py-2 text-red-600 font-semibold hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1.5 text-sm"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Eliminar Tarjeta
-                      </button>
-                    }
-                  />
+                <div className="pt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-t border-slate-100 mt-6">
+                  <div className="flex items-center gap-2">
+                    <EliminarTareaModal
+                      tareaId={tareaToEdit.id}
+                      tareaTitulo={tareaToEdit.titulo}
+                      onDeleted={() => setIsOpen(false)}
+                      triggerButton={
+                        <button
+                          type="button"
+                          className="px-3 py-2 text-red-600 font-semibold hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1.5 text-xs"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Eliminar
+                        </button>
+                      }
+                    />
 
-                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={handleSendEmailNotification}
+                      disabled={isSendingEmail}
+                      className="px-3 py-2 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-bold disabled:opacity-50"
+                      title="Enviar correo de notificación de esta tarea vía SMTP"
+                    >
+                      {isSendingEmail ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
+                      <span>{isSendingEmail ? 'Enviando...' : 'Reenviar Correo'}</span>
+                    </button>
+
+                    {emailStatus && (
+                      <span className={`text-xs font-bold px-2 py-1 rounded-md ${emailStatus.success ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                        {emailStatus.success ? '✓ ' : '✕ '} {emailStatus.message}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex gap-3 w-full sm:w-auto justify-end">
                     <button 
                       type="button" 
                       onClick={() => setIsOpen(false)}
                       disabled={isLoading}
-                      className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors"
+                      className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors text-sm"
                     >
                       Cancelar
                     </button>
@@ -547,9 +587,9 @@ export default function EditarTareaModal({ tareaToEdit, clientes, encargados, pr
                       type="submit" 
                       form="edit-task-form"
                       disabled={isLoading}
-                      className="bg-primary hover:bg-primary-light text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-primary/20 flex items-center gap-2"
+                      className="bg-primary hover:bg-primary-light text-white px-5 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-primary/20 flex items-center gap-2 text-sm"
                     >
-                      {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Guardar Cambios'}
+                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar Cambios'}
                     </button>
                   </div>
                 </div>

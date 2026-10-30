@@ -27,11 +27,33 @@ export interface JiraFieldOption {
   schemaType?: string;
 }
 
+export interface JiraSubtaskSnapshot {
+  id: string;
+  key: string;
+  summary: string;
+  status: string;
+  statusCategory?: string;
+  issueType: string;
+  isSubtask: boolean;
+  priority?: string | null;
+  assignee?: string | null;
+  resolution?: string | null;
+  parentKey: string;
+  parentSummary?: string | null;
+  url: string;
+  originalEstimateHours?: number | null;
+  timeWorkedHours?: number;
+}
+
 export interface JiraIssueSnapshot {
   id: string;
   key: string;
   summary: string;
   issueType: string;
+  isSubtask?: boolean;
+  parentKey?: string | null;
+  parentSummary?: string | null;
+  subtasks?: JiraSubtaskSnapshot[];
   status: string;
   statusCategory: string;
   resolution: string | null;
@@ -68,6 +90,11 @@ export interface LexLatinReportMetrics {
   missingWorkedTime: number;
   backlogWithoutEstimate: number;
   olderThan30Days: number;
+  totalSubtasks?: number;
+  ticketsWithSubtasks?: number;
+  resolvedSubtasks?: number;
+  openSubtasks?: number;
+  maxSubtasksPerTicket?: number;
 }
 
 export interface LexLatinDailyPoint {

@@ -15,7 +15,7 @@ export default async function TareasPage() {
       where: { proyecto_id: null },
       include: {
         cliente: { select: { id: true, nombre: true } },
-        encargados: { select: { id: true, nombre: true } },
+        encargados: { select: { id: true, nombre: true, email: true } },
         subtareas: { orderBy: { createdAt: 'asc' } },
         comentarios: { orderBy: { createdAt: 'desc' } }
       },
@@ -28,7 +28,7 @@ export default async function TareasPage() {
     });
 
     encargados = await prisma.encargado.findMany({
-      select: { id: true, nombre: true },
+      select: { id: true, nombre: true, email: true },
       orderBy: { nombre: 'asc' }
     });
   } catch (e) {

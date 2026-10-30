@@ -13,6 +13,7 @@ interface Cliente {
 interface Encargado {
   id: string;
   nombre: string;
+  email?: string | null;
 }
 
 interface SprintItem {
@@ -165,29 +166,37 @@ export default function NuevaTareaModal({
               )}
 
               {showNewEncargado ? (
-                <form onSubmit={handleCreateEncargado} className="mb-6 p-4 bg-blue-50/50 border border-blue-100 rounded-xl">
-                  <h3 className="text-sm font-bold text-blue-900 mb-3">Añadir Nuevo Encargado (Solo Admin)</h3>
-                  <div className="flex gap-2">
+                <form onSubmit={handleCreateEncargado} className="mb-6 p-4 bg-blue-50/50 border border-blue-100 rounded-xl space-y-3">
+                  <h3 className="text-sm font-bold text-blue-900">Añadir Nuevo Encargado (Solo Admin)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <input
                       type="text"
                       name="nombre"
                       required
                       placeholder="Nombre del responsable"
-                      className="flex-1 px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                      className="px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm bg-white"
                     />
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="Correo para notificaciones (opcional)"
+                      className="px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm bg-white"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
                     <button
                       type="button"
                       onClick={() => setShowNewEncargado(false)}
-                      className="px-3 py-2 text-slate-500 hover:bg-slate-200 rounded-lg"
+                      className="px-3 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-200 rounded-lg"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
                       disabled={isCreatingEncargado}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
                     >
-                      {isCreatingEncargado ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar'}
+                      {isCreatingEncargado ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Guardar Encargado'}
                     </button>
                   </div>
                 </form>
@@ -311,7 +320,8 @@ export default function NuevaTareaModal({
                               onChange={() => toggleEncargado(e.id)}
                               className="rounded border-slate-300 text-primary focus:ring-primary"
                             />
-                            {e.nombre}
+                            <span className="font-medium text-slate-700">{e.nombre}</span>
+                            {e.email && <span className="text-[11px] text-slate-400 truncate max-w-[150px]">({e.email})</span>}
                           </label>
                           <button
                             type="button"

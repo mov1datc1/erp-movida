@@ -1,9 +1,11 @@
-export type LexLatinAgentRequestStatus = 'SENT' | 'RESPONDED' | 'CLOSED' | 'ERROR';
+export type LexLatinAgentRequestStatus = 'SENT' | 'RESPONDED' | 'APPROVED' | 'DELIVERED' | 'CLOSED' | 'ERROR';
+export type LexLatinAgentRequestType = 'OPERATIONS_VALIDATION' | 'DELIVERY_APPROVAL' | 'FINAL_DELIVERY';
 
 export interface LexLatinAgentRequestView {
   id: string;
   folio: string;
   period: string;
+  type?: LexLatinAgentRequestType;
   status: LexLatinAgentRequestStatus;
   mode: 'TEST' | 'LIVE';
   recipient: string;

@@ -137,6 +137,7 @@ enum TipoActividadCRM {
 model Encargado {
   id        String   @id @default(uuid())
   nombre    String   @unique
+  email     String?  // Correo para notificaciones automáticas de tareas
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

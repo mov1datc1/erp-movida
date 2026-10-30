@@ -5,6 +5,7 @@ import { decryptSecret } from '@/lib/secretEncryption';
 import type {
   JiraFieldOption,
   JiraIssueSnapshot,
+  JiraSubtaskSnapshot,
   JiraLexLatinConfigView,
   LexLatinDailyPoint,
   LexLatinReportData,
@@ -229,6 +230,96 @@ function isCancelledOrDuplicate(issue: JiraIssueSnapshot) {
   return status.includes('cancel') || resolution.includes('duplic');
 }
 
+function mapSubtasks(
+  config: StoredJiraLexLatinConfig,
+  parentKey: string,
+  parentSummary: string,
+  fields: JiraFields,
+): JiraSubtaskSnapshot[] {
+  const subtasks: JiraSubtaskSnapshot[] = [];
+  const seenKeys = new Set<string>();
+
+  // 1. Native Jira Sub-tasks
+  const rawSubtasks = Array.isArray(fields.subtasks) ? fields.subtasks : [];
+  for (const item of rawSubtasks) {
+    if (!item || typeof item !== 'object') continue;
+    const stObj = item as Record<string, unknown>;
+    const stFields = (stObj.fields || {}) as Record<string, unknown>;
+    const stStatus = (stFields.status || {}) as Record<string, unknown>;
+    const stKey = String(stObj.key || '');
+    if (!stKey || seenKeys.has(stKey)) continue;
+    seenKeys.add(stKey);
+
+    subtasks.push({
+      id: String(stObj.id || stKey),
+      key: stKey,
+      summary: String(stFields.summary || `Subtarea ${stKey}`),
+      status: asNamedValue(stFields.status) || 'Sin estado',
+      statusCategory: asNamedValue(stStatus.statusCategory) || '',
+      issueType: asNamedValue(stFields.issuetype) || 'Subtarea',
+      isSubtask: true,
+      priority: asNamedValue(stFields.priority),
+      assignee: asNamedValue(stFields.assignee),
+      resolution: asNamedValue(stFields.resolution),
+      parentKey,
+      parentSummary,
+      url: `${normalizeSiteUrl(config.siteUrl)}/browse/${stKey}`,
+      originalEstimateHours: null,
+      timeWorkedHours: 0,
+    });
+  }
+
+  // 2. Linked issues / child tickets
+  const links = Array.isArray(fields.issuelinks) ? fields.issuelinks : [];
+  for (const link of links) {
+    if (!link || typeof link !== 'object') continue;
+    const item = link as Record<string, unknown>;
+    const typeObj = (item.type || {}) as Record<string, unknown>;
+    const outward = item.outwardIssue as Record<string, unknown> | undefined;
+    const inward = item.inwardIssue as Record<string, unknown> | undefined;
+
+    const candidates = [
+      { cand: outward, role: 'outward' },
+      { cand: inward, role: 'inward' },
+    ];
+
+    for (const { cand } of candidates) {
+      if (!cand || typeof cand.key !== 'string') continue;
+      const candKey = cand.key;
+      if (seenKeys.has(candKey)) continue;
+      seenKeys.add(candKey);
+
+      const candFields = (cand.fields || {}) as Record<string, unknown>;
+      const candStatus = (candFields.status || {}) as Record<string, unknown>;
+      const candType = (candFields.issuetype || {}) as Record<string, unknown>;
+      const isSub = Boolean(candType.subtask) ||
+        String(typeObj.name || '').toLowerCase().includes('sub') ||
+        String(typeObj.inward || '').toLowerCase().includes('parent') ||
+        String(typeObj.outward || '').toLowerCase().includes('sub');
+
+      subtasks.push({
+        id: String(cand.id || candKey),
+        key: candKey,
+        summary: String(candFields.summary || `Subtarea vinculada ${candKey}`),
+        status: asNamedValue(candFields.status) || 'Vinculada',
+        statusCategory: asNamedValue(candStatus.statusCategory) || '',
+        issueType: asNamedValue(candFields.issuetype) || (isSub ? 'Subtarea' : 'Incidencia vinculada'),
+        isSubtask: isSub,
+        priority: asNamedValue(candFields.priority),
+        assignee: asNamedValue(candFields.assignee),
+        resolution: asNamedValue(candFields.resolution),
+        parentKey,
+        parentSummary,
+        url: `${normalizeSiteUrl(config.siteUrl)}/browse/${candKey}`,
+        originalEstimateHours: null,
+        timeWorkedHours: 0,
+      });
+    }
+  }
+
+  return subtasks;
+}
+
 function mapIssue(config: StoredJiraLexLatinConfig, issue: JiraIssueResponse): JiraIssueSnapshot {
   const fields = issue.fields;
   const createdAt = String(fields.created || '');
@@ -245,11 +336,24 @@ function mapIssue(config: StoredJiraLexLatinConfig, issue: JiraIssueResponse): J
   const createdMs = Date.parse(createdAt);
   const resolvedMs = resolvedAt ? Date.parse(resolvedAt) : Number.NaN;
 
+  const parentObj = fields.parent as Record<string, unknown> | undefined;
+  const parentKey = typeof parentObj?.key === 'string' ? parentObj.key : null;
+  const parentFields = parentObj?.fields as Record<string, unknown> | undefined;
+  const parentSummary = typeof parentFields?.summary === 'string' ? parentFields.summary : null;
+  const issuetypeObj = fields.issuetype as Record<string, unknown> | undefined;
+  const isSubtask = Boolean(issuetypeObj?.subtask) || Boolean(parentKey);
+  const summaryStr = String(fields.summary || '');
+  const subtasks = mapSubtasks(config, issue.key, summaryStr, fields);
+
   return {
     id: issue.id,
     key: issue.key,
-    summary: String(fields.summary || ''),
+    summary: summaryStr,
     issueType: asNamedValue(fields.issuetype) || 'Solicitud',
+    isSubtask,
+    parentKey,
+    parentSummary,
+    subtasks,
     status: asNamedValue(fields.status) || 'Sin estado',
     statusCategory: asNamedValue(status.statusCategory) || String(statusCategory.key || ''),
     resolution: asNamedValue(fields.resolution),
@@ -368,6 +472,7 @@ export async function buildLexLatinMonthlyReport(period: string): Promise<LexLat
   const requestedFields = [
     'summary', 'issuetype', 'status', 'resolution', 'priority', 'assignee', 'reporter',
     'created', 'updated', 'resolutiondate', 'duedate', 'timetracking', 'timespent', 'issuelinks',
+    'subtasks', 'parent',
     ...customFields,
   ];
   const jql = `project = ${config.projectKey} AND (created < "${endDate}" OR updated >= "${startDate}") ORDER BY created DESC`;
@@ -407,7 +512,7 @@ export async function buildLexLatinMonthlyReport(period: string): Promise<LexLat
   const workedHours = Number(relevant.reduce((sum, issue) => sum + issue.timeWorkedHours, 0).toFixed(2));
   const ticketsWithWorkedHours = relevant.filter((issue) => issue.timeWorkedHours > 0).length;
 
-  return {
+  return enrichReportWithSubtasks({
     period,
     periodLabel,
     startDate,
@@ -437,5 +542,102 @@ export async function buildLexLatinMonthlyReport(period: string): Promise<LexLat
     issues: relevant,
     backlog,
     qualityWarnings,
+  });
+}
+
+export function enrichReportWithSubtasks(report: LexLatinReportData): LexLatinReportData {
+  if (!report) return report;
+  const issuesByKey = new Map<string, JiraIssueSnapshot>();
+  for (const issue of report.issues || []) {
+    issuesByKey.set(issue.key, issue);
+  }
+
+  const enrichedIssues = (report.issues || []).map((issue) => {
+    const existingSubtasks = Array.isArray(issue.subtasks) ? [...issue.subtasks] : [];
+    const subtaskKeys = new Set(existingSubtasks.map((st) => st.key));
+
+    const linkedKeys = Array.isArray(issue.linkedIssueKeys) ? issue.linkedIssueKeys : [];
+    for (const linkedKey of linkedKeys) {
+      if (subtaskKeys.has(linkedKey)) continue;
+      const linkedIssue = issuesByKey.get(linkedKey);
+      if (linkedIssue) {
+        existingSubtasks.push({
+          id: linkedIssue.id,
+          key: linkedIssue.key,
+          summary: linkedIssue.summary,
+          status: linkedIssue.status,
+          statusCategory: linkedIssue.statusCategory,
+          issueType: linkedIssue.issueType,
+          isSubtask: true,
+          priority: linkedIssue.priority,
+          assignee: linkedIssue.assignee,
+          resolution: linkedIssue.resolution,
+          parentKey: issue.key,
+          parentSummary: issue.summary,
+          url: linkedIssue.url,
+          originalEstimateHours: linkedIssue.originalEstimateHours,
+          timeWorkedHours: linkedIssue.timeWorkedHours,
+        });
+        subtaskKeys.add(linkedKey);
+      } else {
+        existingSubtasks.push({
+          id: linkedKey,
+          key: linkedKey,
+          summary: `Subtarea / Incidencia vinculada ${linkedKey}`,
+          status: 'Vinculada',
+          statusCategory: '',
+          issueType: 'Subtarea',
+          isSubtask: true,
+          priority: null,
+          assignee: null,
+          parentKey: issue.key,
+          parentSummary: issue.summary,
+          url: issue.url ? issue.url.replace(issue.key, linkedKey) : `https://lexlatin.atlassian.net/browse/${linkedKey}`,
+          originalEstimateHours: null,
+          timeWorkedHours: 0,
+        });
+        subtaskKeys.add(linkedKey);
+      }
+    }
+
+    return {
+      ...issue,
+      subtasks: existingSubtasks,
+    };
+  });
+
+  const allSubtasks = enrichedIssues.flatMap((issue) => issue.subtasks || []);
+  const uniqueSubtasksByKey = new Map<string, JiraSubtaskSnapshot>();
+  for (const st of allSubtasks) {
+    if (!uniqueSubtasksByKey.has(st.key)) {
+      uniqueSubtasksByKey.set(st.key, st);
+    }
+  }
+  const totalSubtasks = uniqueSubtasksByKey.size;
+  const ticketsWithSubtasks = enrichedIssues.filter((issue) => (issue.subtasks || []).length > 0).length;
+  const resolvedSubtasks = Array.from(uniqueSubtasksByKey.values()).filter((st) => {
+    const s = normalizedText(st.status);
+    return s.includes('listo') || s.includes('resuelt') || s.includes('done') || s.includes('cerrad');
+  }).length;
+  const openSubtasks = Math.max(0, totalSubtasks - resolvedSubtasks);
+  const maxSubtasksPerTicket = enrichedIssues.reduce((max, issue) => Math.max(max, (issue.subtasks || []).length), 0);
+
+  const enrichedBacklog = (report.backlog || []).map((issue) => {
+    const found = enrichedIssues.find((i) => i.key === issue.key);
+    return found || issue;
+  });
+
+  return {
+    ...report,
+    issues: enrichedIssues,
+    backlog: enrichedBacklog,
+    metrics: {
+      ...report.metrics,
+      totalSubtasks,
+      ticketsWithSubtasks,
+      resolvedSubtasks,
+      openSubtasks,
+      maxSubtasksPerTicket,
+    },
   };
 }
