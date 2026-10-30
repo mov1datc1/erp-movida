@@ -324,13 +324,22 @@ export default function AgenteGastosWhatsAppView({
         <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-emerald-500/10 to-transparent pointer-events-none" />
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
           <div>
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
               <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold rounded-full flex items-center gap-1.5 uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5" /> Agente A20 · Finanzas & WhatsApp
               </span>
               <span className="px-2.5 py-0.5 bg-indigo-500/20 text-indigo-200 border border-indigo-400/30 text-xs rounded-full flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Multimodal Vision
               </span>
+              <a
+                href="https://wa.me/523321648232"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-0.5 bg-emerald-400/20 hover:bg-emerald-400/30 text-emerald-300 border border-emerald-400/30 text-xs font-mono font-bold rounded-full flex items-center gap-1 transition-colors"
+                title="Abrir chat en WhatsApp con el Agente"
+              >
+                <MessageSquare className="w-3 h-3 text-emerald-400" /> +52 33 2164 8232
+              </a>
             </div>
             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
               Buzón Inteligente de Gastos, Pagos y Conciliación
@@ -361,29 +370,53 @@ export default function AgenteGastosWhatsAppView({
 
         {/* Panel Desplegable: Guía de Conexión Webhook de WhatsApp */}
         {showWebhookGuide && (
-          <div className="mt-6 pt-6 border-t border-white/15 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-300">
+          <div className="mt-6 pt-6 border-t border-white/15 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-300">
             <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
               <p className="font-bold text-white mb-1.5 flex items-center gap-2">
-                <Send className="w-4 h-4 text-emerald-400" /> Endpoint de Webhook Oficial (Meta Cloud API)
+                <MessageSquare className="w-4 h-4 text-emerald-400" /> Número Técnico Oficial
+              </p>
+              <div className="bg-black/40 px-3 py-2 rounded-lg font-mono text-emerald-300 select-all flex justify-between items-center">
+                <span>+52 33 2164 8232</span>
+                <button
+                  onClick={() => handleCopy('+523321648232', 'numero-whatsapp')}
+                  className="p-1 hover:text-white"
+                  title="Copiar número"
+                >
+                  {copiedRef === 'numero-whatsapp' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+              <a
+                href="https://wa.me/523321648232"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2.5 inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-semibold text-xs"
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> Abrir conversación en WhatsApp
+              </a>
+            </div>
+
+            <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+              <p className="font-bold text-white mb-1.5 flex items-center gap-2">
+                <Send className="w-4 h-4 text-emerald-400" /> Endpoint de Webhook (Meta)
               </p>
               <div className="bg-black/40 px-3 py-2 rounded-lg font-mono text-emerald-300 select-all flex justify-between items-center break-all">
-                <span>https://erp-movida.vercel.app/api/webhooks/whatsapp</span>
+                <span className="truncate">https://erp-movida.vercel.app/api/webhooks/whatsapp</span>
                 <button
                   onClick={() => handleCopy('https://erp-movida.vercel.app/api/webhooks/whatsapp', 'webhook-url')}
-                  className="p-1 hover:text-white"
+                  className="p-1 hover:text-white shrink-0 ml-1"
                 >
                   {copiedRef === 'webhook-url' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
               </div>
               <p className="mt-2 text-slate-400">
-                Token de Verificación: <code className="text-white font-mono bg-white/10 px-1 py-0.5 rounded">movida_wh_token_2026</code>
+                Verify Token: <code className="text-white font-mono bg-white/10 px-1 py-0.5 rounded">movida_wh_token_2026</code>
               </p>
             </div>
 
             <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex flex-col justify-center">
-              <p className="font-bold text-white mb-1">⚡ Pegado Inmediato desde WhatsApp Desktop / Web</p>
+              <p className="font-bold text-white mb-1">⚡ Pegado Directo (Desktop / Web)</p>
               <p className="text-slate-300 leading-relaxed">
-                También puedes copiar cualquier captura de tu chat en WhatsApp con <kbd className="px-1.5 py-0.5 bg-white/15 rounded text-white font-mono">Cmd+C</kbd> / <kbd className="px-1.5 py-0.5 bg-white/15 rounded text-white font-mono">Ctrl+C</kbd> y presionar <kbd className="px-1.5 py-0.5 bg-white/15 rounded text-white font-mono">Cmd+V</kbd> aquí en esta pantalla para que la IA extraiga los datos al instante.
+                Copia cualquier captura con <kbd className="px-1.5 py-0.5 bg-white/15 rounded text-white font-mono">Cmd+C</kbd> en WhatsApp y presiona <kbd className="px-1.5 py-0.5 bg-white/15 rounded text-white font-mono">Cmd+V</kbd> aquí para extracción instantánea con IA.
               </p>
             </div>
           </div>
@@ -1044,3 +1077,4 @@ export default function AgenteGastosWhatsAppView({
     </div>
   );
 }
+

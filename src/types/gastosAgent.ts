@@ -70,3 +70,4 @@ export interface GastosBuzonStore {
     activo: boolean;
   };
 }
+

@@ -76,6 +76,7 @@ export async function getGastosStore(): Promise<GastosBuzonStore> {
       comprobantes: SEED_COMPROBANTES,
       webhookConfig: {
         verifyToken: 'movida_wh_token_2026',
+        numeroTecnico: '+52 33 2164 8232',
         activo: true,
       },
     };
@@ -100,6 +101,15 @@ export async function getGastosStore(): Promise<GastosBuzonStore> {
   const store = row.config as unknown as GastosBuzonStore;
   if (!store.comprobantes || !Array.isArray(store.comprobantes)) {
     store.comprobantes = SEED_COMPROBANTES;
+  }
+  if (!store.webhookConfig) {
+    store.webhookConfig = {
+      verifyToken: 'movida_wh_token_2026',
+      numeroTecnico: '+52 33 2164 8232',
+      activo: true,
+    };
+  } else if (!store.webhookConfig.numeroTecnico) {
+    store.webhookConfig.numeroTecnico = '+52 33 2164 8232';
   }
   return store;
 }
