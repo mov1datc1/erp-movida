@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import ContableClient from "./ContableClient";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { getGastosStore } from "@/lib/gastosAgent";
 
 export const dynamic = 'force-dynamic';
 
@@ -89,6 +90,8 @@ export default async function ContablePage() {
     select: { id: true, nombre: true, codigo: true }
   });
 
+  const gastosStore = await getGastosStore();
+
   return (
     <ContableClient  
       movimientos={movimientos} 
@@ -102,6 +105,7 @@ export default async function ContablePage() {
       oportunidadesMes={oportunidadesMes}
       lineasProducto={lineasProducto}
       proyectos={proyectos}
+      gastosStore={gastosStore}
     />
   );
 }

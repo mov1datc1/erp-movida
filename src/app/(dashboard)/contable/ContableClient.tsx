@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from "react";
-import { Plus, ArrowDownRight, ArrowUpRight, Filter, Download, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
+import { Plus, ArrowDownRight, ArrowUpRight, Filter, Download, MoreHorizontal, Edit, Trash2, Eye, Sparkles } from "lucide-react";
 import { MovimientoModal, MovimientoData } from "@/components/contable/MovimientoModal";
 import { DetalleMovimientoModal } from "@/components/contable/DetalleMovimientoModal";
 import { deleteMovimiento } from "./actions";
@@ -9,6 +9,8 @@ import { FlujoCajaView } from "./components/FlujoCajaView";
 import { EstadoResultadosView } from "./components/EstadoResultadosView";
 import { KpiSemanalesView } from "./components/KpiSemanalesView";
 import { SaludFinanciera5PasosView } from "./components/SaludFinanciera5PasosView";
+import AgenteGastosWhatsAppView from "./components/AgenteGastosWhatsAppView";
+import { GastosBuzonStore } from "@/types/gastosAgent";
 import { MovimientoFinanciero } from "@prisma/client";
 
 type Movimiento = {
@@ -42,10 +44,24 @@ interface ContableClientProps {
   oportunidadesMes?: any[];
   lineasProducto?: any[];
   proyectos?: any[];
+  gastosStore?: GastosBuzonStore;
 }
 
-export default function ContableClient({ movimientos, balanceTotal, ingresosMes, egresosMes, rawMovimientos, facturasPendientes = [], facturasCobrar = [], cuentasPorPagar = [], oportunidadesMes = [], lineasProducto = [], proyectos = [] }: ContableClientProps) {
-  const [activeTab, setActiveTab] = useState<'salud' | 'kpis' | 'resumen' | 'flujo' | 'resultados'>('salud');
+export default function ContableClient({
+  movimientos,
+  balanceTotal,
+  ingresosMes,
+  egresosMes,
+  rawMovimientos,
+  facturasPendientes = [],
+  facturasCobrar = [],
+  cuentasPorPagar = [],
+  oportunidadesMes = [],
+  lineasProducto = [],
+  proyectos = [],
+  gastosStore = { comprobantes: [] },
+}: ContableClientProps) {
+  const [activeTab, setActiveTab] = useState<'salud' | 'kpis' | 'resumen' | 'flujo' | 'resultados' | 'gastos-ia'>('salud');
   
   const [anio, setAnio] = useState(new Date().getFullYear().toString());
   const [mes, setMes] = useState((new Date().getMonth() + 1).toString());
@@ -213,6 +229,19 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
             }`}
           >
             KPIs Semanales
+          </button>
+          <button
+            onClick={() => setActiveTab('gastos-ia')}
+            className={`px-4 py-3 text-sm font-extrabold border-b-2 transition-colors flex items-center gap-2 ${
+              activeTab === 'gastos-ia'
+                ? 'border-emerald-600 text-emerald-700 bg-emerald-50/60 rounded-t-xl'
+                : 'border-transparent text-slate-600 hover:text-emerald-600 hover:border-slate-300'
+            }`}
+          >
+            <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-full flex items-center gap-1 shadow-xs">
+              <Sparkles className="w-2.5 h-2.5" /> Buzón WhatsApp
+            </span>
+            Gastos & Conciliación (A20)
           </button>
         </div>
         
@@ -406,6 +435,14 @@ export default function ContableClient({ movimientos, balanceTotal, ingresosMes,
           rawMovimientos={rawMovimientos} 
           facturasPendientes={facturasPendientes} 
           oportunidadesMes={oportunidadesMes} 
+        />
+      )}
+
+      {activeTab === 'gastos-ia' && (
+        <AgenteGastosWhatsAppView 
+          initialStore={gastosStore}
+          cuentasPorPagar={cuentasPorPagar}
+          proyectos={proyectos}
         />
       )}
 
