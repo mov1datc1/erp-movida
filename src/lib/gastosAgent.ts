@@ -77,6 +77,8 @@ export async function getGastosStore(): Promise<GastosBuzonStore> {
       webhookConfig: {
         verifyToken: 'movida_wh_token_2026',
         numeroTecnico: '+52 33 2164 8232',
+        phoneNumberId: '1433962056464200',
+        wabaId: '1119963000909850',
         activo: true,
       },
     };
@@ -106,10 +108,14 @@ export async function getGastosStore(): Promise<GastosBuzonStore> {
     store.webhookConfig = {
       verifyToken: 'movida_wh_token_2026',
       numeroTecnico: '+52 33 2164 8232',
+      phoneNumberId: '1433962056464200',
+      wabaId: '1119963000909850',
       activo: true,
     };
-  } else if (!store.webhookConfig.numeroTecnico) {
-    store.webhookConfig.numeroTecnico = '+52 33 2164 8232';
+  } else {
+    if (!store.webhookConfig.numeroTecnico) store.webhookConfig.numeroTecnico = '+52 33 2164 8232';
+    if (!store.webhookConfig.phoneNumberId) store.webhookConfig.phoneNumberId = '1433962056464200';
+    if (!store.webhookConfig.wabaId) store.webhookConfig.wabaId = '1119963000909850';
   }
   return store;
 }

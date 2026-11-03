@@ -23,7 +23,7 @@ export default function TabIntegraciones({ initialIntegraciones }: { initialInte
   const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
   const [whatsappNumero, setWhatsappNumero] = useState(whatsappConfig.numeroTecnico || '+52 33 2164 8232');
   const [whatsappVerifyToken, setWhatsappVerifyToken] = useState(whatsappConfig.verifyToken || 'movida_wh_token_2026');
-  const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState(whatsappConfig.phoneNumberId || '');
+  const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState(whatsappConfig.phoneNumberId || '1433962056464200');
   const [whatsappToken, setWhatsappToken] = useState(whatsappConfig.accessToken || '');
   const [whatsappActivo, setWhatsappActivo] = useState(whatsappIntegration?.activa !== false);
 
