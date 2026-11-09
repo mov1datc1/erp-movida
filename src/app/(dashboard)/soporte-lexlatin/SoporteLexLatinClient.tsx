@@ -12,6 +12,8 @@ import { checkLexLatinValidationReplies, loadCachedLexLatinReport, loadLexLatinA
 import type { JiraIssueSnapshot, JiraLexLatinConfigView, LexLatinReportData } from '@/types/jiraLexLatin';
 import type PptxGenJS from 'pptxgenjs';
 import type { LexLatinAgentRequestView } from '@/types/lexLatinAgent';
+import StrategicBreakdownView from './components/StrategicBreakdownView';
+import { calculateStrategicBreakdown, classifyIssue } from '@/lib/lexLatinClassification';
 
 export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: { initialConfig: JiraLexLatinConfigView | null; defaultPeriod: string }) {
   const [period, setPeriod] = useState(defaultPeriod);
@@ -149,34 +151,80 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
     setExporting('xlsx');
     try {
       const XLSX = await import('xlsx');
-      const rows = report.issues.map((issue) => ({
-        'Tipo de incidencia': issue.issueType,
-        Clave: issue.key,
-        Resumen: issue.summary,
-        'Creada (Ciudad de México)': formatDateTimeMexico(issue.createdAt),
-        'Horas trabajadas en el mes': issue.timeWorkedHours,
-        Complejidad: complexityLabel(issue.timeWorkedHours),
-        Estado: issue.status,
-        Resolución: issue.resolution || '',
-        'Persona asignada': issue.assignee || '',
-        Informador: issue.reporter || '',
-        Prioridad: issue.priority || '',
-        Impacto: issue.impact || '',
-        'Actualizada (Ciudad de México)': formatDateTimeMexico(issue.updatedAt),
-        'Fecha de resolución (Ciudad de México)': issue.resolvedAt ? formatDateTimeMexico(issue.resolvedAt) : '',
-        'Tiempo total de resolución (horas)': issue.resolutionHours ?? '',
-        'Estimación original (horas)': issue.originalEstimateHours ?? '',
-        'Fecha estimada de término': issue.targetDate ? formatDate(issue.targetDate) : '',
-        'Incidencias enlazadas': issue.linkedIssueKeys.join('; '),
-        'Cant. Subtareas': (issue.subtasks || []).length,
-        'Subtareas vinculadas': (issue.subtasks || []).map((st) => st.key).join('; '),
-        Enlace: issue.url,
-      }));
+      const strategicSummary = calculateStrategicBreakdown(report.issues);
+
+      const rows = report.issues.map((issue) => {
+        const classified = classifyIssue(issue);
+        return {
+          'Tipo de Acuerdo': classified.strategicTypeLabel,
+          'Área LexLatin': classified.areaLabel,
+          'Tipo de incidencia': issue.issueType,
+          Clave: issue.key,
+          Resumen: issue.summary,
+          'Creada (Ciudad de México)': formatDateTimeMexico(issue.createdAt),
+          'Horas trabajadas en el mes': issue.timeWorkedHours,
+          Complejidad: complexityLabel(issue.timeWorkedHours),
+          Estado: issue.status,
+          Resolución: issue.resolution || '',
+          'Persona asignada': issue.assignee || '',
+          Informador: issue.reporter || '',
+          Prioridad: issue.priority || '',
+          Impacto: issue.impact || '',
+          'Actualizada (Ciudad de México)': formatDateTimeMexico(issue.updatedAt),
+          'Fecha de resolución (Ciudad de México)': issue.resolvedAt ? formatDateTimeMexico(issue.resolvedAt) : '',
+          'Tiempo total de resolución (horas)': issue.resolutionHours ?? '',
+          'Estimación original (horas)': issue.originalEstimateHours ?? '',
+          'Fecha estimada de término': issue.targetDate ? formatDate(issue.targetDate) : '',
+          'Incidencias enlazadas': issue.linkedIssueKeys.join('; '),
+          'Cant. Subtareas': (issue.subtasks || []).length,
+          'Subtareas vinculadas': (issue.subtasks || []).map((st) => st.key).join('; '),
+          Enlace: issue.url,
+        };
+      });
+
       const workbook = XLSX.utils.book_new();
       const sheet = XLSX.utils.json_to_sheet(rows);
-      sheet['!autofilter'] = { ref: sheet['!ref'] || 'A1:S1' };
-      sheet['!cols'] = [18, 12, 55, 24, 20, 22, 18, 16, 16, 22, 28, 12, 24, 26, 24, 22, 24, 22, 16, 28, 42].map((wch) => ({ wch }));
+      sheet['!autofilter'] = { ref: sheet['!ref'] || 'A1:W1' };
+      sheet['!cols'] = [28, 28, 18, 12, 55, 24, 20, 22, 18, 16, 16, 22, 28, 12, 24, 26, 24, 22, 24, 22, 16, 28, 42].map((wch) => ({ wch }));
       XLSX.utils.book_append_sheet(workbook, sheet, 'Tickets conciliados');
+
+      // Hoja 2: Solicitudes Campus LexLatin (Responde directamente el requerimiento de Edith)
+      const campusRows = strategicSummary.campusIssues.map((issue) => ({
+        Clave: issue.key,
+        Requerimiento: issue.summary,
+        Estado: issue.status,
+        'Horas trabajadas': issue.timeWorkedHours,
+        'Persona asignada': issue.assignee || 'Equipo Movida',
+        Informador: issue.reporter || '',
+        'Fecha resolución': issue.resolvedAt ? formatDateTimeMexico(issue.resolvedAt) : 'En seguimiento',
+        Enlace: issue.url,
+      }));
+      const campusSheet = XLSX.utils.json_to_sheet(campusRows.length ? campusRows : [{ Mensaje: 'Sin solicitudes de campus registradas' }]);
+      campusSheet['!autofilter'] = { ref: campusSheet['!ref'] || 'A1:H1' };
+      campusSheet['!cols'] = [14, 55, 18, 16, 20, 22, 24, 42].map((wch) => ({ wch }));
+      XLSX.utils.book_append_sheet(workbook, campusSheet, 'Campus LexLatin');
+
+      // Hoja 3: Clasificación Estratégica y Resumen de Acuerdos
+      const agreementSummaryRows = [
+        { Sección: 'ACUERDO CONTRACTUAL', Categoría: 'Fallas / Mantenimiento Correctivo', Casos: strategicSummary.byAgreement.fallasCount, 'Horas Totales': strategicSummary.byAgreement.fallasHours, Alcance: 'Garantía y soporte correctivo del portal Drupal y servidores' },
+        { Sección: 'ACUERDO CONTRACTUAL', Categoría: 'Mejoras / Optimización Operativa', Casos: strategicSummary.byAgreement.mejorasCount, 'Horas Totales': strategicSummary.byAgreement.mejorasHours, Alcance: 'Optimización de vistas, búsquedas y flujos de redacción' },
+        { Sección: 'ACUERDO CONTRACTUAL', Categoría: 'Campus LexLatin & Marketing Digital', Casos: strategicSummary.byAgreement.campusCount, 'Horas Totales': strategicSummary.byAgreement.campusHours, Alcance: 'Publicación de landing pages, analítica y campañas de difusión' },
+        { Sección: 'ACUERDO CONTRACTUAL', Categoría: 'Nuevos Proyectos (Fuera de Alcance)', Casos: strategicSummary.byAgreement.proyectosCount, 'Horas Totales': strategicSummary.byAgreement.proyectosHours, Alcance: 'Iniciativas y módulos nuevos levantados para cotización/alcance' },
+        { Sección: '---', Categoría: '---', Casos: '', 'Horas Totales': '', Alcance: '' },
+        { Sección: 'ÁREA OPERATIVA', Categoría: 'Operación Editorial (Drupal)', Casos: strategicSummary.byArea.editorialCount, 'Horas Totales': strategicSummary.byArea.editorialHours, Alcance: 'Redacción y gestión de notas y portadas' },
+        { Sección: 'ÁREA OPERATIVA', Categoría: 'Campus LexLatin & Difusión', Casos: strategicSummary.byArea.campusCount, 'Horas Totales': strategicSummary.byArea.campusHours, Alcance: 'Programas ejecutivos y difusión académica' },
+        { Sección: 'ÁREA OPERATIVA', Categoría: 'Ágora & Plataformas Comerciales', Casos: strategicSummary.byArea.agoraCount, 'Horas Totales': strategicSummary.byArea.agoraHours, Alcance: 'Directorio y perfiles comerciales' },
+        { Sección: 'ÁREA OPERATIVA', Categoría: 'Infraestructura & Servidores', Casos: strategicSummary.byArea.infraCount, 'Horas Totales': strategicSummary.byArea.infraHours, Alcance: 'Hosting, parches PHP y base de datos' },
+        { Sección: '---', Categoría: '---', Casos: '', 'Horas Totales': '', Alcance: '' },
+        { Sección: 'EFICIENCIA OPERATIVA', Categoría: 'Total Solicitudes Brutas Jira', Casos: strategicSummary.efficiency.totalRawTickets, 'Horas Totales': strategicSummary.totalHours, Alcance: 'Total de incidencias creadas en el periodo' },
+        { Sección: 'EFICIENCIA OPERATIVA', Categoría: 'Hilos de correo consolidados ("Re:...")', Casos: strategicSummary.efficiency.duplicatesCount, 'Horas Totales': 0, Alcance: 'Respuestas automáticas canceladas sin sobrecosto' },
+        { Sección: 'EFICIENCIA OPERATIVA', Categoría: 'Requerimientos Netos Atendidos', Casos: strategicSummary.efficiency.netProductiveTickets, 'Horas Totales': strategicSummary.totalHours, Alcance: 'Requerimientos reales (<1 por día hábil)' },
+        { Sección: 'EFICIENCIA OPERATIVA', Categoría: 'Casos Complejos (+6h)', Casos: strategicSummary.efficiency.complexTicketsCount, 'Horas Totales': strategicSummary.efficiency.complexTicketsHours, Alcance: 'Casos de alta dedicación técnica (70% de horas)' },
+      ];
+      const agreementSheet = XLSX.utils.json_to_sheet(agreementSummaryRows);
+      agreementSheet['!autofilter'] = { ref: agreementSheet['!ref'] || 'A1:E1' };
+      agreementSheet['!cols'] = [24, 38, 12, 16, 65].map((wch) => ({ wch }));
+      XLSX.utils.book_append_sheet(workbook, agreementSheet, 'Clasificación y Acuerdos');
 
       const subtaskRows = report.issues.flatMap((issue) => {
         return (issue.subtasks || []).map((st) => ({
@@ -248,7 +296,7 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
         headFontFace: 'Aptos Display', bodyFontFace: 'Aptos',
       };
 
-      const colors = { navy: '12233F', blue: '2563EB', cyan: '06B6D4', green: '16865B', pink: 'D14A9B', amber: 'D97706', pale: 'F5F7FB', text: '24324A' };
+      const colors = { navy: '12233F', blue: '2563EB', cyan: '06B6D4', green: '16865B', pink: 'D14A9B', amber: 'D97706', pale: 'F5F7FB', text: '24324A', purple: '7C3AED' };
       const tableCell = (value: string | number) => ({ text: String(value) });
       const addFooter = (slide: PptxGenJS.Slide, number: number) => {
         slide.addText('No vendemos, transformamos!', { x: 0.55, y: 7.12, w: 4.2, h: 0.2, fontSize: 9, color: '64748B' });
@@ -261,6 +309,10 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
         addFooter(slide, number);
       };
 
+      const strategicSummary = calculateStrategicBreakdown(report.issues);
+      let slideNum = 1;
+
+      // 1. Portada
       let slide = pptx.addSlide();
       slide.background = { color: colors.navy };
       slide.addText('Movida TCI', { x: 0.75, y: 0.65, w: 3.3, h: 0.5, fontSize: 25, bold: true, color: 'FFFFFF' });
@@ -270,8 +322,10 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
       slide.addText('Casos, horas, cumplimiento y proyección del backlog', { x: 0.78, y: 4.35, w: 7.8, h: 0.45, fontSize: 17, color: 'FFFFFF' });
       slide.addShape(pptx.ShapeType.arc, { x: 9.4, y: 1.25, w: 2.7, h: 2.7, rotate: 20, line: { color: colors.cyan, width: 6, transparency: 15 }, fill: { color: colors.navy, transparency: 100 } });
 
+      // 2. Resumen ejecutivo
       slide = pptx.addSlide();
-      addTitle(slide, `Resumen ejecutivo — ${report.periodLabel}`, 2);
+      slideNum++;
+      addTitle(slide, `Resumen ejecutivo — ${report.periodLabel}`, slideNum);
       const cards: Array<[string, string | number, string]> = [
         ['Creados', report.metrics.created, colors.pink], ['Resueltos', report.metrics.resolved, colors.green],
         ['Backlog', report.metrics.backlog, colors.amber], ['Horas del mes', report.metrics.workedHours, colors.blue],
@@ -290,16 +344,160 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
       ], { x: 0.8, y: 3.52, w: 5.8, h: 1.5, fontSize: 15, breakLine: false, color: colors.text, valign: 'middle', margin: 0.08 });
       slide.addText(`Esfuerzo promedio: ${report.metrics.averageWorkedHoursPerTicket} h/ticket (${report.metrics.ticketsWithWorkedHours} con tiempo)\nSubtareas generadas: ${report.metrics.totalSubtasks ?? 0} (${report.metrics.ticketsWithSubtasks ?? 0} tickets ramificados)\nTiempo calendario promedio: ${report.metrics.averageResolutionHours} h\nMediana calendario: ${report.metrics.medianResolutionHours} h\nBacklog >30 días: ${report.metrics.olderThan30Days}`, { x: 7.15, y: 3.25, w: 4.8, h: 1.75, fontSize: 15, bold: true, color: colors.navy, fill: { color: 'EEF5FF' }, margin: 0.2, breakLine: true });
 
+      // 3. Clasificación de Acuerdos Contractuales (Respuesta a Edith)
       slide = pptx.addSlide();
-      addTitle(slide, 'Casos creados vs. resueltos', 3);
+      slideNum++;
+      addTitle(slide, `Clasificación de Acuerdos Contractuales — ${report.periodLabel}`, slideNum);
+
+      const agreementCards = [
+        {
+          title: 'Fallas / Mantenimiento',
+          subtitle: 'Garantía y Continuidad',
+          count: strategicSummary.byAgreement.fallasCount,
+          hours: strategicSummary.byAgreement.fallasHours,
+          color: colors.pink,
+          bg: 'FFF1F2',
+          desc: 'Corrección de bugs en Drupal, pérdida de borradores por edición simultánea y parches de seguridad en PHP.',
+        },
+        {
+          title: 'Mejoras Operativas',
+          subtitle: 'Optimización de Flujos',
+          count: strategicSummary.byAgreement.mejorasCount,
+          hours: strategicSummary.byAgreement.mejorasHours,
+          color: colors.blue,
+          bg: 'EFF6FF',
+          desc: 'Ajustes de taxonomías, búsquedas predictivas con autocompletado y optimización de caché del portal.',
+        },
+        {
+          title: 'Campus LexLatin',
+          subtitle: 'Marketing & Difusión',
+          count: strategicSummary.byAgreement.campusCount,
+          hours: strategicSummary.byAgreement.campusHours,
+          color: colors.green,
+          bg: 'ECFDF5',
+          desc: 'Landing pages de Programas Ejecutivos, páginas de agradecimiento y analítica de campañas LinkedIn.',
+        },
+        {
+          title: 'Nuevos Proyectos',
+          subtitle: 'Fuera de Alcance Original',
+          count: strategicSummary.byAgreement.proyectosCount,
+          hours: strategicSummary.byAgreement.proyectosHours,
+          color: colors.purple,
+          bg: 'F5F3FF',
+          desc: 'Iniciativas estratégicas nuevas (Ágora, AyudanteX, PerfilPlus, DataStudio) levantadas para cotización.',
+        },
+      ];
+
+      agreementCards.forEach((card, index) => {
+        const x = 0.65 + index * 3.05;
+        slide.addShape(pptx.ShapeType.roundRect, {
+          x, y: 1.25, w: 2.85, h: 4.25, rectRadius: 0.1, fill: { color: card.bg }, line: { color: card.color, width: 1.5 },
+        });
+        slide.addText(card.title, {
+          x: x + 0.15, y: 1.45, w: 2.55, h: 0.4, fontSize: 13, bold: true, color: card.color,
+        });
+        slide.addText(card.subtitle.toUpperCase(), {
+          x: x + 0.15, y: 1.85, w: 2.55, h: 0.25, fontSize: 9, bold: true, color: '64748B', charSpacing: 1,
+        });
+        slide.addText(String(card.count), {
+          x: x + 0.15, y: 2.2, w: 1.3, h: 0.65, fontSize: 32, bold: true, color: colors.navy,
+        });
+        slide.addText('casos', {
+          x: x + 1.2, y: 2.45, w: 1.3, h: 0.35, fontSize: 13, color: '64748B',
+        });
+        slide.addText(`${card.hours} horas dedicadas`, {
+          x: x + 0.15, y: 2.95, w: 2.55, h: 0.3, fontSize: 12, bold: true, color: card.color,
+        });
+        slide.addText(card.desc, {
+          x: x + 0.15, y: 3.35, w: 2.55, h: 1.9, fontSize: 10.5, color: colors.text, margin: 0.05,
+        });
+      });
+
+      slide.addText('Acuerdo Operativo: Toda solicitud ingresada es clasificada bajo estos cuatro cuadrantes para dar seguimiento al alcance mensual acordado y distinguir soporte correctivo de iniciativas cotizables.', {
+        x: 0.65, y: 5.75, w: 12.0, h: 0.75, fontSize: 11.5, color: '475569', fill: { color: 'F8FAFC' }, line: { color: 'CBD5E1', width: 1 }, margin: 0.12,
+      });
+
+      // 4. Solicitudes de Campus LexLatin & Marketing Digital
+      slide = pptx.addSlide();
+      slideNum++;
+      addTitle(slide, `Requerimientos Campus LexLatin & Marketing — ${report.periodLabel}`, slideNum);
+
+      const campusTableRows = (strategicSummary.campusIssues.length ? strategicSummary.campusIssues : [
+        { key: '—', summary: 'Sin solicitudes registradas en este periodo', status: '—', timeWorkedHours: 0, assignee: '—' } as any
+      ]).map((issue) => [
+        issue.key,
+        issue.summary,
+        issue.status,
+        `${issue.timeWorkedHours} h`,
+        issue.assignee || 'Equipo Movida',
+      ].map(tableCell));
+
+      slide.addTable([
+        [{ text: 'Clave' }, { text: 'Requerimiento / Campaña' }, { text: 'Estado' }, { text: 'Horas' }, { text: 'Asignado' }],
+        ...campusTableRows.slice(0, 10),
+      ], {
+        x: 0.65, y: 1.25, w: 12.0, h: 4.35, border: { color: 'CBD5E1', pt: 0.6 }, fill: { color: 'FFFFFF' }, color: colors.text, fontSize: 10, margin: 0.08, rowH: 0.36, colW: [1.2, 5.9, 1.8, 1.1, 2.0],
+      });
+
+      slide.addText('Canalización en Jira: Las solicitudes de Campus corresponden a lanzamientos de cursos, difusión y landing pages. Se canalizan vía Jira para asegurar prioridad, estimación y trazabilidad en los tiempos de publicación.', {
+        x: 0.65, y: 5.85, w: 12.0, h: 0.7, fontSize: 11.5, color: '065F46', fill: { color: 'ECFDF5' }, line: { color: 'A7F3D0', width: 1 }, margin: 0.12,
+      });
+
+      // 5. Eficiencia Operativa (49 Brutos vs 38 Netos y Casos Complejos)
+      slide = pptx.addSlide();
+      slideNum++;
+      addTitle(slide, `Eficiencia Operativa: Solicitudes vs. Casos Productivos`, slideNum);
+
+      const effCards: Array<[string, string | number, string, string]> = [
+        ['Total Bruto Jira', strategicSummary.efficiency.totalRawTickets, colors.navy, 'Tickets registrados'],
+        ['Hilos Duplicados Cancelados', `-${strategicSummary.efficiency.duplicatesCount}`, colors.pink, 'Respuestas "Re:..." consolidadas'],
+        ['Casos Netos Atendidos', strategicSummary.efficiency.netProductiveTickets, colors.green, '<1 requerimiento por día hábil'],
+        ['Casos Complejos (+6h)', strategicSummary.efficiency.complexTicketsCount, colors.amber, `${strategicSummary.efficiency.complexTicketsHours} h (70% esfuerzo técnico)`],
+      ];
+      effCards.forEach(([label, value, color, note], index) => {
+        const x = 0.65 + index * 3.05;
+        slide.addShape(pptx.ShapeType.roundRect, { x, y: 1.2, w: 2.85, h: 1.35, rectRadius: 0.08, fill: { color: colors.pale }, line: { color: 'E2E8F0' } });
+        slide.addText(String(value), { x: x + 0.18, y: 1.35, w: 2.5, h: 0.45, fontSize: 26, bold: true, color });
+        slide.addText(String(label), { x: x + 0.18, y: 1.85, w: 2.5, h: 0.25, fontSize: 11, bold: true, color: colors.text });
+        slide.addText(note, { x: x + 0.18, y: 2.12, w: 2.5, h: 0.25, fontSize: 9.5, color: '64748B' });
+      });
+
+      slide.addText('Distribución por Áreas de LexLatin', { x: 0.65, y: 2.8, w: 5.85, h: 0.35, fontSize: 13, bold: true, color: colors.navy });
+      slide.addTable([
+        [{ text: 'Área' }, { text: 'Casos' }, { text: 'Horas' }],
+        ['Operación Editorial (Drupal)', strategicSummary.byArea.editorialCount, `${strategicSummary.byArea.editorialHours} h`].map(tableCell),
+        ['Campus LexLatin & Marketing', strategicSummary.byArea.campusCount, `${strategicSummary.byArea.campusHours} h`].map(tableCell),
+        ['Ágora & Plataformas Comerciales', strategicSummary.byArea.agoraCount, `${strategicSummary.byArea.agoraHours} h`].map(tableCell),
+        ['Infraestructura y Servidores', strategicSummary.byArea.infraCount, `${strategicSummary.byArea.infraHours} h`].map(tableCell),
+      ], { x: 0.65, y: 3.15, w: 5.85, h: 2.45, border: { color: 'CBD5E1', pt: 0.6 }, fill: { color: 'FFFFFF' }, color: colors.text, fontSize: 9.5, margin: 0.08, colW: [3.45, 1.1, 1.3] });
+
+      slide.addShape(pptx.ShapeType.roundRect, { x: 6.8, y: 2.8, w: 5.85, h: 2.8, rectRadius: 0.08, fill: { color: 'F8FAFC' }, line: { color: 'E2E8F0' } });
+      slide.addText('Criterio Operativo: Casos Productivos vs. Complejos', { x: 7.0, y: 2.95, w: 5.45, h: 0.35, fontSize: 12.5, bold: true, color: colors.navy });
+      slide.addText([
+        { text: '• Casos Productivos (<6h): ', options: { bold: true, color: colors.green } },
+        { text: 'Requerimientos rutinarios de soporte que resuelven una necesidad puntual de redacción, taxonomías o ajustes inmediatos.\n\n' },
+        { text: '• Casos Complejos (+6h): ', options: { bold: true, color: colors.amber } },
+        { text: 'Incidencias mayores de arquitectura, fallas intermitentes (ej. edición concurrente en Drupal) o parches de seguridad de servidores que requieren investigación técnica profunda y pruebas de estabilidad.' },
+      ], { x: 7.0, y: 3.35, w: 5.45, h: 2.15, fontSize: 10.5, color: colors.text, breakLine: true, margin: 0.05 });
+
+      slide.addText('Conclusión Operativa: El volumen diario real no es de 2 tickets, sino de menos de 1 requerimiento neto por día hábil. El 70% de las horas técnicas se concentraron en garantizar la estabilidad y blindaje del portal.', {
+        x: 0.65, y: 5.85, w: 12.0, h: 0.7, fontSize: 11.5, bold: true, color: colors.navy, fill: { color: 'EEF5FF' }, line: { color: 'BFDBFE', width: 1 }, margin: 0.12,
+      });
+
+      // 6. Casos creados vs. resueltos
+      slide = pptx.addSlide();
+      slideNum++;
+      addTitle(slide, 'Casos creados vs. resueltos', slideNum);
       slide.addChart(pptx.ChartType.line, [
         { name: 'Creados', labels: report.daily.map((point) => point.label), values: report.daily.map((point) => point.created) },
         { name: 'Resueltos', labels: report.daily.map((point) => point.label), values: report.daily.map((point) => point.resolved) },
       ], { x: 0.7, y: 1.2, w: 12, h: 4.75, showLegend: true, legendPos: 'b', showTitle: false, catAxisLabelFontSize: 9, valAxisLabelFontSize: 10, chartColors: [colors.pink, colors.green], showValue: false, lineSize: 3 });
       slide.addText('Cada punto representa el día en que se creó o resolvió el ticket. La diferencia entre ambas curvas no equivale por sí sola al backlog, porque también pueden resolverse casos de meses anteriores.', { x: 0.85, y: 6.15, w: 11.6, h: 0.55, fontSize: 12, color: '475569', fill: { color: 'F8FAFC' }, margin: 0.12 });
 
+      // 7. Backlog y fecha estimada
       slide = pptx.addSlide();
-      addTitle(slide, 'Backlog y fecha estimada de término', 4);
+      slideNum++;
+      addTitle(slide, 'Backlog y fecha estimada de término', slideNum);
       const backlogRows = report.backlog.slice(0, 12).map((issue) => [issue.key, issue.summary, issue.status, ageDays(issue, report.endDate), issue.originalEstimateHours ?? '—', issue.targetDate ? formatDate(issue.targetDate) : 'Sin fecha'].map(tableCell));
       slide.addTable([
         [{ text: 'Clave' }, { text: 'Resumen' }, { text: 'Estado' }, { text: 'Días' }, { text: 'Est. h' }, { text: 'Fecha objetivo' }],
@@ -307,8 +505,10 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
       ], { x: 0.55, y: 1.2, w: 12.25, h: 4.9, border: { color: 'CBD5E1', pt: 0.6 }, fill: { color: 'FFFFFF' }, color: colors.text, fontSize: 10, margin: 0.08, rowH: 0.32, colW: [0.85, 5.25, 1.4, 0.65, 0.7, 1.5], bold: false });
       slide.addText(`${report.metrics.backlogWithoutEstimate} caso(s) sin estimación o fecha objetivo. Estos casos deben revisarse y comunicar una expectativa al usuario antes del siguiente informe.`, { x: 0.75, y: 6.25, w: 11.8, h: 0.45, fontSize: 12, bold: true, color: report.metrics.backlogWithoutEstimate ? '9A3412' : colors.green, fill: { color: report.metrics.backlogWithoutEstimate ? 'FFF7ED' : 'ECFDF5' }, margin: 0.12 });
 
+      // 8. Horas invertidas por complejidad
       slide = pptx.addSlide();
-      addTitle(slide, 'Horas invertidas por complejidad', 5);
+      slideNum++;
+      addTitle(slide, 'Horas invertidas por complejidad', slideNum);
       const buckets = hourBuckets(handledIssues);
       slide.addChart(pptx.ChartType.bar, [{ name: 'Horas del mes', labels: buckets.map((bucket) => bucket.label), values: buckets.map((bucket) => bucket.monthHours) }], { x: 0.75, y: 1.25, w: 7.2, h: 4.8, catAxisLabelFontSize: 11, valAxisLabelFontSize: 10, chartColors: [colors.blue], showValue: true, showLegend: false, showTitle: false });
       slide.addTable([
@@ -318,20 +518,24 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
       ], { x: 8.05, y: 1.65, w: 4.7, h: 2.75, border: { color: 'CBD5E1', pt: 0.7 }, fill: { color: 'FFFFFF' }, color: colors.text, fontSize: 11, margin: 0.1, colW: [2.7, 0.8, 1.2] });
       slide.addText('Nivel 1: hasta 2 h  •  Nivel 2: más de 2 y hasta 6 h  •  Nivel 3: más de 6 h', { x: 8.35, y: 4.55, w: 4.1, h: 0.75, fontSize: 12, color: '475569', fill: { color: 'F8FAFC' }, margin: 0.15 });
 
+      // 9+. Detalle de tickets por complejidad
       const complexityRows = buckets.flatMap((bucket) => bucket.issues.map((issue) => ({ bucket, issue })));
       const rowsPerSlide = 13;
       for (let index = 0; index < complexityRows.length; index += rowsPerSlide) {
         const pageRows = complexityRows.slice(index, index + rowsPerSlide);
         slide = pptx.addSlide();
-        addTitle(slide, `Detalle de tickets por complejidad${complexityRows.length > rowsPerSlide ? ` — ${Math.floor(index / rowsPerSlide) + 1}` : ''}`, 6 + Math.floor(index / rowsPerSlide));
+        slideNum++;
+        addTitle(slide, `Detalle de tickets por complejidad${complexityRows.length > rowsPerSlide ? ` — ${Math.floor(index / rowsPerSlide) + 1}` : ''}`, slideNum);
         slide.addTable([
           [{ text: 'Nivel' }, { text: 'Clave' }, { text: 'Título' }, { text: 'Horas mes' }],
           ...pageRows.map(({ bucket, issue }) => [bucket.label, issue.key, issue.summary, issue.timeWorkedHours].map(tableCell)),
         ], { x: 0.55, y: 1.2, w: 12.25, h: 5.6, border: { color: 'CBD5E1', pt: 0.6 }, fill: { color: 'FFFFFF' }, color: colors.text, fontSize: 9.5, margin: 0.07, rowH: 0.35, colW: [1.9, 1, 8.1, 1.25] });
       }
 
+      // Calidad de datos y próximos pasos
       slide = pptx.addSlide();
-      addTitle(slide, 'Calidad de datos y próximos pasos', 6 + Math.max(1, Math.ceil(complexityRows.length / rowsPerSlide)));
+      slideNum++;
+      addTitle(slide, 'Calidad de datos y próximos pasos', slideNum);
       const warnings = report.qualityWarnings.length ? report.qualityWarnings : ['No se detectaron omisiones críticas para el periodo.'];
       slide.addText(warnings.map((warning) => ({ text: `• ${warning}\n`, options: { bullet: false, breakLine: true } })), { x: 0.85, y: 1.35, w: 5.8, h: 2.6, fontSize: 17, color: colors.text, margin: 0.1, valign: 'top' });
       slide.addText('Flujo de aprobación', { x: 7.05, y: 1.35, w: 4.8, h: 0.35, fontSize: 19, bold: true, color: colors.navy });
@@ -379,6 +583,8 @@ export default function SoporteLexLatinClient({ initialConfig, defaultPeriod }: 
               <Metric label="Subtareas generadas" value={report.metrics.totalSubtasks ?? 0} icon={<GitFork className="h-5 w-5" />} color="purple" />
             </div>
           </section>
+
+          <StrategicBreakdownView issues={handledIssues} periodLabel={report.periodLabel} />
 
           <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.5fr)]">
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

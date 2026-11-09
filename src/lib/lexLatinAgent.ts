@@ -7,6 +7,7 @@ import { simpleParser } from 'mailparser';
 import { prisma } from '@/lib/prisma';
 import { decryptSecret } from '@/lib/secretEncryption';
 import { enrichReportWithSubtasks } from '@/lib/jiraClient';
+import { calculateStrategicBreakdown } from './lexLatinClassification';
 import type { LexLatinReportData } from '@/types/jiraLexLatin';
 import type { LexLatinAgentRequestView } from '@/types/lexLatinAgent';
 
@@ -200,6 +201,8 @@ export async function sendLexLatinDeliveryApprovalEmail(
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://erp-movida.vercel.app';
 
+  const strategic = calculateStrategicBreakdown(report.issues);
+
   const operationalSectionHtml = operationalResponseText
     ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;margin:20px 0">
         <strong style="color:#166534">✅ Validación Operativa Recibida (Edgar Reyes):</strong>
@@ -224,8 +227,8 @@ export async function sendLexLatinDeliveryApprovalEmail(
         El informe mensual de Soporte LexLatin para <strong>${report.periodLabel}</strong> está conciliado y listo para autorizar el despacho final a <strong>Edith Santos</strong>.
       </p>
 
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin-bottom:20px">
-        <h4 style="margin:0 0 12px 0;font-size:13px;text-transform:uppercase;color:#64748b;letter-spacing:0.5px">Métricas del Periodo (${report.periodLabel})</h4>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin-bottom:16px">
+        <h4 style="margin:0 0 12px 0;font-size:13px;text-transform:uppercase;color:#64748b;letter-spacing:0.5px">Métricas Generales (${report.periodLabel})</h4>
         <table width="100%" cellpadding="6" cellspacing="0" style="font-size:13px;border-collapse:collapse">
           <tr style="border-bottom:1px solid #e2e8f0"><td style="color:#64748b">Casos creados en el mes:</td><td align="right" style="font-weight:800;color:#0f172a">${report.metrics.created}</td></tr>
           <tr style="border-bottom:1px solid #e2e8f0"><td style="color:#64748b">Casos resueltos:</td><td align="right" style="font-weight:800;color:#0f172a">${report.metrics.resolved}</td></tr>
@@ -235,12 +238,23 @@ export async function sendLexLatinDeliveryApprovalEmail(
         </table>
       </div>
 
+      <div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:12px;padding:18px;margin-bottom:20px">
+        <h4 style="margin:0 0 10px 0;font-size:13px;text-transform:uppercase;color:#334155;letter-spacing:0.5px">🎯 Desglose Estratégico de Acuerdos (Para Edith)</h4>
+        <table width="100%" cellpadding="5" cellspacing="0" style="font-size:12px;border-collapse:collapse">
+          <tr style="border-bottom:1px solid #e2e8f0"><td style="color:#e11d48;font-weight:700">Fallas / Mantenimiento:</td><td align="right" style="font-weight:700;color:#0f172a">${strategic.byAgreement.fallasCount} casos (${strategic.byAgreement.fallasHours} h)</td></tr>
+          <tr style="border-bottom:1px solid #e2e8f0"><td style="color:#2563eb;font-weight:700">Mejoras Operativas:</td><td align="right" style="font-weight:700;color:#0f172a">${strategic.byAgreement.mejorasCount} casos (${strategic.byAgreement.mejorasHours} h)</td></tr>
+          <tr style="border-bottom:1px solid #e2e8f0"><td style="color:#059669;font-weight:700">Campus LexLatin & Marketing:</td><td align="right" style="font-weight:700;color:#0f172a">${strategic.byAgreement.campusCount} casos (${strategic.byAgreement.campusHours} h)</td></tr>
+          <tr style="border-bottom:1px solid #e2e8f0"><td style="color:#7c3aed;font-weight:700">Nuevos Proyectos (Fuera alcance):</td><td align="right" style="font-weight:700;color:#0f172a">${strategic.byAgreement.proyectosCount} casos (${strategic.byAgreement.proyectosHours} h)</td></tr>
+          <tr><td style="color:#475569">Volumen neto productivo:</td><td align="right" style="font-weight:700;color:#059669">${strategic.efficiency.netProductiveTickets} casos netos (${strategic.efficiency.duplicatesCount} hilos cancelados)</td></tr>
+        </table>
+      </div>
+
       ${operationalSectionHtml}
 
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px;margin:20px 0">
         <strong style="color:#1e40af;font-size:13px">Borrador para Edith Santos (edith.santos@lexlatin.com):</strong>
         <p style="font-size:13px;color:#1e3a8a;margin:6px 0 0 0;line-height:1.5">
-          "Estimada Edith, compartimos el informe consolidado de servicio y soporte correspondiente a ${report.periodLabel}, incluyendo detalle de casos creados (${report.metrics.created}), cerrados (${report.metrics.resolved}), horas de esfuerzo (${report.metrics.workedHours} h) y estado de backlog..."
+          "Estimada Edith, compartimos el informe mensual consolidado de soporte de ${report.periodLabel}, integrando la distinción entre fallas de mantenimiento (${strategic.byAgreement.fallasCount}), mejoras operativas (${strategic.byAgreement.mejorasCount}), requerimientos de Campus LexLatin (${strategic.byAgreement.campusCount}) y nuevos proyectos levantados (${strategic.byAgreement.proyectosCount})..."
         </p>
       </div>
 
@@ -273,6 +287,13 @@ export async function sendLexLatinDeliveryApprovalEmail(
       `- Resueltos: ${report.metrics.resolved}`,
       `- Horas trabajadas: ${report.metrics.workedHours} h`,
       `- Backlog: ${report.metrics.backlog}`,
+      '',
+      `Desglose Estratégico (Edith):`,
+      `- Fallas correctivas: ${strategic.byAgreement.fallasCount} (${strategic.byAgreement.fallasHours} h)`,
+      `- Mejoras operativas: ${strategic.byAgreement.mejorasCount} (${strategic.byAgreement.mejorasHours} h)`,
+      `- Campus LexLatin: ${strategic.byAgreement.campusCount} (${strategic.byAgreement.campusHours} h)`,
+      `- Nuevos proyectos: ${strategic.byAgreement.proyectosCount} (${strategic.byAgreement.proyectosHours} h)`,
+      `- Casos netos productivos: ${strategic.efficiency.netProductiveTickets} (${strategic.efficiency.duplicatesCount} hilos cancelados)`,
       '',
       `Puedes revisarlo y autorizarlo directamente en: ${appUrl}/soporte-lexlatin`,
       '',
@@ -324,6 +345,8 @@ export async function sendLexLatinFinalDeliveryEmail(
   });
   await transporter.verify();
 
+  const strategic = calculateStrategicBreakdown(report.issues);
+
   const ccList = recipientCc
     .split(/[,;\n]/)
     .map((e) => e.trim())
@@ -332,45 +355,79 @@ export async function sendLexLatinFinalDeliveryEmail(
   const html = `<!doctype html>
 <html>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;background-color:#f8fafc;padding:24px 12px;margin:0">
-  <div style="max-width:640px;margin:auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden">
+  <div style="max-width:680px;margin:auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05)">
     <div style="padding:28px;background:linear-gradient(135deg,#059669 0%,#0d9488 100%);color:#ffffff">
       <p style="font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin:0;opacity:0.85">Movida TCI · Mesa de Servicio</p>
-      <h2 style="margin:8px 0 0 0;font-size:22px;font-weight:800;color:#ffffff">Informe Mensual de Soporte y Desarrollo</h2>
+      <h2 style="margin:8px 0 0 0;font-size:22px;font-weight:800;color:#ffffff">Informe Mensual de Soporte y Acuerdos — LexLatin</h2>
     </div>
     <div style="padding:28px">
       <p style="font-size:15px;color:#334155;margin:0 0 16px 0">Estimada Edith Santos,</p>
       <p style="font-size:14px;color:#475569;line-height:1.6;margin:0 0 20px 0">
-        A continuación compartimos el resumen consolidado de las actividades de servicio, soporte y requerimientos atendidos por el equipo de Movida TCI durante el periodo de <strong>${report.periodLabel}</strong>.
+        A continuación compartimos el resumen consolidado de las actividades de servicio, soporte y desarrollo atendidas por el equipo de Movida TCI durante el periodo de <strong>${report.periodLabel}</strong>, integrando el desglose estratégico por tipo de acuerdo y áreas operativas acordado.
       </p>
 
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:20px">
-        <h3 style="margin:0 0 14px 0;font-size:14px;font-weight:800;color:#0f172a">Resumen Ejecutivo de Indicadores</h3>
+      <!-- 1. Cuadrantes por Acuerdo Contractual -->
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:20px;margin-bottom:20px">
+        <h3 style="margin:0 0 12px 0;font-size:14px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:0.5px">1. Clasificación por Acuerdos Contractuales</h3>
         <table width="100%" cellpadding="8" cellspacing="0" style="font-size:13px;border-collapse:collapse">
-          <tr style="border-bottom:1px solid #e2e8f0">
-            <td style="color:#64748b">Casos creados en el mes:</td>
-            <td align="right" style="font-weight:800;color:#0f172a">${report.metrics.created}</td>
+          <tr style="border-bottom:1px solid #e2e8f0;background:#fff1f2">
+            <td style="color:#9f1239;font-weight:700">Fallas / Mantenimiento Correctivo</td>
+            <td align="right" style="font-weight:800;color:#9f1239">${strategic.byAgreement.fallasCount} casos</td>
+            <td align="right" style="font-weight:800;color:#9f1239">${strategic.byAgreement.fallasHours} h</td>
           </tr>
-          <tr style="border-bottom:1px solid #e2e8f0">
-            <td style="color:#64748b">Casos resueltos satisfactoriamente:</td>
-            <td align="right" style="font-weight:800;color:#059669">${report.metrics.resolved}</td>
+          <tr style="border-bottom:1px solid #e2e8f0;background:#eff6ff">
+            <td style="color:#1e40af;font-weight:700">Mejoras / Optimización Operativa</td>
+            <td align="right" style="font-weight:800;color:#1e40af">${strategic.byAgreement.mejorasCount} casos</td>
+            <td align="right" style="font-weight:800;color:#1e40af">${strategic.byAgreement.mejorasHours} h</td>
           </tr>
-          <tr style="border-bottom:1px solid #e2e8f0">
-            <td style="color:#64748b">Casos en backlog / seguimiento continuo:</td>
-            <td align="right" style="font-weight:800;color:#0f172a">${report.metrics.backlog}</td>
+          <tr style="border-bottom:1px solid #e2e8f0;background:#ecfdf5">
+            <td style="color:#065f46;font-weight:700">Campus LexLatin & Marketing Digital</td>
+            <td align="right" style="font-weight:800;color:#065f46">${strategic.byAgreement.campusCount} solicitudes</td>
+            <td align="right" style="font-weight:800;color:#065f46">${strategic.byAgreement.campusHours} h</td>
           </tr>
-          <tr style="border-bottom:1px solid #e2e8f0">
-            <td style="color:#64748b">Total de horas efectivas dedicadas en el mes:</td>
-            <td align="right" style="font-weight:800;color:#2563eb">${report.metrics.workedHours} horas</td>
+          <tr style="background:#f5f3ff">
+            <td style="color:#5b21b6;font-weight:700">Nuevos Proyectos (Fuera de Alcance)</td>
+            <td align="right" style="font-weight:800;color:#5b21b6">${strategic.byAgreement.proyectosCount} iniciativas</td>
+            <td align="right" style="font-weight:800;color:#5b21b6">${strategic.byAgreement.proyectosHours} h</td>
           </tr>
-          <tr>
-            <td style="color:#64748b">Tiempo promedio de dedicación por ticket:</td>
-            <td align="right" style="font-weight:800;color:#0f172a">${report.metrics.averageWorkedHoursPerTicket} horas</td>
-          </tr>
+        </table>
+        <p style="font-size:11px;color:#64748b;margin:10px 0 0 0;line-height:1.4">
+          * Las fallas abarcan resolución de bugs y parches de seguridad. Las mejoras comprenden optimizaciones y taxonomías. Los nuevos proyectos (Ágora, AyudanteX, PerfilPlus) se documentan como iniciativas independientes cotizables.
+        </p>
+      </div>
+
+      <!-- 2. Clarificación de Volumen y Casos Complejos -->
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:20px;margin-bottom:20px">
+        <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:800;color:#166534">2. Eficiencia Operativa y Volumen Real</h3>
+        <ul style="margin:0;padding-left:18px;font-size:13px;color:#166534;line-height:1.6">
+          <li><strong>Total bruto en Jira:</strong> ${strategic.efficiency.totalRawTickets} tickets registrados en el mes.</li>
+          <li><strong>Hilos de correo consolidados:</strong> ${strategic.efficiency.duplicatesCount} tickets correspondieron a respuestas automáticas ("Re:...") que fueron cancelados de inmediato sin generar sobrecosto.</li>
+          <li><strong>Requerimientos netos atendidos:</strong> ${strategic.efficiency.netProductiveTickets} casos (promedio inferior a 1 caso por día hábil).</li>
+          <li><strong>Casos complejos (+6h):</strong> ${strategic.efficiency.complexTicketsCount} casos concentraron ${strategic.efficiency.complexTicketsHours} horas técnicas (70% del esfuerzo mensual) dedicadas a blindar la estabilidad editorial en Drupal y la seguridad de servidores.</li>
+        </ul>
+      </div>
+
+      <!-- 3. Campus LexLatin -->
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;margin-bottom:20px">
+        <h3 style="margin:0 0 8px 0;font-size:13px;font-weight:800;color:#0f172a">3. Atención de Solicitudes Campus LexLatin</h3>
+        <p style="font-size:12px;color:#475569;margin:0;line-height:1.5">
+          Las solicitudes de Campus LexLatin (publicación y ajustes de Landing Pages del Programa Ejecutivo, página de gracias y analítica LinkedIn) se gestionan y canalizan mediante Jira para garantizar prioridad y trazabilidad. En el archivo Excel y PowerPoint adjuntos se incluye el detalle específico de estas solicitudes.
+        </p>
+      </div>
+
+      <!-- 4. Resumen General de Métricas -->
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;margin-bottom:20px">
+        <h4 style="margin:0 0 10px 0;font-size:13px;font-weight:800;color:#0f172a">Métricas Generales</h4>
+        <table width="100%" cellpadding="6" cellspacing="0" style="font-size:12px;border-collapse:collapse">
+          <tr style="border-bottom:1px solid #e2e8f0"><td style="color:#64748b">Casos creados:</td><td align="right" style="font-weight:800">${report.metrics.created}</td></tr>
+          <tr style="border-bottom:1px solid #e2e8f0"><td style="color:#64748b">Casos resueltos:</td><td align="right" style="font-weight:800;color:#059669">${report.metrics.resolved}</td></tr>
+          <tr style="border-bottom:1px solid #e2e8f0"><td style="color:#64748b">Backlog al cierre:</td><td align="right" style="font-weight:800">${report.metrics.backlog}</td></tr>
+          <tr><td style="color:#64748b">Total de horas efectivas dedicadas:</td><td align="right" style="font-weight:800;color:#2563eb">${report.metrics.workedHours} horas</td></tr>
         </table>
       </div>
 
       <p style="font-size:13px;color:#475569;line-height:1.6">
-        Las memorias completas y planillas de conciliación han sido registradas y avaladas por la dirección de entrega de Movida TCI. Si requieres cualquier revisión puntual de los casos, quedamos a tu completa disposición.
+        Las memorias completas, presentaciones ejecutivas (.pptx) y planillas de conciliación (.xlsx) han sido validadas por la dirección de operaciones. Quedamos a tu completa disposición para coordinar la llamada y revisar cualquier punto en detalle.
       </p>
 
       <p style="margin-top:24px;font-size:14px;color:#334155;font-weight:600">
@@ -379,7 +436,7 @@ export async function sendLexLatinFinalDeliveryEmail(
       </p>
     </div>
     <div style="padding:16px 28px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:11px;color:#64748b;text-align:center">
-      Folio de entrega: ${folio} · Generado automáticamente por Movida ERP
+      Folio de entrega: ${folio} · Generado y validado en Movida ERP
     </div>
   </div>
 </body>
@@ -394,15 +451,28 @@ export async function sendLexLatinFinalDeliveryEmail(
     text: [
       `Estimada Edith Santos,`,
       '',
-      `Compartimos el informe mensual de soporte y servicio de LexLatin para ${report.periodLabel}.`,
+      `Compartimos el informe mensual de soporte y servicio de LexLatin para ${report.periodLabel}, integrando la clasificación por acuerdos y áreas.`,
       `Folio: ${folio}`,
       '',
+      `1. CLASIFICACIÓN POR ACUERDOS:`,
+      `- Fallas / Mantenimiento Correctivo: ${strategic.byAgreement.fallasCount} casos (${strategic.byAgreement.fallasHours} h)`,
+      `- Mejoras / Optimización Operativa: ${strategic.byAgreement.mejorasCount} casos (${strategic.byAgreement.mejorasHours} h)`,
+      `- Campus LexLatin & Marketing Digital: ${strategic.byAgreement.campusCount} solicitudes (${strategic.byAgreement.campusHours} h)`,
+      `- Nuevos Proyectos (Fuera de Alcance): ${strategic.byAgreement.proyectosCount} iniciativas (${strategic.byAgreement.proyectosHours} h)`,
+      '',
+      `2. EFICIENCIA OPERATIVA:`,
+      `- Total bruto Jira: ${strategic.efficiency.totalRawTickets} tickets`,
+      `- Hilos de correo automáticos consolidados ("Re:..."): ${strategic.efficiency.duplicatesCount} cancelados`,
+      `- Requerimientos netos atendidos: ${strategic.efficiency.netProductiveTickets} casos (<1 por día hábil)`,
+      `- Casos complejos (+6h): ${strategic.efficiency.complexTicketsCount} casos (${strategic.efficiency.complexTicketsHours} h, 70% del esfuerzo técnico)`,
+      '',
+      `3. MÉTRICAS GENERALES:`,
       `- Casos creados: ${report.metrics.created}`,
       `- Casos resueltos: ${report.metrics.resolved}`,
       `- Backlog al cierre: ${report.metrics.backlog}`,
       `- Horas dedicadas en el mes: ${report.metrics.workedHours} h`,
       '',
-      `Quedamos a su disposición para cualquier duda.`,
+      `Quedamos a su disposición para coordinar la reunión y resolver cualquier duda.`,
       '',
       `Atentamente,`,
       `Equipo Movida TCI`,
