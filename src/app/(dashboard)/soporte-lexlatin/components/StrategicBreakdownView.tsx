@@ -436,3 +436,4 @@ export default function StrategicBreakdownView({ issues, periodLabel }: Props) {
     </section>
   );
 }
+

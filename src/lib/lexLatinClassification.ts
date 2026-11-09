@@ -271,3 +271,4 @@ export function generateEmailBulletsForEdith(summary: StrategicBreakdownSummary,
 • Los requerimientos netos productivos fueron ${efficiency.netProductiveTickets} casos (menos de 1 por día hábil).
 • 10 casos complejos (+6h) concentraron ${efficiency.complexTicketsHours} horas técnicas de investigación profunda y desarrollo para garantizar la estabilidad del portal.`;
 }
+
