@@ -2173,91 +2173,210 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                 </div>
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="border-b-2 border-slate-200 pb-6 mb-6">
-                <h1 className="text-4xl font-bold text-slate-900 mb-2">FACTURA {printData.folio}</h1>
-                <div className="flex justify-between items-start mt-8">
+            <div className="bg-white text-slate-900 font-sans flex flex-col min-h-[960px] border border-slate-200 rounded-xl overflow-hidden">
+              {/* Franja superior corporativa Movida */}
+              <div className="h-2.5 w-full bg-gradient-to-r from-[#0f2557] via-[#1e3a8a] to-[#2563eb]" />
+
+              <div className="p-8 flex-1 flex flex-col">
+                {/* Encabezado: Logo Movida + Datos Emisor + Tarjeta Folio */}
+                <div className="flex justify-between items-start gap-6 pb-5 border-b border-slate-200">
+                  <div className="flex items-start gap-4">
+                    <img
+                      src="/logo.png"
+                      className="h-20 w-auto object-contain shrink-0"
+                      alt="Movida TCI"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                    <div className="pt-0.5 border-l border-slate-200 pl-4 text-xs text-slate-600 space-y-0.5">
+                      <p className="font-bold text-slate-900 text-sm">Movida TCI</p>
+                      <p>RFC: <span className="font-mono font-semibold text-slate-700">DES170116QX1</span></p>
+                      <p>Tel: +52 55 1069 4443</p>
+                      <p className="text-[#1e3a8a] font-medium">facturacion@movidatci.mx</p>
+                      <p className="text-slate-500">www.movidatci.mx</p>
+                    </div>
+                  </div>
+
+                  <div className="min-w-[240px] bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="bg-[#1e3a8a] text-white px-4 py-2 flex items-center justify-between gap-3">
+                      <span className="text-xs font-extrabold uppercase tracking-[0.16em]">Prefactura</span>
+                      <span className="font-mono text-sm font-bold bg-white/15 px-2 py-0.5 rounded-md">{printData.folio}</span>
+                    </div>
+                    <div className="px-4 py-2.5 space-y-1.5 text-xs">
+                      <div className="flex justify-between gap-4">
+                        <span className="text-slate-500 font-medium">Fecha de emisión:</span>
+                        <span className="font-semibold text-slate-800">
+                          {new Date(printData.fecha_emision).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        </span>
+                      </div>
+                      {printData.fecha_vencimiento && (
+                        <div className="flex justify-between gap-4">
+                          <span className="text-slate-500 font-medium">Fecha de vencimiento:</span>
+                          <span className="font-semibold text-slate-800">
+                            {new Date(printData.fecha_vencimiento).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center gap-4 pt-1.5 border-t border-slate-200/80">
+                        <span className="text-slate-500 font-medium">Estatus:</span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-[#1e3a8a] border border-blue-200 uppercase">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#2563eb]" />
+                          {printData.estatus}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Aviso destacado de validación y aprobación del cliente */}
+                <div className="mt-4 rounded-xl bg-[#eff6ff] border border-[#bfdbfe] border-l-4 border-l-[#1e3a8a] px-4 py-3 flex items-start gap-2.5">
+                  <div className="mt-0.5 w-4 h-4 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-[10px] font-bold shrink-0">i</div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Facturado a:</h3>
-                    <p className="text-xl font-bold text-slate-800">{printData.cliente.razon_social || printData.cliente.nombre}</p>
-                    {printData.cliente.empresa && <p className="text-slate-600 font-medium">{printData.cliente.empresa}</p>}
-                    <p className="text-slate-600 mt-1">
-                      {printData.cliente.direccion ? `${printData.cliente.direccion}, ` : ''}
-                      {printData.cliente.colonia ? `${printData.cliente.colonia}, ` : ''}
-                      {printData.cliente.ciudad ? `${printData.cliente.ciudad}, ` : ''}
-                      {printData.cliente.codigo_postal ? `C.P. ${printData.cliente.codigo_postal}` : ''}
+                    <p className="text-xs font-bold text-[#1e3a8a] leading-snug">
+                      Esta es una prefactura en espera de aprobación y validación del cliente.
+                    </p>
+                    <p className="text-[11px] text-slate-600 mt-0.5">
+                      Documento informativo previo a la emisión fiscal definitiva. Favor de confirmar conceptos, importes y datos del receptor.
                     </p>
                   </div>
-                  <div className="text-right">
-                    <div className="mb-2">
-                      <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">Fecha de Emisión:</span>
-                      <p className="font-medium text-slate-800">{new Date(printData.fecha_emision).toLocaleDateString()}</p>
-                    </div>
-                    {printData.fecha_vencimiento && (
-                      <div>
-                        <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">Fecha de Vencimiento:</span>
-                        <p className="font-medium text-slate-800">{new Date(printData.fecha_vencimiento).toLocaleDateString()}</p>
-                      </div>
+                </div>
+
+                {/* Bloque Facturado a (Ancho completo) */}
+                <div className="mt-4 bg-slate-50/80 border border-slate-200 rounded-xl p-4 flex justify-between items-start gap-4">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-[#1e3a8a] mb-1">Facturado a</p>
+                    <p className="text-base font-extrabold text-slate-900">
+                      {printData.cliente.razon_social || printData.cliente.nombre}
+                    </p>
+                    {printData.cliente.empresa && printData.cliente.empresa !== (printData.cliente.razon_social || printData.cliente.nombre) && (
+                      <p className="text-xs text-slate-600 font-medium mt-0.5">{printData.cliente.empresa}</p>
+                    )}
+                    {printData.cliente.razon_social && printData.cliente.nombre && printData.cliente.razon_social !== printData.cliente.nombre && (
+                      <p className="text-xs text-slate-500 mt-0.5">Atención: {printData.cliente.nombre}</p>
                     )}
                   </div>
-                </div>
-              </div>
-  
-              <table className="w-full mb-6">
-                <thead>
-                  <tr className="border-b-2 border-slate-200 text-left">
-                    <th className="py-3 pr-4 text-slate-600 font-semibold w-16 text-center">Cant.</th>
-                    <th className="py-3 text-slate-600 font-semibold">Concepto / Descripción</th>
-                    <th className="py-3 text-right text-slate-600 font-semibold w-32">Precio Unit.</th>
-                    <th className="py-3 text-right text-slate-600 font-semibold w-32">Importe</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.isArray(printData.items) && printData.items.length > 0 ? (
-                    printData.items.map((item: any, idx: number) => (
-                      <tr key={item.id || idx} className="border-b border-slate-100 align-top">
-                        <td className="py-3.5 pr-4 text-center text-slate-700 font-semibold">{item.cantidad}</td>
-                        <td className="py-3.5 text-slate-800">
-                          <p className="font-semibold">{item.descripcion}</p>
-                          {item.detalle && (
-                            <p className="text-xs text-slate-500 mt-1 whitespace-pre-wrap">{item.detalle}</p>
-                          )}
-                        </td>
-                        <td className="py-3.5 text-right text-slate-700">{formatCurrency(item.precio_unitario)}</td>
-                        <td className="py-3.5 text-right text-slate-800 font-bold">{formatCurrency(item.monto_total)}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr className="border-b border-slate-100">
-                      <td className="py-4 pr-4 text-center text-slate-700 font-semibold">1</td>
-                      <td className="py-4 text-slate-800 font-medium">{printData.descripcion || 'Servicios según presupuesto / cotización'}</td>
-                      <td className="py-4 text-right text-slate-700">{formatCurrency(printData.monto_total)}</td>
-                      <td className="py-4 text-right text-slate-800 font-bold">{formatCurrency(printData.monto_total)}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-
-              {printData.notas && (
-                <div className="mb-6 p-4 rounded-xl bg-slate-50 border border-slate-200">
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Notas / Detalle Adicional</h4>
-                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{printData.notas}</p>
-                </div>
-              )}
-  
-              <div className="flex justify-end">
-                <div className="w-64">
-                  <div className="flex justify-between py-2 text-lg font-bold">
-                    <span>TOTAL:</span>
-                    <span className="text-primary">{formatCurrency(printData.monto_total)}</span>
+                  <div className="text-right text-xs text-slate-600 space-y-0.5">
+                    {printData.cliente.rfc_taxid && (
+                      <p>RFC: <strong className="font-mono text-slate-800">{printData.cliente.rfc_taxid}</strong></p>
+                    )}
+                    {(printData.cliente.direccion || printData.cliente.colonia || printData.cliente.ciudad || printData.cliente.codigo_postal) && (
+                      <p className="text-[11px] text-slate-500 max-w-[260px]">
+                        {[
+                          printData.cliente.direccion,
+                          printData.cliente.colonia,
+                          printData.cliente.ciudad,
+                          printData.cliente.codigo_postal ? `C.P. ${printData.cliente.codigo_postal}` : null,
+                        ].filter(Boolean).join(', ')}
+                      </p>
+                    )}
+                    {printData.cliente.email && <p className="text-[11px] text-slate-500">{printData.cliente.email}</p>}
                   </div>
                 </div>
+
+                {/* Tabla ejecutiva de conceptos */}
+                <div className="mt-5 rounded-xl border border-slate-200 overflow-hidden">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-[#1e3a8a] text-white text-[11px] uppercase tracking-wider">
+                        <th className="py-2.5 px-3 font-bold w-10 text-center">#</th>
+                        <th className="py-2.5 px-3 font-bold w-16 text-center">Cant.</th>
+                        <th className="py-2.5 px-4 font-bold">Concepto / Descripción</th>
+                        <th className="py-2.5 px-4 font-bold text-right w-28">Precio Unit.</th>
+                        <th className="py-2.5 px-4 font-bold text-right w-32">Importe</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 text-xs">
+                      {Array.isArray(printData.items) && printData.items.length > 0 ? (
+                        printData.items.map((item: any, idx: number) => (
+                          <tr key={item.id || idx} className={`${idx % 2 === 1 ? 'bg-slate-50/70' : 'bg-white'} align-top`}>
+                            <td className="py-3 px-3 text-center text-[11px] font-bold text-slate-400">{idx + 1}</td>
+                            <td className="py-3 px-3 text-center font-bold text-slate-800">{item.cantidad}</td>
+                            <td className="py-3 px-4">
+                              <p className="font-bold text-slate-900 leading-snug">{item.descripcion}</p>
+                              {item.detalle && (
+                                <p className="text-[11px] text-slate-500 mt-1 whitespace-pre-wrap leading-relaxed">{item.detalle}</p>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-right text-slate-700 font-medium">{formatCurrency(item.precio_unitario)}</td>
+                            <td className="py-3 px-4 text-right font-extrabold text-slate-900">{formatCurrency(item.monto_total)}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr className="bg-white align-top">
+                          <td className="py-3.5 px-3 text-center text-[11px] font-bold text-slate-400">1</td>
+                          <td className="py-3.5 px-3 text-center font-bold text-slate-800">1</td>
+                          <td className="py-3.5 px-4 font-bold text-slate-900">
+                            {printData.descripcion || 'Servicios según presupuesto / cotización'}
+                          </td>
+                          <td className="py-3.5 px-4 text-right text-slate-700 font-medium">{formatCurrency(printData.monto_total)}</td>
+                          <td className="py-3.5 px-4 text-right font-extrabold text-slate-900">{formatCurrency(printData.monto_total)}</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Bloque inferior: Notas + Importe con letra | Totales + Vo.Bo. */}
+                <div className="grid grid-cols-12 gap-5 mt-5 items-start">
+                  <div className="col-span-7 space-y-3">
+                    {printData.notas && (
+                      <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-[#1e3a8a] mb-1">Notas / Detalle Adicional</p>
+                        <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{printData.notas}</p>
+                      </div>
+                    )}
+                    <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3.5 py-2.5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Importe con letra</p>
+                      <p className="text-xs font-semibold text-slate-700 mt-0.5 uppercase">
+                        {numeroALetras(printData.monto_total, '').trim()}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="col-span-5 space-y-4">
+                    <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-50">
+                      <div className="px-4 py-2.5 space-y-1.5 text-xs">
+                        <div className="flex justify-between text-slate-600">
+                          <span>Subtotal</span>
+                          <span className="font-semibold text-slate-800">{formatCurrency(printData.monto_total)}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-500 text-[11px]">
+                          <span>Impuestos (al facturar)</span>
+                          <span>—</span>
+                        </div>
+                      </div>
+                      <div className="bg-[#1e3a8a] text-white px-4 py-3 flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider">Total</span>
+                        <span className="text-lg font-black">{formatCurrency(printData.monto_total)}</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-7 text-center">
+                      <div className="border-t border-slate-400 w-4/5 mx-auto pt-1.5">
+                        <p className="text-[11px] font-bold text-slate-700">Aprobación y Validación del Cliente</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Nombre, firma y fecha de Vo.Bo.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Espaciador para alinear pie de página al fondo */}
+                <div className="flex-1 min-h-[24px]" />
+
+                {/* Pie de página corporativo con dirección oficial */}
+                <footer className="mt-6 pt-3.5 border-t-2 border-[#1e3a8a]/20 flex items-center justify-between gap-4">
+                  <div className="text-xs text-slate-700">
+                    <p className="font-bold text-[#1e3a8a]">Movida TCI</p>
+                    <p className="text-slate-600 mt-0.5">Illinois 27, Colonia Nápoles, Ciudad de México</p>
+                  </div>
+                  <div className="text-xs text-slate-500 text-right">
+                    <p className="font-medium text-slate-700">facturacion@movidatci.mx · +52 55 1069 4443</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Gracias por su preferencia · www.movidatci.mx</p>
+                  </div>
+                </footer>
               </div>
-              
-              <div className="mt-16 pt-8 border-t border-slate-200 text-center text-sm text-slate-500">
-                <p>Estatus de Documento: <strong className="uppercase">{printData.estatus}</strong></p>
-                <p className="mt-2">Gracias por su preferencia.</p>
-              </div>
+
+              {/* Barra inferior sutil */}
+              <div className="h-1.5 w-full bg-gradient-to-r from-slate-200 via-[#1e3a8a] to-slate-200" />
             </div>
           )
         )}
