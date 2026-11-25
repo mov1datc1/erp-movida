@@ -88,10 +88,21 @@ export function CotizacionDetalleClient({ cotizacion, catalog }: { cotizacion: a
   const handleGeneratePrefactura = async () => {
     if (window.confirm('¿Generar Cuentas por Cobrar (Prefactura) por el monto total de esta cotización?')) {
       setIsGenerating(true);
+      const mappedItems = Array.isArray(cotizacion.items)
+        ? cotizacion.items.map((item: any) => ({
+            producto_id: item.producto_id || null,
+            linea_producto_id: item.producto?.linea_producto_id || null,
+            descripcion: item.descripcion,
+            cantidad: item.cantidad || 1,
+            precio_unitario: item.precio_unitario || item.monto_total,
+            monto_total: item.monto_total,
+          }))
+        : undefined;
       const res = await createPrefactura({
         cliente_id: cotizacion.cliente_id,
         monto_total: cotizacion.monto,
-        cotizacion_id: cotizacion.id
+        cotizacion_id: cotizacion.id,
+        items: mappedItems,
       });
       if (res.success) {
         router.push('/crm/facturacion');

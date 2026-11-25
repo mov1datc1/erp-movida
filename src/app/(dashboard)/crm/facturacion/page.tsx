@@ -12,7 +12,16 @@ export default async function FacturacionPage() {
   let proyectos: any[] = [];
   try {
     facturas = await prisma.factura.findMany({
-      include: { cliente: true, proyecto: { select: { id: true, nombre: true, codigo: true } } },
+      include: {
+        cliente: true,
+        proyecto: { select: { id: true, nombre: true, codigo: true } },
+        items: {
+          orderBy: { orden: 'asc' },
+          include: {
+            producto: { select: { id: true, nombre: true, precio_base: true, linea_producto_id: true } }
+          }
+        }
+      },
       orderBy: { createdAt: 'desc' }
     });
     clientes = await prisma.cliente.findMany({

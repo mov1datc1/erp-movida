@@ -1,10 +1,41 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare, Star, Trash2, ChevronDown, Check, Globe, FolderKanban } from "lucide-react";
+import { Plus, Search, FileText, CheckCircle, Clock, AlertTriangle, Loader2, DollarSign, Download, Calendar, Filter, FileSpreadsheet, Printer, CheckSquare, Star, Trash2, ChevronDown, Check, Globe, FolderKanban, Package, StickyNote, X } from "lucide-react";
 import { createPrefactura, updatePrefactura, markFacturaAsPagada, saveFavoritoCXC, deleteFavoritoCXC, solicitarFacturacionCFDI, timbrarFacturaCFDI, crearFacturaUSA, crearFacturaMX, eliminarFactura } from './actions';
 import { registrarPagoParcialCxC } from '@/app/actions/pagos';
 import QRCode from 'react-qr-code';
+
+type EditableFacturaItem = {
+  localId: string;
+  producto_id: string;
+  linea_producto_id: string;
+  descripcion: string;
+  detalle: string;
+  cantidad: string;
+  precio_unitario: string;
+};
+
+const createEmptyItem = (): EditableFacturaItem => ({
+  localId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  producto_id: '',
+  linea_producto_id: '',
+  descripcion: '',
+  detalle: '',
+  cantidad: '1',
+  precio_unitario: '',
+});
+
+const computeItemsTotal = (items: EditableFacturaItem[]): number =>
+  Number(
+    items
+      .reduce((sum, item) => {
+        const qty = parseFloat(item.cantidad) || 0;
+        const price = parseFloat(item.precio_unitario) || 0;
+        return sum + qty * price;
+      }, 0)
+      .toFixed(2)
+  );
 
 function numeroALetras(num: number, currency: string = 'USD'): string {
   if (!num || isNaN(num)) return `CERO 00/100 ${currency}`;
@@ -142,6 +173,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     monto_mxn_estimado: '',
     fecha_vencimiento: '', 
     descripcion: '', 
+    notas: '',
     linea_producto_id: '', 
     categoria: '',
     detalle_horas: '',
@@ -151,6 +183,95 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     plataformas: '',
     proyecto_id: ''
   });
+  const [items, setItems] = useState<EditableFacturaItem[]>([createEmptyItem()]);
+
+  const catalogProducts = useMemo(() => {
+    const flat: Array<{ id: string; nombre: string; descripcion?: string | null; precio_base?: number | null; lineaId: string; lineaNombre: string }> = [];
+    catalog.forEach((linea: any) => {
+      (linea.productos || []).forEach((prod: any) => {
+        flat.push({
+          id: prod.id,
+          nombre: prod.nombre,
+          descripcion: prod.descripcion,
+          precio_base: prod.precio_base,
+          lineaId: linea.id,
+          lineaNombre: linea.nombre,
+        });
+      });
+    });
+    return flat;
+  }, [catalog]);
+
+  const itemsTotal = useMemo(() => computeItemsTotal(items), [items]);
+  const validItemsCount = useMemo(
+    () => items.filter((i) => i.descripcion.trim() || (parseFloat(i.precio_unitario) || 0) > 0).length,
+    [items]
+  );
+
+  const syncItemsAndTotal = (nextItems: EditableFacturaItem[]) => {
+    setItems(nextItems);
+    const nextTotal = computeItemsTotal(nextItems);
+    const firstLinea = nextItems.find((i) => i.linea_producto_id)?.linea_producto_id || '';
+    const firstDesc = nextItems.find((i) => i.descripcion.trim())?.descripcion.trim() || '';
+    setFormData((prev) => ({
+      ...prev,
+      monto_total: nextTotal > 0 ? nextTotal.toString() : prev.monto_total,
+      linea_producto_id: firstLinea || prev.linea_producto_id,
+      descripcion: firstDesc || prev.descripcion,
+    }));
+  };
+
+  const handleItemProductChange = (localId: string, selectedProductId: string) => {
+    const prod = catalogProducts.find((p) => p.id === selectedProductId);
+    const nextItems = items.map((item) => {
+      if (item.localId !== localId) return item;
+      if (!prod) {
+        return { ...item, producto_id: '', linea_producto_id: '' };
+      }
+      return {
+        ...item,
+        producto_id: prod.id,
+        linea_producto_id: prod.lineaId,
+        descripcion: prod.nombre,
+        precio_unitario: prod.precio_base != null && prod.precio_base > 0
+          ? prod.precio_base.toString()
+          : item.precio_unitario,
+      };
+    });
+    syncItemsAndTotal(nextItems);
+  };
+
+  const handleItemFieldChange = (localId: string, field: keyof EditableFacturaItem, value: string) => {
+    const nextItems = items.map((item) =>
+      item.localId === localId ? { ...item, [field]: value } : item
+    );
+    setItems(nextItems);
+    if (field === 'cantidad' || field === 'precio_unitario') {
+      const nextTotal = computeItemsTotal(nextItems);
+      setFormData((prev) => ({
+        ...prev,
+        monto_total: nextTotal > 0 ? nextTotal.toString() : '',
+      }));
+    } else if (field === 'descripcion') {
+      const firstDesc = nextItems.find((i) => i.descripcion.trim())?.descripcion.trim() || '';
+      setFormData((prev) => ({ ...prev, descripcion: firstDesc }));
+    }
+  };
+
+  const handleAddItemRow = () => {
+    setItems((prev) => [...prev, createEmptyItem()]);
+  };
+
+  const handleRemoveItemRow = (localId: string) => {
+    if (items.length <= 1) return;
+    const nextItems = items.filter((i) => i.localId !== localId);
+    const nextTotal = computeItemsTotal(nextItems);
+    setItems(nextItems);
+    setFormData((prev) => ({
+      ...prev,
+      monto_total: nextTotal > 0 ? nextTotal.toString() : '',
+    }));
+  };
   
   // For printing
   const [printData, setPrintData] = useState<any>(null);
@@ -283,10 +404,28 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     });
   }, [facturas, searchTerm, activeTab, dateFilter]);
 
+  const emptyFormData = {
+    cliente_id: '',
+    monto_total: '',
+    monto_mxn_estimado: '',
+    fecha_vencimiento: '',
+    descripcion: '',
+    notas: '',
+    linea_producto_id: '',
+    categoria: '',
+    detalle_horas: '',
+    numero_orden: '',
+    mes_servicio: '',
+    tipo_servicio: '',
+    plataformas: '',
+    proyecto_id: ''
+  };
+
   const openNewModal = () => {
     setEditingId(null);
     setPrintData(null);
-    setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '', proyecto_id: '' });
+    setFormData(emptyFormData);
+    setItems([createEmptyItem()]);
     setShowFavoritos(false);
     setFavSearchTerm('');
     setIsModalOpen(true);
@@ -300,6 +439,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
       monto_mxn_estimado: factura.monto_mxn_estimado ? factura.monto_mxn_estimado.toString() : '',
       fecha_vencimiento: factura.fecha_vencimiento ? new Date(factura.fecha_vencimiento).toISOString().split('T')[0] : '',
       descripcion: factura.descripcion || '',
+      notas: factura.notas || '',
       linea_producto_id: factura.linea_producto_id || '',
       categoria: factura.categoria || '',
       detalle_horas: factura.detalle_horas || '',
@@ -309,28 +449,60 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
       plataformas: factura.plataformas || '',
       proyecto_id: factura.proyecto_id || ''
     });
+    if (Array.isArray(factura.items) && factura.items.length > 0) {
+      setItems(
+        factura.items.map((it: any, idx: number) => ({
+          localId: it.id || `item-${idx}-${Date.now()}`,
+          producto_id: it.producto_id || '',
+          linea_producto_id: it.linea_producto_id || it.producto?.linea_producto_id || '',
+          descripcion: it.descripcion || '',
+          detalle: it.detalle || '',
+          cantidad: String(it.cantidad ?? 1),
+          precio_unitario: String(it.precio_unitario ?? 0),
+        }))
+      );
+    } else {
+      const matchedProduct = catalogProducts.find(
+        (p) => p.nombre === factura.descripcion && (!factura.linea_producto_id || p.lineaId === factura.linea_producto_id)
+      );
+      setItems([
+        {
+          localId: `legacy-${factura.id}`,
+          producto_id: matchedProduct?.id || '',
+          linea_producto_id: factura.linea_producto_id || matchedProduct?.lineaId || '',
+          descripcion: factura.descripcion || '',
+          detalle: '',
+          cantidad: '1',
+          precio_unitario: factura.monto_total ? String(factura.monto_total) : '',
+        },
+      ]);
+    }
     setPrintData(factura);
     setShowFavoritos(false);
     setFavSearchTerm('');
     setIsModalOpen(true);
   };
 
-  const handlePrintInvoice = () => {
+  const handlePrintInvoice = (targetData?: any) => {
+    const doc = targetData || printData;
+    if (targetData) {
+      setPrintData(targetData);
+    }
     setPrintMode('invoice');
     
     // Cambiar el título del documento temporalmente para que al guardar PDF use este nombre
     const originalTitle = document.title;
-    if (printData?.es_usa) {
-      document.title = `${printData.numero_usa || printData.folio}`;
-    } else if (printData) {
-      document.title = `${printData.folio}`;
+    if (doc?.es_usa) {
+      document.title = `${doc.numero_usa || doc.folio}`;
+    } else if (doc) {
+      document.title = `${doc.folio}`;
     }
 
     setTimeout(() => {
       window.print();
       setPrintMode('none');
       document.title = originalTitle;
-    }, 100);
+    }, 150);
   };
 
   const handlePrintTable = () => {
@@ -357,8 +529,10 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
   };
 
   const handleSaveFavorito = async () => {
-    if (!formData.monto_total || !formData.cliente_id || !formData.descripcion) {
-      showNotification("Para guardar un favorito necesitas ingresar el Cliente, Monto y Descripción.", 'error');
+    const effectiveTotal = itemsTotal > 0 ? itemsTotal : parseFloat(formData.monto_total || '0');
+    const effectiveDesc = items.find((i) => i.descripcion.trim())?.descripcion.trim() || formData.descripcion.trim();
+    if (!effectiveTotal || !formData.cliente_id || !effectiveDesc) {
+      showNotification("Para guardar un favorito necesitas ingresar el Cliente, al menos un concepto y el Monto.", 'error');
       return;
     }
     setFavTitleInput('');
@@ -369,11 +543,17 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
     if (!favTitleInput.trim()) return;
     setFavPromptOpen(false);
     
+    const effectiveTotal = itemsTotal > 0 ? itemsTotal : parseFloat(formData.monto_total || '0');
+    const effectiveDesc = items
+      .filter((i) => i.descripcion.trim())
+      .map((i) => (parseFloat(i.cantidad) > 1 ? `${i.cantidad}x ${i.descripcion.trim()}` : i.descripcion.trim()))
+      .join(' + ') || formData.descripcion.trim();
+
     setIsLoading(true);
     const res = await saveFavoritoCXC({
       titulo: favTitleInput,
-      monto: parseFloat(formData.monto_total),
-      descripcion: formData.descripcion,
+      monto: effectiveTotal,
+      descripcion: effectiveDesc,
       cliente_id: formData.cliente_id
     });
     setIsLoading(false);
@@ -428,12 +608,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
         <div className="flex gap-2 print:hidden">
           {activeTab === 'usa' && (
             <button 
-              onClick={() => {
-                setEditingId(null);
-                setPrintData(null);
-                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '', proyecto_id: '' });
-                setIsModalOpen(true);
-              }}
+              onClick={openNewModal}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-emerald-600/20"
             >
               <Globe className="w-5 h-5" /> Nueva Factura USA
@@ -441,12 +616,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
           )}
           {activeTab === 'mx' && (
             <button 
-              onClick={() => {
-                setEditingId(null);
-                setPrintData(null);
-                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '', proyecto_id: '' });
-                setIsModalOpen(true);
-              }}
+              onClick={openNewModal}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-colors shadow-lg shadow-blue-600/20"
             >
               <FileText className="w-5 h-5" /> Nueva Solicitud MX
@@ -625,7 +795,21 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                       <td className="px-6 py-4">
                         <p className={`font-bold ${isVencida ? 'text-red-900' : 'text-text-main'}`}>{f.cliente.nombre}</p>
                         {f.cliente.empresa && <p className={`text-xs mt-0.5 ${isVencida ? 'text-red-700' : 'text-text-muted'}`}>{f.cliente.empresa}</p>}
-                        {f.descripcion && <p className={`text-xs mt-0.5 truncate max-w-[200px] ${isVencida ? 'text-red-700' : 'text-text-muted'}`}>{f.descripcion}</p>}
+                        {f.descripcion && (
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <p className={`text-xs truncate max-w-[220px] ${isVencida ? 'text-red-700' : 'text-text-muted'}`}>{f.descripcion}</p>
+                            {Array.isArray(f.items) && f.items.length > 1 && (
+                              <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                {f.items.length} ítems
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {f.notas && (
+                          <p className="text-[11px] text-slate-400 italic truncate max-w-[240px] mt-0.5">
+                            Nota: {f.notas}
+                          </p>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-slate-600 font-medium">
                         {f.categoria || '-'}
@@ -651,10 +835,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setPrintData(f);
-                              setTimeout(() => {
-                                handlePrintInvoice();
-                              }, 100);
+                              handlePrintInvoice(f);
                             }}
                             className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                             title="Imprimir PDF"
@@ -688,8 +869,8 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in print:hidden">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl p-0 animate-in zoom-in-95 duration-200 overflow-visible flex relative">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in print:hidden">
+          <div className={`bg-white rounded-2xl shadow-2xl w-full ${!editingId || showFavoritos ? 'max-w-5xl' : 'max-w-3xl'} p-0 animate-in zoom-in-95 duration-200 overflow-visible flex relative`}>
             
             {/* Inline Notification Overlay */}
             {notification.show && (
@@ -725,7 +906,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
 
             {/* Favoritos Sidebar (Only on new) */}
             {(!editingId || showFavoritos) && (
-              <div className="w-64 bg-slate-50 border-r border-slate-100 flex flex-col h-[600px] overflow-hidden hidden md:flex">
+              <div className="w-64 bg-slate-50 border-r border-slate-100 rounded-l-2xl flex-col h-[85vh] max-h-[760px] overflow-hidden hidden md:flex">
                 <div className="p-4 border-b border-slate-200 bg-slate-100 flex flex-col gap-3">
                   <div className="flex items-center gap-2">
                     <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
@@ -750,20 +931,23 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                       <div key={fav.id} className="bg-white p-3 rounded-xl border border-slate-200 hover:border-primary/50 cursor-pointer group shadow-sm transition-all"
                         onClick={() => {
                           setFormData({
+                            ...emptyFormData,
                             cliente_id: fav.cliente_id || '',
                             monto_total: fav.monto.toString(),
-                            descripcion: fav.descripcion || '',
-                            linea_producto_id: '',
-                            categoria: '',
+                            descripcion: fav.descripcion || fav.titulo || '',
                             fecha_vencimiento: formData.fecha_vencimiento,
-                            monto_mxn_estimado: '',
-                            detalle_horas: '',
-                            numero_orden: '',
-                            mes_servicio: '',
-                            tipo_servicio: '',
-                            plataformas: '',
-                            proyecto_id: ''
                           });
+                          setItems([
+                            {
+                              localId: `fav-${fav.id}-${Date.now()}`,
+                              producto_id: '',
+                              linea_producto_id: '',
+                              descripcion: fav.descripcion || fav.titulo || '',
+                              detalle: '',
+                              cantidad: '1',
+                              precio_unitario: fav.monto.toString(),
+                            },
+                          ]);
                         }}
                       >
                         <div className="flex justify-between items-start">
@@ -789,7 +973,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               </div>
             )}
 
-            <div className="flex-1 p-6 flex flex-col h-[600px] overflow-y-auto">
+            <div className="flex-1 p-6 flex flex-col h-[85vh] max-h-[760px] overflow-y-auto">
             <div className="flex justify-between items-start mb-4">
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                 {activeTab === 'usa' && !editingId ? <Globe className="w-5 h-5 text-emerald-600" /> : <FileText className="w-5 h-5 text-primary" />}
@@ -866,7 +1050,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                 {editingId && (
                   <button 
                     type="button"
-                    onClick={handlePrintInvoice}
+                    onClick={() => handlePrintInvoice()}
                     className="p-2 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
                     title="Imprimir Recibo Interno"
                   >
@@ -878,7 +1062,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                     type="button"
                     onClick={handleSaveFavorito}
                     className="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-colors"
-                    title="Guardar como Favorito (Requiere llenar cliente, monto y descripción)"
+                    title="Guardar como Favorito (Requiere llenar cliente, monto y concepto)"
                   >
                     <Star className="w-5 h-5" />
                   </button>
@@ -886,55 +1070,97 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               </div>
             </div>
             
+            {(() => {
+              const isFinanciallyLocked = Boolean(
+                editingId && printData && (printData.estatus === 'PAGADA' || printData.estatus === 'CANCELADA')
+              );
+              const effectiveTotal = itemsTotal > 0 ? itemsTotal : parseFloat(formData.monto_total || '0');
+
+              return (
             <form onSubmit={async (e) => {
               e.preventDefault();
               setIsLoading(true);
               
+              const payloadItems = items
+                .filter((i) => i.descripcion.trim() || (parseFloat(i.precio_unitario) || 0) > 0)
+                .map((i) => {
+                  const cantidad = Math.max(0.01, parseFloat(i.cantidad) || 1);
+                  const precio_unitario = Math.max(0, parseFloat(i.precio_unitario) || 0);
+                  return {
+                    producto_id: i.producto_id || null,
+                    linea_producto_id: i.linea_producto_id || null,
+                    descripcion: i.descripcion.trim() || 'Concepto',
+                    detalle: i.detalle.trim() || null,
+                    cantidad,
+                    precio_unitario,
+                    monto_total: Number((cantidad * precio_unitario).toFixed(2)),
+                  };
+                });
+
+              const finalTotal = payloadItems.length > 0 && itemsTotal > 0
+                ? itemsTotal
+                : parseFloat(formData.monto_total || '0');
+              const firstLineaId = payloadItems.find((i) => i.linea_producto_id)?.linea_producto_id || formData.linea_producto_id || undefined;
+              const fallbackDesc = formData.descripcion.trim() || payloadItems[0]?.descripcion || undefined;
+
               let res;
               if (editingId) {
                 res = await updatePrefactura(editingId, {
                   cliente_id: formData.cliente_id,
-                  monto_total: parseFloat(formData.monto_total),
+                  monto_total: finalTotal,
                   fecha_vencimiento: formData.fecha_vencimiento,
-                  descripcion: formData.descripcion,
+                  descripcion: fallbackDesc,
+                  notas: formData.notas,
+                  linea_producto_id: firstLineaId,
                   categoria: formData.categoria,
                   detalle_horas: formData.detalle_horas,
                   numero_orden: formData.numero_orden,
-                  proyecto_id: formData.proyecto_id || undefined
+                  mes_servicio: formData.mes_servicio,
+                  tipo_servicio: formData.tipo_servicio,
+                  plataformas: formData.plataformas,
+                  proyecto_id: formData.proyecto_id || undefined,
+                  items: payloadItems,
                 });
               } else {
                 if (activeTab === 'usa') {
                   res = await crearFacturaUSA({
                     cliente_id: formData.cliente_id,
-                    monto_total: parseFloat(formData.monto_total),
+                    monto_total: finalTotal,
                     monto_mxn_estimado: formData.monto_mxn_estimado ? parseFloat(formData.monto_mxn_estimado) : undefined,
-                    descripcion: formData.descripcion,
-                    linea_producto_id: formData.linea_producto_id,
+                    descripcion: fallbackDesc,
+                    notas: formData.notas,
+                    linea_producto_id: firstLineaId,
                     categoria: formData.categoria || 'Ventas Internacionales',
                     detalle_horas: formData.detalle_horas,
                     numero_orden: formData.numero_orden,
-                    proyecto_id: formData.proyecto_id || undefined
+                    proyecto_id: formData.proyecto_id || undefined,
+                    items: payloadItems,
                   });
                 } else if (activeTab === 'mx') {
                   res = await crearFacturaMX({
                     cliente_id: formData.cliente_id,
-                    monto_total: parseFloat(formData.monto_total),
-                    descripcion: formData.descripcion,
-                    linea_producto_id: formData.linea_producto_id,
+                    monto_total: finalTotal,
+                    descripcion: fallbackDesc,
+                    notas: formData.notas,
+                    linea_producto_id: firstLineaId,
                     categoria: formData.categoria || 'Ventas Nacionales',
                     mes_servicio: formData.mes_servicio,
                     tipo_servicio: formData.tipo_servicio,
                     plataformas: formData.plataformas,
-                    proyecto_id: formData.proyecto_id || undefined
+                    proyecto_id: formData.proyecto_id || undefined,
+                    items: payloadItems,
                   });
                 } else {
                   res = await createPrefactura({
                     cliente_id: formData.cliente_id,
-                    monto_total: parseFloat(formData.monto_total),
+                    monto_total: finalTotal,
                     fecha_vencimiento: formData.fecha_vencimiento,
-                    descripcion: formData.descripcion,
+                    descripcion: fallbackDesc,
+                    notas: formData.notas,
+                    linea_producto_id: firstLineaId,
                     categoria: formData.categoria,
-                    proyecto_id: formData.proyecto_id || undefined
+                    proyecto_id: formData.proyecto_id || undefined,
+                    items: payloadItems,
                   });
                 }
               }
@@ -942,12 +1168,19 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               setIsLoading(false);
               if (res.success) {
                 setIsModalOpen(false);
-                setFormData({ cliente_id: '', monto_total: '', monto_mxn_estimado: '', fecha_vencimiento: '', descripcion: '', linea_producto_id: '', categoria: '', detalle_horas: '', numero_orden: '', mes_servicio: '', tipo_servicio: '', plataformas: '', proyecto_id: '' });
+                setFormData(emptyFormData);
+                setItems([createEmptyItem()]);
                 setEditingId(null);
               } else {
                 showNotification(res.error || 'Error al guardar', 'error');
               }
             }} className="space-y-4">
+              {isFinanciallyLocked && (
+                <div className="px-3.5 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                  <span>Este documento está <strong>{printData?.estatus}</strong>: puedes editar la descripción y las notas adicionales, pero el monto y los conceptos ya no se pueden alterar.</span>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Cliente *</label>
                 
@@ -1009,33 +1242,179 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                 </div>
               </div>
               
-              <div>
-                <div className="flex justify-between mb-1">
-                  <label className="block text-sm font-medium text-slate-700">Producto / Concepto Asociado (Catálogo)</label>
+              {/* Sección de Múltiples Productos / Conceptos con Cantidad y Precio */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-primary" />
+                    <label className="text-sm font-bold text-slate-800">
+                      Productos / Conceptos ({items.length})
+                    </label>
+                  </div>
+                  {!isFinanciallyLocked && (
+                    <button
+                      type="button"
+                      onClick={handleAddItemRow}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/15 text-primary text-xs font-bold transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Agregar producto
+                    </button>
+                  )}
                 </div>
-                <select 
-                  value={formData.linea_producto_id ? `${formData.linea_producto_id}|${formData.descripcion}` : formData.descripcion}
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val.includes('|')) {
-                      const [lineaId, nombre] = val.split('|');
-                      setFormData({...formData, linea_producto_id: lineaId, descripcion: nombre});
-                    } else {
-                      setFormData({...formData, linea_producto_id: '', descripcion: val});
-                    }
-                  }}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-800 bg-white"
-                >
-                  <option value="">-- Personalizado / Según Cotización --</option>
-                  {catalog.map((linea: any) => (
-                    <optgroup key={linea.id} label={linea.nombre}>
-                      {linea.productos.map((prod: any) => (
-                        <option key={prod.id} value={`${linea.id}|${prod.nombre}`}>{prod.nombre}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-                <p className="text-xs text-slate-500 mt-1">Este será el concepto mostrado en el PDF descargable.</p>
+
+                <div className="space-y-3">
+                  {items.map((item, idx) => {
+                    const rowSubtotal = Number(((parseFloat(item.cantidad) || 0) * (parseFloat(item.precio_unitario) || 0)).toFixed(2));
+                    return (
+                      <div key={item.localId} className="bg-white rounded-xl border border-slate-200/90 p-3.5 space-y-2.5 shadow-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                            Concepto #{idx + 1}
+                          </span>
+                          {items.length > 1 && !isFinanciallyLocked && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItemRow(item.localId)}
+                              className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Quitar concepto"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Selector de Catálogo */}
+                        <div>
+                          <select
+                            disabled={isFinanciallyLocked}
+                            value={item.producto_id}
+                            onChange={(e) => handleItemProductChange(item.localId, e.target.value)}
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-700 bg-slate-50/50 disabled:opacity-60"
+                          >
+                            <option value="">-- Seleccionar del catálogo (o escribir personalizado abajo) --</option>
+                            {catalog.map((linea: any) => (
+                              <optgroup key={linea.id} label={linea.nombre}>
+                                {linea.productos.map((prod: any) => (
+                                  <option key={prod.id} value={prod.id}>
+                                    {prod.nombre}{prod.precio_base ? ` — ${formatCurrency(prod.precio_base)}` : ''}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Descripción editable del concepto */}
+                        <div>
+                          <input
+                            type="text"
+                            required={idx === 0}
+                            disabled={isFinanciallyLocked}
+                            value={item.descripcion}
+                            onChange={(e) => handleItemFieldChange(item.localId, 'descripcion', e.target.value)}
+                            placeholder="Nombre del producto o servicio (editable)..."
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-slate-800 bg-white disabled:bg-slate-50"
+                          />
+                        </div>
+
+                        {/* Cantidad, Precio Unitario y Subtotal */}
+                        <div className="grid grid-cols-12 gap-2.5 items-end">
+                          <div className="col-span-3">
+                            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Cantidad *</label>
+                            <input
+                              type="number"
+                              required
+                              min="0.01"
+                              step="any"
+                              disabled={isFinanciallyLocked}
+                              value={item.cantidad}
+                              onChange={(e) => handleItemFieldChange(item.localId, 'cantidad', e.target.value)}
+                              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none font-semibold text-slate-800 bg-white disabled:bg-slate-50"
+                              placeholder="1"
+                            />
+                          </div>
+                          <div className="col-span-5">
+                            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Precio Unitario *</label>
+                            <div className="relative">
+                              <DollarSign className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                              <input
+                                type="number"
+                                required
+                                min="0"
+                                step="0.01"
+                                disabled={isFinanciallyLocked}
+                                value={item.precio_unitario}
+                                onChange={(e) => handleItemFieldChange(item.localId, 'precio_unitario', e.target.value)}
+                                className="w-full pl-7 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none font-semibold text-slate-800 bg-white disabled:bg-slate-50"
+                                placeholder="0.00"
+                              />
+                            </div>
+                          </div>
+                          <div className="col-span-4">
+                            <label className="block text-[11px] font-semibold text-slate-500 mb-1 text-right">Subtotal</label>
+                            <div className="px-3 py-2 rounded-lg bg-slate-100/80 border border-slate-200/80 text-right text-sm font-bold text-primary">
+                              {formatCurrency(rowSubtotal)}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Detalle adicional opcional por concepto */}
+                        <div>
+                          <input
+                            type="text"
+                            disabled={isFinanciallyLocked}
+                            value={item.detalle}
+                            onChange={(e) => handleItemFieldChange(item.localId, 'detalle', e.target.value)}
+                            placeholder="Detalle adicional de este concepto (opcional, ej: 2 equipos HP, licencias incluidas...)"
+                            className="w-full px-3 py-1.5 text-xs border border-dashed border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-slate-600 bg-slate-50/40 placeholder:text-slate-400 disabled:opacity-60"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                  {!isFinanciallyLocked ? (
+                    <button
+                      type="button"
+                      onClick={handleAddItemRow}
+                      className="text-xs font-semibold text-primary hover:text-primary-light flex items-center gap-1 transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Agregar otro producto o servicio
+                    </button>
+                  ) : <span />}
+                  <div className="text-xs text-slate-500">
+                    Suma de conceptos: <strong className="text-sm text-slate-900 ml-1">{formatCurrency(itemsTotal)}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Descripción / Nota Adicional Opcional (Editable al crear y después de crear) */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-1.5">
+                  <StickyNote className="w-4 h-4 text-primary" />
+                  Nota / Descripción Adicional <span className="text-xs font-normal text-slate-400">(Opcional — visible en el PDF y editable después)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={formData.notas}
+                  onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
+                  placeholder="Agrega contexto extra, alcances, equipos atendidos, observaciones o instrucciones de pago..."
+                  className="w-full px-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-slate-800 bg-white resize-y"
+                />
+                {isFinanciallyLocked && (
+                  <div className="mt-2">
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Resumen / Descripción principal</label>
+                    <input
+                      type="text"
+                      value={formData.descripcion}
+                      onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                      className="w-full px-3.5 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-slate-800 bg-white"
+                      placeholder="Descripción general del documento..."
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -1106,12 +1485,16 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                       required
                       step="0.01"
                       min="0"
-                      value={formData.monto_total}
+                      readOnly={itemsTotal > 0 || isFinanciallyLocked}
+                      value={itemsTotal > 0 ? itemsTotal.toString() : formData.monto_total}
                       onChange={e => setFormData({...formData, monto_total: e.target.value})}
-                      className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium"
+                      className={`w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-bold ${itemsTotal > 0 || isFinanciallyLocked ? 'bg-slate-50 text-slate-800' : 'bg-white'}`}
                       placeholder="0.00"
                     />
                   </div>
+                  {itemsTotal > 0 && (
+                    <p className="text-[11px] text-slate-400 mt-1">Calculado automáticamente de {validItemsCount} {validItemsCount === 1 ? 'concepto' : 'conceptos'}.</p>
+                  )}
                 </div>
 
                 { (activeTab === 'usa' || printData?.es_usa) && (
@@ -1231,13 +1614,15 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                 </button>
                 <button 
                   type="submit" 
-                  disabled={isLoading || !formData.cliente_id || !formData.monto_total || (editingId && printData && printData.estatus !== 'PENDIENTE' && printData.estatus !== 'VENCIDA' && printData.estatus !== 'BORRADOR')}
+                  disabled={isLoading || !formData.cliente_id || (!isFinanciallyLocked && !(effectiveTotal > 0))}
                   className="flex-1 px-4 py-2 text-white bg-primary hover:bg-primary-light rounded-xl font-bold transition-colors shadow-lg shadow-primary/30 disabled:opacity-70 flex items-center justify-center gap-2"
                 >
-                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingId ? 'Guardar Cambios' : 'Generar')}
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingId ? (isFinanciallyLocked ? 'Guardar Notas / Descripción' : 'Guardar Cambios') : 'Generar')}
                 </button>
               </div>
             </form>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -1592,18 +1977,33 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-slate-300">
-                      <td className="p-1 text-center font-bold border-r border-slate-300">1</td>
-                      <td className="p-1 border-r border-slate-300">{printData.descripcion}</td>
-                      <td className="p-1 text-right font-bold border-r border-slate-300">$ {formatCurrency(printData.monto_total).replace('$', '')}</td>
-                      <td className="p-1 text-right font-bold">$ {formatCurrency(printData.monto_total).replace('$', '')}</td>
-                    </tr>
+                    {Array.isArray(printData.items) && printData.items.length > 0 ? (
+                      printData.items.map((item: any, idx: number) => (
+                        <tr key={item.id || idx} className="border-b border-slate-300">
+                          <td className="p-1 text-center font-bold border-r border-slate-300">{item.cantidad}</td>
+                          <td className="p-1 border-r border-slate-300">
+                            <p className="font-medium">{item.descripcion}</p>
+                            {item.detalle && <p className="text-[11px] text-slate-600 whitespace-pre-wrap mt-0.5">{item.detalle}</p>}
+                          </td>
+                          <td className="p-1 text-right font-bold border-r border-slate-300">$ {formatCurrency(item.precio_unitario).replace('$', '')}</td>
+                          <td className="p-1 text-right font-bold">$ {formatCurrency(item.monto_total).replace('$', '')}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr className="border-b border-slate-300">
+                        <td className="p-1 text-center font-bold border-r border-slate-300">1</td>
+                        <td className="p-1 border-r border-slate-300">{printData.descripcion}</td>
+                        <td className="p-1 text-right font-bold border-r border-slate-300">$ {formatCurrency(printData.monto_total).replace('$', '')}</td>
+                        <td className="p-1 text-right font-bold">$ {formatCurrency(printData.monto_total).replace('$', '')}</td>
+                      </tr>
+                    )}
                     <tr className="border-b border-slate-300">
                       <td className="p-1 border-r border-slate-300"></td>
                       <td className="p-1 text-slate-700 border-r border-slate-300">
                         {printData.detalle_horas && <p className="mb-0.5">Description: {printData.detalle_horas}</p>}
+                        {printData.notas && <p className="mb-0.5 whitespace-pre-wrap">{printData.notas}</p>}
                         {printData.numero_orden && <p className="text-center font-bold">{printData.numero_orden}</p>}
-                        {!printData.detalle_horas && !printData.numero_orden && <span className="opacity-0">-</span>}
+                        {!printData.detalle_horas && !printData.numero_orden && !printData.notas && <span className="opacity-0">-</span>}
                       </td>
                       <td className="p-1 border-r border-slate-300"></td>
                       <td className="p-1"></td>
@@ -1706,14 +2106,34 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                         </tr>
                      </thead>
                      <tbody className="bg-[#eef2f6]">
-                        <tr>
-                          <td className="py-5 px-4 text-left font-bold text-[13px] leading-relaxed max-w-[280px] whitespace-pre-wrap">
-                            {printData.descripcion}
-                          </td>
-                          <td className="py-5 px-4 font-bold text-base">1</td>
-                          <td className="py-5 px-4 text-right font-bold text-base">MXN${formatCurrency(printData.monto_total).replace('$', '')}</td>
-                        </tr>
-                        <tr className="h-40"><td colSpan={3}></td></tr>
+                        {Array.isArray(printData.items) && printData.items.length > 0 ? (
+                          printData.items.map((item: any, idx: number) => (
+                            <tr key={item.id || idx} className="border-b border-white">
+                              <td className="py-4 px-4 text-left leading-relaxed max-w-[320px] whitespace-pre-wrap">
+                                <p className="font-bold text-[13px]">{item.descripcion}</p>
+                                {item.detalle && <p className="text-[12px] text-slate-600 mt-1">{item.detalle}</p>}
+                              </td>
+                              <td className="py-4 px-4 font-bold text-base">{item.cantidad}</td>
+                              <td className="py-4 px-4 text-right font-bold text-base">MXN${formatCurrency(item.monto_total).replace('$', '')}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td className="py-5 px-4 text-left font-bold text-[13px] leading-relaxed max-w-[280px] whitespace-pre-wrap">
+                              {printData.descripcion}
+                            </td>
+                            <td className="py-5 px-4 font-bold text-base">1</td>
+                            <td className="py-5 px-4 text-right font-bold text-base">MXN${formatCurrency(printData.monto_total).replace('$', '')}</td>
+                          </tr>
+                        )}
+                        {printData.notas && (
+                          <tr className="border-t border-white">
+                            <td colSpan={3} className="py-3 px-4 text-left text-[12px] text-slate-700 whitespace-pre-wrap">
+                              <strong className="text-[#004aad]">Notas adicionales: </strong>{printData.notas}
+                            </td>
+                          </tr>
+                        )}
+                        <tr className="h-24"><td colSpan={3}></td></tr>
                      </tbody>
                   </table>
                   
@@ -1783,20 +2203,47 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                 </div>
               </div>
   
-              <table className="w-full mb-8">
+              <table className="w-full mb-6">
                 <thead>
                   <tr className="border-b-2 border-slate-200 text-left">
-                    <th className="py-3 text-slate-600 font-semibold">Descripción</th>
-                    <th className="py-3 text-right text-slate-600 font-semibold">Total</th>
+                    <th className="py-3 pr-4 text-slate-600 font-semibold w-16 text-center">Cant.</th>
+                    <th className="py-3 text-slate-600 font-semibold">Concepto / Descripción</th>
+                    <th className="py-3 text-right text-slate-600 font-semibold w-32">Precio Unit.</th>
+                    <th className="py-3 text-right text-slate-600 font-semibold w-32">Importe</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-slate-100">
-                    <td className="py-4 text-slate-800 font-medium">{printData.descripcion || 'Servicios según presupuesto / cotización'}</td>
-                    <td className="py-4 text-right text-slate-800 font-bold">{formatCurrency(printData.monto_total)}</td>
-                  </tr>
+                  {Array.isArray(printData.items) && printData.items.length > 0 ? (
+                    printData.items.map((item: any, idx: number) => (
+                      <tr key={item.id || idx} className="border-b border-slate-100 align-top">
+                        <td className="py-3.5 pr-4 text-center text-slate-700 font-semibold">{item.cantidad}</td>
+                        <td className="py-3.5 text-slate-800">
+                          <p className="font-semibold">{item.descripcion}</p>
+                          {item.detalle && (
+                            <p className="text-xs text-slate-500 mt-1 whitespace-pre-wrap">{item.detalle}</p>
+                          )}
+                        </td>
+                        <td className="py-3.5 text-right text-slate-700">{formatCurrency(item.precio_unitario)}</td>
+                        <td className="py-3.5 text-right text-slate-800 font-bold">{formatCurrency(item.monto_total)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr className="border-b border-slate-100">
+                      <td className="py-4 pr-4 text-center text-slate-700 font-semibold">1</td>
+                      <td className="py-4 text-slate-800 font-medium">{printData.descripcion || 'Servicios según presupuesto / cotización'}</td>
+                      <td className="py-4 text-right text-slate-700">{formatCurrency(printData.monto_total)}</td>
+                      <td className="py-4 text-right text-slate-800 font-bold">{formatCurrency(printData.monto_total)}</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
+
+              {printData.notas && (
+                <div className="mb-6 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Notas / Detalle Adicional</h4>
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{printData.notas}</p>
+                </div>
+              )}
   
               <div className="flex justify-end">
                 <div className="w-64">

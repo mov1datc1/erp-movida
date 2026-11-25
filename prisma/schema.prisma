@@ -382,6 +382,7 @@ model Factura {
   fecha_vencimiento DateTime?
   monto_total       Float
   descripcion       String?       @db.Text
+  notas             String?       @db.Text
   categoria         String?
   estatus           FacturaStatus @default(PENDIENTE)
 
@@ -427,8 +428,28 @@ model Factura {
   proyecto_id       String?
   proyecto          Proyecto?      @relation(fields: [proyecto_id], references: [id], onDelete: SetNull)
 
+  items             FacturaItem[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model FacturaItem {
+  id                String            @id @default(uuid())
+  factura_id        String
+  factura           Factura           @relation(fields: [factura_id], references: [id], onDelete: Cascade)
+  producto_id       String?
+  producto          ProductoServicio? @relation(fields: [producto_id], references: [id], onDelete: SetNull)
+  linea_producto_id String?
+  descripcion       String
+  detalle           String?           @db.Text
+  cantidad          Float             @default(1)
+  precio_unitario   Float
+  monto_total       Float
+  orden             Int               @default(0)
+
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 }
 
 enum FacturaStatus {
@@ -618,6 +639,7 @@ model ProductoServicio {
   updatedAt         DateTime @updatedAt
 
   cotizacionItems   CotizacionItem[]
+  facturaItems      FacturaItem[]
   movimientos       MovimientoFinanciero[]
 }
 

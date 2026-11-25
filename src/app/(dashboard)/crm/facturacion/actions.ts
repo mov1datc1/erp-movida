@@ -4,25 +4,82 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { MetodoPagoCFDI } from "@prisma/client";
 
-export async function createPrefactura(data: { cliente_id: string, monto_total: number, cotizacion_id?: string, fecha_vencimiento?: string, descripcion?: string, linea_producto_id?: string, categoria?: string, proyecto_id?: string }) {
+export type FacturaItemInput = {
+  producto_id?: string | null;
+  linea_producto_id?: string | null;
+  descripcion: string;
+  detalle?: string | null;
+  cantidad: number;
+  precio_unitario: number;
+  monto_total?: number;
+};
+
+function normalizeFacturaItems(items?: FacturaItemInput[]) {
+  if (!Array.isArray(items)) return [];
+  return items
+    .filter((item) => item && (item.descripcion?.trim() || Number(item.precio_unitario) > 0))
+    .map((item, index) => {
+      const cantidad = Math.max(0.01, Number(item.cantidad) || 1);
+      const precio_unitario = Math.max(0, Number(item.precio_unitario) || 0);
+      const monto_total = Number((cantidad * precio_unitario).toFixed(2));
+      return {
+        producto_id: item.producto_id || null,
+        linea_producto_id: item.linea_producto_id || null,
+        descripcion: item.descripcion?.trim() || 'Concepto',
+        detalle: item.detalle?.trim() || null,
+        cantidad,
+        precio_unitario,
+        monto_total,
+        orden: index,
+      };
+    });
+}
+
+function buildItemsSummary(items: ReturnType<typeof normalizeFacturaItems>, fallback?: string) {
+  if (items.length === 0) return fallback?.trim() || undefined;
+  if (items.length === 1) {
+    const first = items[0];
+    return first.cantidad !== 1 ? `${first.cantidad}x ${first.descripcion}` : first.descripcion;
+  }
+  const extra = items.length - 1;
+  return `${items[0].descripcion} (+${extra} ${extra === 1 ? 'concepto más' : 'conceptos más'})`;
+}
+
+export async function createPrefactura(data: { cliente_id: string, monto_total: number, cotizacion_id?: string, fecha_vencimiento?: string, descripcion?: string, notas?: string, linea_producto_id?: string, categoria?: string, proyecto_id?: string, items?: FacturaItemInput[] }) {
   try {
     const folio = `PRE-${Math.floor(1000 + Math.random() * 9000)}`;
     const fechaVen = data.fecha_vencimiento ? new Date(`${data.fecha_vencimiento}T12:00:00Z`) : new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
+    const normalizedItems = normalizeFacturaItems(data.items);
+    const computedTotal = normalizedItems.length > 0
+      ? Number(normalizedItems.reduce((sum, i) => sum + i.monto_total, 0).toFixed(2))
+      : data.monto_total;
+    const montoFinal = computedTotal > 0 ? computedTotal : data.monto_total;
+    const descripcionFinal = normalizedItems.length > 0
+      ? buildItemsSummary(normalizedItems, data.descripcion)
+      : (data.descripcion?.trim() || undefined);
+    const lineaFinal = data.linea_producto_id || normalizedItems.find((i) => i.linea_producto_id)?.linea_producto_id || null;
 
     const factura = await prisma.factura.create({
       data: {
         folio,
         cliente_id: data.cliente_id,
         cotizacion_id: data.cotizacion_id,
-        monto_total: data.monto_total,
-        descripcion: data.descripcion,
+        monto_total: montoFinal,
+        descripcion: descripcionFinal,
+        notas: data.notas?.trim() || null,
         estatus: 'PENDIENTE',
         fecha_emision: new Date(),
         fecha_vencimiento: fechaVen,
-        linea_producto_id: data.linea_producto_id || null,
+        linea_producto_id: lineaFinal,
         categoria: data.categoria,
-        proyecto_id: data.proyecto_id || null
-      }
+        proyecto_id: data.proyecto_id || null,
+        ...(normalizedItems.length > 0 && {
+          items: {
+            create: normalizedItems,
+          },
+        }),
+      },
+      include: { items: { orderBy: { orden: 'asc' } } },
     });
 
     revalidatePath('/crm/facturacion');
@@ -38,26 +95,67 @@ export async function createPrefactura(data: { cliente_id: string, monto_total: 
   }
 }
 
-export async function updatePrefactura(id: string, data: { cliente_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string, linea_producto_id?: string, categoria?: string, detalle_horas?: string, numero_orden?: string, mes_servicio?: string, tipo_servicio?: string, plataformas?: string, proyecto_id?: string }) {
+export async function updatePrefactura(id: string, data: { cliente_id: string, monto_total: number, fecha_vencimiento?: string, descripcion?: string, notas?: string, linea_producto_id?: string, categoria?: string, detalle_horas?: string, numero_orden?: string, mes_servicio?: string, tipo_servicio?: string, plataformas?: string, proyecto_id?: string, items?: FacturaItemInput[] }) {
   try {
+    const existing = await prisma.factura.findUnique({ where: { id } });
+    if (!existing) {
+      return { success: false, error: 'Prefactura no encontrada' };
+    }
+
+    const isLockedFinancially = existing.estatus === 'PAGADA' || existing.estatus === 'CANCELADA';
     const fechaVen = data.fecha_vencimiento ? new Date(`${data.fecha_vencimiento}T12:00:00Z`) : null;
-    
-    await prisma.factura.update({
-      where: { id },
-      data: {
-        cliente_id: data.cliente_id,
-        monto_total: data.monto_total,
-        descripcion: data.descripcion,
-        linea_producto_id: data.linea_producto_id || null,
-        categoria: data.categoria,
-        detalle_horas: data.detalle_horas,
-        numero_orden: data.numero_orden,
-        mes_servicio: data.mes_servicio,
-        tipo_servicio: data.tipo_servicio,
-        plataformas: data.plataformas,
-        proyecto_id: data.proyecto_id || null,
-        ...(fechaVen && { fecha_vencimiento: fechaVen })
+    const hasItemsPayload = Array.isArray(data.items);
+    const normalizedItems = hasItemsPayload ? normalizeFacturaItems(data.items) : [];
+
+    const computedTotal = normalizedItems.length > 0
+      ? Number(normalizedItems.reduce((sum, i) => sum + i.monto_total, 0).toFixed(2))
+      : data.monto_total;
+    const montoFinal = isLockedFinancially
+      ? existing.monto_total
+      : (computedTotal > 0 ? computedTotal : data.monto_total);
+
+    if (!isLockedFinancially && (existing.monto_pagado || 0) > 0 && montoFinal < existing.monto_pagado) {
+      return {
+        success: false,
+        error: `El monto total ($${montoFinal.toFixed(2)}) no puede ser menor al monto ya pagado ($${existing.monto_pagado.toFixed(2)}).`,
+      };
+    }
+
+    const descripcionFinal = normalizedItems.length > 0
+      ? buildItemsSummary(normalizedItems, data.descripcion)
+      : (data.descripcion?.trim() || null);
+    const lineaFinal = data.linea_producto_id || normalizedItems.find((i) => i.linea_producto_id)?.linea_producto_id || existing.linea_producto_id || null;
+
+    await prisma.$transaction(async (tx) => {
+      if (hasItemsPayload && !isLockedFinancially) {
+        await tx.facturaItem.deleteMany({ where: { factura_id: id } });
       }
+
+      await tx.factura.update({
+        where: { id },
+        data: {
+          ...(!isLockedFinancially && {
+            cliente_id: data.cliente_id,
+            monto_total: montoFinal,
+            categoria: data.categoria,
+            linea_producto_id: lineaFinal,
+          }),
+          descripcion: descripcionFinal,
+          notas: data.notas !== undefined ? (data.notas.trim() || null) : existing.notas,
+          detalle_horas: data.detalle_horas,
+          numero_orden: data.numero_orden,
+          mes_servicio: data.mes_servicio,
+          tipo_servicio: data.tipo_servicio,
+          plataformas: data.plataformas,
+          proyecto_id: data.proyecto_id || null,
+          ...(fechaVen && !isLockedFinancially && { fecha_vencimiento: fechaVen }),
+          ...(hasItemsPayload && !isLockedFinancially && normalizedItems.length > 0 && {
+            items: {
+              create: normalizedItems,
+            },
+          }),
+        }
+      });
     });
 
     revalidatePath('/crm/facturacion');
@@ -187,7 +285,7 @@ export async function timbrarFacturaCFDI(facturaId: string, timbradoData: {
 
     const factura = await prisma.factura.findUnique({
       where: { id: facturaId },
-      include: { cliente: true }
+      include: { cliente: true, items: { orderBy: { orden: 'asc' } } }
     });
 
     if (!factura) throw new Error("Factura no encontrada");
@@ -212,32 +310,33 @@ export async function timbrarFacturaCFDI(facturaId: string, timbradoData: {
       email: factura.cliente.email || undefined
     });
 
-    // 2. Crear producto en Facturapi (Generic based on description or generic name)
-    const product = await facturapi.products.create({
-      description: factura.descripcion || 'Servicios según cotización',
-      product_key: timbradoData.clave_producto,
-      price: factura.monto_total,
-      taxes: [
-        {
-          type: 'IVA',
-          rate: 0.16
-        }
-      ]
-    });
+    // 2. Crear productos en Facturapi (múltiples ítems si existen, o uno genérico)
+    const invoiceItems: { product: string; quantity: number }[] = [];
+    if (factura.items && factura.items.length > 0) {
+      for (const item of factura.items) {
+        const desc = item.detalle ? `${item.descripcion} - ${item.detalle}` : item.descripcion;
+        const prod = await facturapi.products.create({
+          description: desc,
+          product_key: timbradoData.clave_producto,
+          price: item.precio_unitario,
+          taxes: [{ type: 'IVA', rate: 0.16 }]
+        });
+        invoiceItems.push({ product: prod.id, quantity: item.cantidad });
+      }
+    } else {
+      const product = await facturapi.products.create({
+        description: factura.descripcion || 'Servicios según cotización',
+        product_key: timbradoData.clave_producto,
+        price: factura.monto_total,
+        taxes: [{ type: 'IVA', rate: 0.16 }]
+      });
+      invoiceItems.push({ product: product.id, quantity: 1 });
+    }
 
     // 3. Generar Recibo/Factura (Invoice) en Facturapi
-    // Nota: Facturapi maneja los montos considerando el IVA si es necesario.
-    // Si factura.monto_total ya incluye IVA, habría que ajustar esto o usar un tax rate de IVA retenido/trasladado, 
-    // pero para este boilerplate asumiremos que Facturapi calculará el tax_included si pasamos price. 
-    // Lo ideal es mandar el precio base, pero para simplificar, usaremos los defaults.
     const invoice = await facturapi.invoices.create({
       customer: customer.id,
-      items: [
-        {
-          product: product.id,
-          quantity: 1
-        }
-      ],
+      items: invoiceItems,
       use: timbradoData.uso_cfdi,
       payment_form: timbradoData.forma_pago,
       payment_method: timbradoData.metodo_pago
@@ -269,7 +368,7 @@ export async function timbrarFacturaCFDI(facturaId: string, timbradoData: {
   }
 }
 
-export async function crearFacturaUSA(data: { cliente_id: string, monto_total: number, monto_mxn_estimado?: number, descripcion?: string, linea_producto_id?: string, categoria?: string, detalle_horas?: string, numero_orden?: string, proyecto_id?: string }) {
+export async function crearFacturaUSA(data: { cliente_id: string, monto_total: number, monto_mxn_estimado?: number, descripcion?: string, notas?: string, linea_producto_id?: string, categoria?: string, detalle_horas?: string, numero_orden?: string, proyecto_id?: string, items?: FacturaItemInput[] }) {
   try {
     // Buscar la última factura USA para obtener el número actual
     const lastUsa = await prisma.factura.findFirst({
@@ -282,24 +381,37 @@ export async function crearFacturaUSA(data: { cliente_id: string, monto_total: n
     // Generar un UUID único para el folio fiscal de la exportación
     const folioFiscal = crypto.randomUUID().toUpperCase();
     const folio = `USA-${nextNumero}`;
+    const normalizedItems = normalizeFacturaItems(data.items);
+    const computedTotal = normalizedItems.length > 0
+      ? Number(normalizedItems.reduce((sum, i) => sum + i.monto_total, 0).toFixed(2))
+      : data.monto_total;
+    const montoFinal = computedTotal > 0 ? computedTotal : data.monto_total;
+    const descripcionFinal = normalizedItems.length > 0
+      ? buildItemsSummary(normalizedItems, data.descripcion)
+      : (data.descripcion?.trim() || undefined);
+    const lineaFinal = data.linea_producto_id || normalizedItems.find((i) => i.linea_producto_id)?.linea_producto_id || null;
 
     const factura = await prisma.factura.create({
       data: {
         folio,
         cliente_id: data.cliente_id,
-        monto_total: data.monto_total,
+        monto_total: montoFinal,
         monto_mxn_estimado: data.monto_mxn_estimado,
-        descripcion: data.descripcion,
+        descripcion: descripcionFinal,
+        notas: data.notas?.trim() || null,
         estatus: 'PENDIENTE',
         fecha_emision: new Date(),
         es_usa: true,
         numero_usa: nextNumero,
         folio_fiscal: folioFiscal,
-        linea_producto_id: data.linea_producto_id,
+        linea_producto_id: lineaFinal,
         categoria: data.categoria || 'Ventas Internacionales',
         detalle_horas: data.detalle_horas,
         numero_orden: data.numero_orden,
-        proyecto_id: data.proyecto_id || null
+        proyecto_id: data.proyecto_id || null,
+        ...(normalizedItems.length > 0 && {
+          items: { create: normalizedItems },
+        }),
       }
     });
 
@@ -311,7 +423,7 @@ export async function crearFacturaUSA(data: { cliente_id: string, monto_total: n
   }
 }
 
-export async function crearFacturaMX(data: { cliente_id: string, monto_total: number, descripcion?: string, linea_producto_id?: string, categoria?: string, mes_servicio?: string, tipo_servicio?: string, plataformas?: string, proyecto_id?: string }) {
+export async function crearFacturaMX(data: { cliente_id: string, monto_total: number, descripcion?: string, notas?: string, linea_producto_id?: string, categoria?: string, mes_servicio?: string, tipo_servicio?: string, plataformas?: string, proyecto_id?: string, items?: FacturaItemInput[] }) {
   try {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
@@ -341,24 +453,37 @@ export async function crearFacturaMX(data: { cliente_id: string, monto_total: nu
     // Generar un UUID único para el folio fiscal de MX
     const folioFiscal = crypto.randomUUID().toUpperCase();
     const folio = `MX-${nextNumero}`;
+    const normalizedItems = normalizeFacturaItems(data.items);
+    const computedTotal = normalizedItems.length > 0
+      ? Number(normalizedItems.reduce((sum, i) => sum + i.monto_total, 0).toFixed(2))
+      : data.monto_total;
+    const montoFinal = computedTotal > 0 ? computedTotal : data.monto_total;
+    const descripcionFinal = normalizedItems.length > 0
+      ? buildItemsSummary(normalizedItems, data.descripcion)
+      : (data.descripcion?.trim() || undefined);
+    const lineaFinal = data.linea_producto_id || normalizedItems.find((i) => i.linea_producto_id)?.linea_producto_id || null;
 
     const factura = await prisma.factura.create({
       data: {
         folio,
         cliente_id: data.cliente_id,
-        monto_total: data.monto_total,
-        descripcion: data.descripcion,
+        monto_total: montoFinal,
+        descripcion: descripcionFinal,
+        notas: data.notas?.trim() || null,
         estatus: 'PENDIENTE',
         fecha_emision: new Date(),
         es_mx: true,
         numero_mx: nextNumero,
         folio_fiscal: folioFiscal,
-        linea_producto_id: data.linea_producto_id,
+        linea_producto_id: lineaFinal,
         categoria: data.categoria || 'Ventas Nacionales',
         mes_servicio: data.mes_servicio,
         tipo_servicio: data.tipo_servicio,
         plataformas: data.plataformas,
-        proyecto_id: data.proyecto_id || null
+        proyecto_id: data.proyecto_id || null,
+        ...(normalizedItems.length > 0 && {
+          items: { create: normalizedItems },
+        }),
       }
     });
 
