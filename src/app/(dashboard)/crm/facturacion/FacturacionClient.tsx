@@ -584,7 +584,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
   };
 
   return (
-    <div className={`space-y-6 ${printMode === 'invoice' ? 'print-invoice-mode' : printMode === 'table' ? 'print-table-mode' : ''}`}>
+    <div className={`space-y-6 print:space-y-0 ${printMode === 'invoice' ? 'print-invoice-mode' : printMode === 'table' ? 'print-table-mode' : ''}`}>
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           .print-invoice-mode .print-table-wrapper { display: none !important; }
@@ -594,8 +594,18 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
           .print-table-mode .print-cards { display: none !important; }
           .print-table-mode .print-header { display: none !important; }
           
-          @page { margin: 0; }
-          body { margin-top: 1cm; margin-bottom: 1cm; }
+          @page { size: letter portrait; margin: 10mm; }
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+            background: #ffffff !important;
+          }
+          .print-invoice-mode .print-invoice-wrapper {
+            margin: 0 !important;
+            padding: 0 !important;
+          }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
         }
       `}} />
@@ -1905,7 +1915,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
       )}
 
       {/* Bloque imprimible de factura (oculto en pantalla) */}
-      <div className="hidden print:block p-8 print-invoice-wrapper">
+      <div className="hidden print:block p-0 print-invoice-wrapper">
         {printData && (
           printData.es_usa ? (
             <div className="usa-invoice text-[12px] leading-tight font-sans text-black">
@@ -2054,7 +2064,7 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
               
             </div>
           ) : printData.es_mx ? (
-            <div className="mx-invoice text-[12px] leading-tight font-sans text-black relative flex bg-white min-h-[1056px]">
+            <div className="mx-invoice text-[12px] leading-tight font-sans text-black relative flex bg-white min-h-[246mm]">
                 {/* Left blue decorative sidebar */}
                 <div className="absolute left-0 top-0 bottom-0 w-[40px] bg-[#4b7cbb] z-0 overflow-hidden flex flex-col">
                   {/* Decorative geometric shapes */}
@@ -2173,11 +2183,11 @@ export function FacturacionClient({ facturas, clientes, catalog = [], favoritos 
                 </div>
             </div>
           ) : (
-            <div className="bg-white text-slate-900 font-sans flex flex-col min-h-[960px] border border-slate-200 rounded-xl overflow-hidden">
+            <div className="bg-white text-slate-900 font-sans flex flex-col min-h-[246mm] border border-slate-200 rounded-xl overflow-hidden">
               {/* Franja superior corporativa Movida */}
-              <div className="h-2.5 w-full bg-gradient-to-r from-[#0f2557] via-[#1e3a8a] to-[#2563eb]" />
+              <div className="h-2 w-full bg-gradient-to-r from-[#0f2557] via-[#1e3a8a] to-[#2563eb]" />
 
-              <div className="p-8 flex-1 flex flex-col">
+              <div className="p-6 flex-1 flex flex-col">
                 {/* Encabezado: Logo Movida + Datos Emisor + Tarjeta Folio */}
                 <div className="flex justify-between items-start gap-6 pb-5 border-b border-slate-200">
                   <div className="flex items-start gap-4">
