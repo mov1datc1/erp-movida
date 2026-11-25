@@ -1,17 +1,32 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #1e3a8a; /* Azul oscuro premium */
-  --color-primary-light: #3b82f6; /* Azul brillante */
-  --color-background: #f8fafc; /* Fondo gris muy claro */
+  --color-primary: #00015c; /* Azul principal Movida TCI (movidatci.com) */
+  --color-primary-light: #0070c0; /* Azul secundario corporativo Movida TCI */
+  --color-movida-navy: #00015c;
+  --color-movida-navy-2: #0b0f6e;
+  --color-movida-blue: #0070c0;
+  --color-movida-sky: #58b7ff;
+  --color-movida-ice: #eef4fb;
+  --color-movida-ink: #0a0b2e;
+  --color-background: #f4f7fc; /* Fondo gris azulado muy claro */
   --color-surface: #ffffff; /* Superficie blanca */
-  --color-text-main: #0f172a; /* Texto principal oscuro */
-  --color-text-muted: #64748b; /* Texto secundario */
+  --color-text-main: #0a0b2e; /* Texto principal azul noche */
+  --color-text-muted: #51587a; /* Texto secundario */
   --color-danger: #ef4444; /* Rojo para alertas/eliminar */
   --color-success: #10b981; /* Verde esmeralda para éxito */
   
   --radius-xl: 1rem;
   --radius-2xl: 1.5rem;
+}
+
+:root {
+  --mv-navy: #00015c;
+  --mv-navy-2: #0b0f6e;
+  --mv-blue: #0070c0;
+  --mv-sky: #58b7ff;
+  --mv-ice: #eef4fb;
+  --mv-ink: #0a0b2e;
 }
 
 /* Base styles */
@@ -33,6 +48,20 @@
   }
   
   .card-shadow {
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 20px -2px rgba(0, 1, 92, 0.06);
+  }
+
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 4px;
+  }
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background: rgba(88, 183, 255, 0.22);
+    border-radius: 9999px;
+  }
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(88, 183, 255, 0.45);
   }
 }
